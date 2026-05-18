@@ -11,6 +11,7 @@ interface QuestionFormState {
   correctAnswer: AnswerOption;
   explanation: string;
   indicators: string;
+  alwaysIncluded: boolean;
 }
 
 type HotspotNote = {
@@ -34,6 +35,7 @@ const emptyForm: QuestionFormState = {
   correctAnswer: "phishing",
   explanation: "",
   indicators: "",
+  alwaysIncluded: false,
 };
 
 function mapQuestionToForm(question: QuizQuestion): QuestionFormState {
@@ -46,6 +48,7 @@ function mapQuestionToForm(question: QuizQuestion): QuestionFormState {
     correctAnswer: question.correctAnswer,
     explanation: question.explanation,
     indicators: question.indicators.join(", "),
+    alwaysIncluded: question.alwaysIncluded,
   };
 }
 
@@ -94,6 +97,15 @@ export function AdminQuestionsPage() {
     persist(nextQuestions);
   }
 
+  function toggleAlwaysIncluded(questionId: string) {
+    const nextQuestions = questions.map((question) =>
+      question.id === questionId
+        ? { ...question, alwaysIncluded: !question.alwaysIncluded, active: question.alwaysIncluded ? question.active : true }
+        : question,
+    );
+    persist(nextQuestions);
+  }
+
   function editQuestion(question: QuizQuestion) {
     setEditingId(question.id);
     setForm(mapQuestionToForm(question));
@@ -134,6 +146,7 @@ export function AdminQuestionsPage() {
   }, [form.explanation, form.indicators, previewHotspotNotes]);
   const previewCurrentStep = previewExplanationSteps[previewStepIndex] ?? null;
   const previewHasMoreSteps = previewStepIndex < previewExplanationSteps.length - 1;
+  const alwaysIncludedCount = questions.filter((question) => question.alwaysIncluded && question.active).length;
   const previewHtmlWithSpotOrder = useMemo(() => {
     if (!form.scenarioHtml || typeof window === "undefined") {
       return form.scenarioHtml;
@@ -208,6 +221,7 @@ export function AdminQuestionsPage() {
         .split(",")
         .map((value) => value.trim())
         .filter(Boolean),
+      alwaysIncluded: form.alwaysIncluded,
     };
 
     if (editingId) {
@@ -223,6 +237,7 @@ export function AdminQuestionsPage() {
       id: crypto.randomUUID(),
       ...payload,
       active: true,
+      alwaysIncluded: form.alwaysIncluded,
       orderIndex: questions.length + 1,
     };
     persist([...questions, nextQuestion]);
@@ -234,6 +249,11 @@ export function AdminQuestionsPage() {
       <div className="content-card">
         <p className="eyebrow">Ngân Hàng Câu Hỏi</p>
         <h2>Quản lý tình huống</h2>
+        <p className="section-text">
+          Đề kiểm tra luôn tối đa 10 câu. Các câu đánh dấu “Luôn có” sẽ được ưu tiên đưa vào đề,
+          phần còn lại được random từ các câu đang bật khác, sau đó toàn bộ đề được trộn lại. Hiện có{" "}
+          {alwaysIncludedCount} câu đang được đánh dấu luôn có.
+        </p>
       </div>
       <div className="content-card">
         <form className="stack" onSubmit={onSubmit}>
@@ -414,6 +434,14 @@ export function AdminQuestionsPage() {
               <option value="legitimate">Legitimate</option>
             </select>
           </label>
+          <label className="admin-check-row">
+            <input
+              type="checkbox"
+              checked={form.alwaysIncluded}
+              onChange={(event) => setField("alwaysIncluded", event.target.checked)}
+            />
+            <span>Luôn có trong đề kiểm tra</span>
+          </label>
           <label>
             Giải thích
             <textarea
@@ -450,6 +478,7 @@ export function AdminQuestionsPage() {
               <th>Loại</th>
               <th>Đáp án</th>
               <th>Trạng thái</th>
+              <th>Luôn có</th>
               <th>Thao tác</th>
             </tr>
           </thead>
@@ -461,6 +490,7 @@ export function AdminQuestionsPage() {
                 <td>{question.category}</td>
                 <td>{question.correctAnswer}</td>
                 <td>{question.active ? "Đang bật" : "Đang tắt"}</td>
+                <td>{question.alwaysIncluded ? "Có" : "Không"}</td>
                 <td className="table-actions">
                   <button
                     type="button"
@@ -475,6 +505,13 @@ export function AdminQuestionsPage() {
                     onClick={() => toggleActive(question.id)}
                   >
                     {question.active ? "Tắt" : "Bật"}
+                  </button>
+                  <button
+                    type="button"
+                    className="button button-small"
+                    onClick={() => toggleAlwaysIncluded(question.id)}
+                  >
+                    {question.alwaysIncluded ? "Bỏ luôn có" : "Luôn có"}
                   </button>
                 </td>
               </tr>

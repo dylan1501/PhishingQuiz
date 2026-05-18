@@ -17,6 +17,30 @@ type ExplanationStep = {
   hotspotIndex?: number;
 };
 
+const QUIZ_SOUNDS = {
+  correct: "/assets/sounds/mixkit-correct-answer-reward-952.wav",
+  wrong: "/assets/sounds/mixkit-wrong-answer-fail-notification-946.wav",
+  thinking: "/assets/sounds/mixkit-retro-game-emergency-alarm-1000.wav",
+} as const;
+
+function stopAudio(audio: HTMLAudioElement | null) {
+  if (!audio) {
+    return;
+  }
+  audio.pause();
+  audio.currentTime = 0;
+}
+
+function playAudio(audio: HTMLAudioElement | null) {
+  if (!audio) {
+    return;
+  }
+  audio.currentTime = 0;
+  void audio.play().catch(() => {
+    // Browsers may block audio until the first user interaction.
+  });
+}
+
 function cloneFieldValue(document: Document, fieldNode: Element | null, fallback: string) {
   const value = document.createElement("div");
   value.className = "email-field-value";
@@ -251,6 +275,9 @@ export function QuizPage() {
   const [explanationStepIndex, setExplanationStepIndex] = useState(0);
   const scenarioHtmlRef = useRef<HTMLDivElement | null>(null);
   const scenarioStageRef = useRef<HTMLDivElement | null>(null);
+  const correctAudioRef = useRef<HTMLAudioElement | null>(null);
+  const wrongAudioRef = useRef<HTMLAudioElement | null>(null);
+  const thinkingAudioRef = useRef<HTMLAudioElement | null>(null);
   const [bubblePosition, setBubblePosition] = useState<{ left: number; top: number } | null>(null);
   const [anchorPosition, setAnchorPosition] = useState<{ left: number; top: number } | null>(null);
 
@@ -270,11 +297,48 @@ export function QuizPage() {
     setAnchorPosition(null);
   }, [existingAnswer?.selectedAnswer, question.id]);
 
+  useEffect(() => {
+    correctAudioRef.current = new Audio(QUIZ_SOUNDS.correct);
+    wrongAudioRef.current = new Audio(QUIZ_SOUNDS.wrong);
+    thinkingAudioRef.current = new Audio(QUIZ_SOUNDS.thinking);
+    thinkingAudioRef.current.loop = true;
+    thinkingAudioRef.current.volume = 0.18;
+    correctAudioRef.current.volume = 0.8;
+    wrongAudioRef.current.volume = 0.8;
+
+    return () => {
+      stopAudio(correctAudioRef.current);
+      stopAudio(wrongAudioRef.current);
+      stopAudio(thinkingAudioRef.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    const thinkingAudio = thinkingAudioRef.current;
+    if (!thinkingAudio) {
+      return;
+    }
+
+    if (selectedAnswer) {
+      stopAudio(thinkingAudio);
+      return;
+    }
+
+    thinkingAudio.currentTime = 0;
+    void thinkingAudio.play().catch(() => {
+      // Browsers may block audio until the first user interaction.
+    });
+
+    return () => stopAudio(thinkingAudio);
+  }, [question.id, selectedAnswer]);
+
   function answerQuestion(answer: AnswerOption) {
     if (selectedAnswer) {
       return;
     }
     setSelectedAnswer(answer);
+    stopAudio(thinkingAudioRef.current);
+    playAudio(answer === question.correctAnswer ? correctAudioRef.current : wrongAudioRef.current);
     const nextAnswers = activeSession.answers.filter((entry) => entry.questionId !== question.id);
     nextAnswers.push({
       questionId: question.id,
@@ -437,12 +501,11 @@ export function QuizPage() {
         <p className="section-text">{question.scenarioIntro}</p>
         <div className="scenario-box">{question.scenarioContent}</div>
         {question.scenarioHtml && (
-          <div className="scenario-html-box">
+          <>
             <div className="scenario-html-stage" ref={scenarioStageRef}>
-              <div className="interactive-label">Khu vực mô phỏng để kiểm tra tương tác</div>
               <div
+                className={`scenario-html-box ${explanationViewed ? "explanation-active explanation-with-bubble" : ""}`}
                 ref={scenarioHtmlRef}
-                className={`scenario-html-content ${explanationViewed ? "explanation-active explanation-with-bubble" : ""}`}
                 dangerouslySetInnerHTML={{ __html: scenarioHtmlWithSpotOrder }}
               />
               {explanationViewed && currentExplanationStep?.spot && anchorPosition && (
@@ -489,7 +552,7 @@ export function QuizPage() {
                 )}
               </>
             )}
-          </div>
+          </>
         )}
         <div className="answer-grid">
           <button
@@ -530,11 +593,6 @@ export function QuizPage() {
                 </button>
               )}
             </div>
-            {!explanationViewed && (
-              <div className="notice notice-warning">
-                Bạn phải mở phần giải thích trước khi sang câu tiếp theo.
-              </div>
-            )}
           </>
         )}
           {explanationViewed && currentExplanationStep && (

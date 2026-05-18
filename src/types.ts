@@ -19,6 +19,7 @@ export interface QuizQuestion {
   explanation: string;
   indicators: string[];
   active: boolean;
+  alwaysIncluded: boolean;
   orderIndex: number;
 }
 

