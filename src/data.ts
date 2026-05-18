@@ -53,7 +53,7 @@ export const seedQuestions: QuizQuestion[] = [
       "Hãy kiểm tra nội dung mô phỏng bên dưới và quyết định xem đây là phishing hay legitimate.",
     scenarioHtml: `
       <div class="portal-sim">
-        <div class="mail-row" data-spot="safe" data-label="Đúng domain nội bộ"><strong>Trang đích:</strong> <a href="https://hr.company.vn/policy/leave-2026" title="https://hr.company.vn/policy/leave-2026">https://hr.company.vn/policy/leave-2026</a></div>
+        <div class="mail-row" data-spot="safe" data-label="Đúng domain nội bộ VPS"><strong>Trang đích:</strong> <a href="https://hr.vps.com.vn/policy/leave-2026" title="https://hr.vps.com.vn/policy/leave-2026">https://hr.vps.com.vn/policy/leave-2026</a></div>
         <p>Updated Leave Policy 2026</p>
         <button type="button">Acknowledge policy</button>
       </div>
@@ -61,7 +61,7 @@ export const seedQuestions: QuizQuestion[] = [
     correctAnswer: "legitimate",
     explanation:
       "Ngữ cảnh phù hợp, domain đúng với hệ thống HR quen thuộc và không yêu cầu thông tin nhạy cảm.",
-    indicators: ["Đúng bối cảnh", "Đúng domain nội bộ", "Không yêu cầu nhập mật khẩu"],
+    indicators: ["Đúng bối cảnh", "Đúng domain nội bộ VPS", "Không yêu cầu nhập mật khẩu"],
     active: true,
     orderIndex: 3,
   },
@@ -141,15 +141,15 @@ export const seedQuestions: QuizQuestion[] = [
       "Hãy xem lời mời họp và quyết định xem tình huống này là phishing hay legitimate.",
     scenarioHtml: `
       <div class="mail-sim">
-        <div class="mail-row" data-spot="safe" data-label="Người gửi nội bộ quen thuộc"><strong>From:</strong> manager@company.vn</div>
-        <div class="mail-row" data-spot="safe" data-label="Link họp nội bộ đúng hệ thống"><strong>Meeting link:</strong> <a href="https://meet.company.vn/team-weekly" title="https://meet.company.vn/team-weekly">meet.company.vn/team-weekly</a></div>
+        <div class="mail-row" data-spot="safe" data-label="Người gửi nội bộ quen thuộc thuộc domain VPS"><strong>From:</strong> manager@vps.com.vn</div>
+        <div class="mail-row" data-spot="safe" data-label="Link họp nội bộ đúng hệ thống VPS"><strong>Meeting link:</strong> <a href="https://meet.vps.com.vn/team-weekly" title="https://meet.vps.com.vn/team-weekly">meet.vps.com.vn/team-weekly</a></div>
         <p>Weekly Operations Sync - Tuesday 10:00 AM</p>
       </div>
     `,
     correctAnswer: "legitimate",
     explanation:
       "Người gửi, nhịp họp và nền tảng họp đều trùng với hành vi nội bộ bình thường nên đây là trường hợp hợp lệ.",
-    indicators: ["Người gửi quen thuộc", "Đúng lịch họp", "Link đúng hệ thống công ty"],
+    indicators: ["Người gửi quen thuộc", "Đúng lịch họp", "Link đúng hệ thống VPS"],
     active: true,
     orderIndex: 7,
   },
@@ -164,13 +164,13 @@ export const seedQuestions: QuizQuestion[] = [
       <div class="qr-sim">
         <div class="fake-qr">QR</div>
         <p>Scan to review payroll adjustments</p>
-        <p data-spot="danger" data-label="Đích đến không thuộc domain công ty">Destination: <a href="https://payroll-company-secure.net/login" title="https://payroll-company-secure.net/login">payroll-company-secure.net/login</a></p>
+        <p data-spot="danger" data-label="Đích đến không thuộc domain VPS">Destination: <a href="https://payroll-vps-secure.net/login" title="https://payroll-vps-secure.net/login">payroll-vps-secure.net/login</a></p>
       </div>
     `,
     correctAnswer: "phishing",
     explanation:
       "QR phishing che giấu đích đến thực sự cho tới khi người dùng quét. Domain đăng nhập không thuộc tổ chức là dấu hiệu đỏ rõ ràng.",
-    indicators: ["Đích QR không rõ", "Yêu cầu đăng nhập", "Domain ngoài công ty"],
+    indicators: ["Đích QR không rõ", "Yêu cầu đăng nhập", "Domain ngoài VPS"],
     active: true,
     orderIndex: 8,
   },
@@ -183,7 +183,7 @@ export const seedQuestions: QuizQuestion[] = [
       "Hãy xem thông tin trong mô phỏng và quyết định đây là phishing hay legitimate.",
     scenarioHtml: `
       <div class="portal-sim">
-        <div class="mail-row" data-spot="safe" data-label="Nền tảng tài liệu đã phê duyệt"><strong>Opened via:</strong> <a href="https://docs.company.vn/legal/contract-2026" title="https://docs.company.vn/legal/contract-2026">docs.company.vn/legal/contract-2026</a></div>
+        <div class="mail-row" data-spot="safe" data-label="Nền tảng tài liệu VPS đã phê duyệt"><strong>Opened via:</strong> <a href="https://docs.vps.com.vn/legal/contract-2026" title="https://docs.vps.com.vn/legal/contract-2026">docs.vps.com.vn/legal/contract-2026</a></div>
         <p>Contract Review Required</p>
       </div>
     `,
@@ -203,7 +203,7 @@ export const seedQuestions: QuizQuestion[] = [
       "Hãy xem kỹ yêu cầu trong email trước khi quyết định mức độ an toàn của tình huống này.",
     scenarioHtml: `
       <div class="mail-sim">
-        <div class="mail-row" data-spot="danger" data-label="Domain giả dạng lãnh đạo"><strong>From:</strong> ceo@company-executive.com</div>
+        <div class="mail-row" data-spot="danger" data-label="Domain giả dạng lãnh đạo VPS"><strong>From:</strong> ceo@vps-executive.com</div>
         <p data-spot="danger" data-label="Yêu cầu chuyển khoản gấp">I need you to process an urgent confidential wire transfer in the next 15 minutes.</p>
         <p data-spot="danger" data-label="Ép giữ bí mật, né quy trình">Do not inform finance until it is done.</p>
         <p><a href="/assets/files/WireTransferForm.html" target="_blank" rel="noreferrer">Open transfer form</a></p>
@@ -422,13 +422,13 @@ export const seedQuestions: QuizQuestion[] = [
         <div class="mail-row" data-spot="safe" data-label="Người gửi đúng domain @vps.com.vn"><strong>From:</strong> VPS Security &lt;security@vps.com.vn&gt;</div>
         <div class="mail-row"><strong>Subject:</strong> Cảnh báo đăng nhập từ thiết bị mới</div>
         <p>Hệ thống ghi nhận đăng nhập từ thiết bị mới vào lúc 09:42.</p>
-        <p data-spot="danger" data-label="Email dùng domain gửi hợp lệ nhưng link lại dẫn sang website giả mạo">Nếu không phải Quý khách, vui lòng xác minh tại <a href="https://vps-security-check.vn/login" title="https://vps-security-check.vn/login">vps-security-check.vn/login</a></p>
+        <p>Nếu không phải Quý khách, vui lòng xác minh tại <a data-spot="danger" data-label="Text hiển thị là vps.com.vn nhưng hyperlink thật trỏ tới website giả mạo vps-security-check.vn" href="https://vps-security-check.vn/login" title="https://vps-security-check.vn/login">https://www.vps.com.vn/bao-mat/dang-nhap</a></p>
       </div>
     `,
     correctAnswer: "phishing",
     explanation:
       "Người gửi có thể hiển thị đúng @vps.com.vn, nhưng email vẫn có thể bị lạm dụng, bị chiếm quyền hoặc bị giả mạo phần hiển thị. Link xác minh không thuộc vps.com.vn nên không nên đăng nhập qua liên kết trong email.",
-    indicators: ["Sender hợp lệ nhưng có thể bị lạm dụng", "Cảnh báo bảo mật tạo lo lắng", "Domain giả mạo"],
+    indicators: ["Sender hợp lệ nhưng có thể bị lạm dụng", "Cảnh báo bảo mật tạo lo lắng", "Text link và hyperlink thật không khớp"],
     active: true,
     orderIndex: 20,
   },
@@ -558,13 +558,13 @@ export const seedQuestions: QuizQuestion[] = [
         <div class="mail-row"><strong>Subject:</strong> Tài liệu lương tháng cần xác nhận</div>
         <p data-spot="danger" data-label="Dùng chủ đề nhạy cảm để kích thích người nhận bấm nhanh">Bảng lương tháng này cần được xác nhận trước 15:00.</p>
         <p>
-          <a data-spot="danger" data-label="Text hiển thị là domain nội bộ nhưng href thật dẫn ra website giả mạo" href="https://company-files-verify.com/login" title="https://company-files-verify.com/login">https://docs.company.vn/payroll/confirm</a>
+          <a data-spot="danger" data-label="Text hiển thị là domain VPS nhưng href thật dẫn ra website giả mạo" href="https://vps-docs-verify.com/login" title="https://vps-docs-verify.com/login">https://docs.vps.com.vn/payroll/confirm</a>
         </p>
       </div>
     `,
     correctAnswer: "phishing",
     explanation:
-      "Kẻ tấn công thường đặt text link giống domain nội bộ để tạo cảm giác an toàn, nhưng href thật lại dẫn tới trang ngoài. Cần hover hoặc kiểm tra URL đích trước khi đăng nhập.",
+      "Kẻ tấn công thường đặt text link giống domain VPS để tạo cảm giác an toàn, nhưng href thật lại dẫn tới trang ngoài. Cần hover hoặc kiểm tra URL đích trước khi đăng nhập.",
     indicators: ["Hyperlink ẩn không khớp text", "Chủ đề lương nhạy cảm", "Người gửi ngoài hệ thống"],
     active: true,
     orderIndex: 26,
@@ -578,18 +578,18 @@ export const seedQuestions: QuizQuestion[] = [
       "Hãy kiểm tra xem text hiển thị và đường dẫn thật có khớp nhau không.",
     scenarioHtml: `
       <div class="mail-sim">
-        <div class="mail-row" data-spot="safe" data-label="Người gửi đúng domain nội bộ"><strong>From:</strong> IT Operations &lt;it-ops@company.vn&gt;</div>
+        <div class="mail-row" data-spot="safe" data-label="Người gửi đúng domain nội bộ VPS"><strong>From:</strong> IT Operations &lt;it-ops@vps.com.vn&gt;</div>
         <div class="mail-row"><strong>Subject:</strong> Lịch bảo trì VPN cuối tuần</div>
         <p data-spot="safe" data-label="Nội dung chỉ thông báo, không yêu cầu nhập mật khẩu hay OTP">VPN sẽ bảo trì từ 22:00 đến 23:00 thứ Bảy.</p>
         <p>
-          <a data-spot="safe" data-label="Text link và href đều trỏ tới domain nội bộ hợp lệ" href="https://intranet.company.vn/it/vpn-maintenance" title="https://intranet.company.vn/it/vpn-maintenance">https://intranet.company.vn/it/vpn-maintenance</a>
+          <a data-spot="safe" data-label="Text link và href đều trỏ tới domain nội bộ VPS hợp lệ" href="https://intranet.vps.com.vn/it/vpn-maintenance" title="https://intranet.vps.com.vn/it/vpn-maintenance">https://intranet.vps.com.vn/it/vpn-maintenance</a>
         </p>
       </div>
     `,
     correctAnswer: "legitimate",
     explanation:
-      "Đây là trường hợp hợp lệ: người gửi, text hiển thị và URL thật đều thuộc hệ thống nội bộ; nội dung không yêu cầu thông tin nhạy cảm.",
-    indicators: ["Text link khớp href", "Đúng domain nội bộ", "Không yêu cầu thông tin nhạy cảm"],
+      "Đây là trường hợp hợp lệ: người gửi, text hiển thị và URL thật đều thuộc hệ thống nội bộ VPS; nội dung không yêu cầu thông tin nhạy cảm.",
+    indicators: ["Text link khớp href", "Đúng domain nội bộ VPS", "Không yêu cầu thông tin nhạy cảm"],
     active: true,
     orderIndex: 27,
   },

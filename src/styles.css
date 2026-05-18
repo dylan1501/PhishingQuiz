@@ -750,19 +750,22 @@ textarea {
 
 .quiz-layout {
   display: grid;
-  gap: 1rem;
+  gap: 0.7rem;
   width: min(1320px, calc(100vw - 2rem));
+  margin-top: -0.25rem;
 }
 
 .quiz-card {
-  padding: 2.5rem;
+  padding: 1.45rem 2rem 2rem;
   border-radius: 30px;
 }
 
-.quiz-card h2 {
-  font-size: clamp(1.95rem, 3vw, 3.1rem);
-  line-height: 1.08;
-  margin-bottom: 1.15rem;
+.quiz-card h3 {
+  margin: 0 0 0.65rem;
+  color: var(--ink);
+  font-size: clamp(1.45rem, 2.15vw, 2.25rem);
+  line-height: 1.12;
+  font-weight: 850;
 }
 
 .quiz-card .section-text {
@@ -771,30 +774,26 @@ textarea {
   color: #d4e2f0;
 }
 
-.quiz-card .eyebrow {
-  font-size: 0.9rem;
-}
-
 .quiz-meta {
   display: flex;
   justify-content: space-between;
   color: #a8bfda;
-  font-size: 1.05rem;
+  font-size: 0.9rem;
   align-items: center;
-  gap: 1rem;
+  gap: 0.65rem;
 }
 
 .question-count-pill {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0.9rem 1.35rem;
+  padding: 0.52rem 0.85rem;
   border-radius: 999px;
   background: linear-gradient(135deg, rgba(224, 79, 95, 0.2), rgba(79, 143, 224, 0.24));
   border: 1px solid rgba(255, 255, 255, 0.15);
   color: #f8fbff;
-  font-size: clamp(1.25rem, 2vw, 1.8rem);
-  font-weight: 800;
+  font-size: clamp(0.92rem, 1.15vw, 1.05rem);
+  font-weight: 900;
   letter-spacing: 0.03em;
   box-shadow: 0 12px 28px rgba(17, 35, 60, 0.32);
 }
@@ -803,13 +802,13 @@ textarea {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0.9rem 1.35rem;
+  padding: 0.52rem 0.85rem;
   border-radius: 999px;
   background: linear-gradient(135deg, rgba(79, 143, 224, 0.18), rgba(141, 183, 230, 0.24));
   border: 1px solid rgba(255, 255, 255, 0.15);
   color: #f8fbff;
-  font-size: clamp(1.12rem, 1.8vw, 1.55rem);
-  font-weight: 800;
+  font-size: clamp(0.9rem, 1.05vw, 1rem);
+  font-weight: 900;
   letter-spacing: 0.02em;
   box-shadow: 0 12px 28px rgba(17, 35, 60, 0.28);
 }
@@ -1043,22 +1042,23 @@ textarea {
 .scenario-html-box,
 .html-preview-card {
   position: relative;
-  padding: 1.25rem;
+  padding: 0.95rem;
   border-radius: 24px;
   border: 1px solid var(--border);
   background: rgba(255, 255, 255, 0.035);
 }
 
 .interactive-label {
-  margin-bottom: 0.9rem;
+  margin: 0 0 0.65rem;
   color: #8db7e6;
   text-transform: uppercase;
   letter-spacing: 0.12em;
   font-size: 0.78rem;
+  font-weight: 900;
 }
 
 .scenario-html-content {
-  padding: 1.2rem;
+  padding: 0.75rem;
   border-radius: 20px;
   background: rgba(7, 17, 28, 0.8);
   border: 1px solid rgba(255, 255, 255, 0.07);
@@ -1067,8 +1067,17 @@ textarea {
   overflow: visible;
 }
 
+.scenario-html-content:has(.mail-sim, .invoice-sim, .bank-sim, .portal-sim.website-browser-template) {
+  padding: 0;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+
 .scenario-html-stage {
   position: relative;
+  display: grid;
+  gap: 0;
 }
 
 .explanation-with-bubble {
@@ -1310,7 +1319,7 @@ textarea {
   position: relative;
   width: min(100%, 920px);
   margin-inline: auto;
-  padding: 4.9rem 1.25rem 1.25rem;
+  padding: 4.25rem 1rem 1rem;
   border-radius: 24px;
   color: #122033;
   background:
@@ -1325,7 +1334,7 @@ textarea {
   content: "Email preview";
   position: absolute;
   inset: 0 0 auto;
-  height: 3.65rem;
+  height: 3.15rem;
   display: flex;
   align-items: center;
   padding-inline: 1.25rem;
@@ -1345,7 +1354,7 @@ textarea {
 .bank-sim::after {
   content: "";
   position: absolute;
-  top: 1.35rem;
+  top: 1.1rem;
   right: 1.25rem;
   width: 48px;
   height: 10px;
@@ -1471,6 +1480,291 @@ textarea {
   word-break: break-word;
   text-decoration: underline;
   text-underline-offset: 0.18em;
+}
+
+.mail-sim,
+.invoice-sim,
+.bank-sim {
+  gap: 0.65rem;
+}
+
+.email-field {
+  display: grid;
+  grid-template-columns: 118px minmax(0, 1fr);
+  gap: 0.85rem;
+  align-items: center;
+  padding: 0.85rem 0.95rem;
+  border-radius: 16px;
+  color: #233955;
+  background: rgba(238, 246, 255, 0.76);
+  border: 1px solid rgba(25, 65, 112, 0.09);
+}
+
+.email-field-content {
+  align-items: start;
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.email-field-label {
+  color: #4f6f95;
+  font-size: 0.78rem;
+  font-weight: 950;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.email-field-value {
+  min-width: 0;
+  color: #152941;
+  font-weight: 650;
+}
+
+.email-content-value {
+  display: block;
+  padding: 0.15rem 0;
+  font-weight: 500;
+  line-height: 1.68;
+}
+
+.email-field-value .mail-row,
+.email-content-value .mail-row,
+.email-content-value p,
+.email-content-value form {
+  margin: 0;
+  padding: 0;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.email-content-value > * + * {
+  margin-top: 0.72rem;
+}
+
+.email-content-value form {
+  display: grid;
+  gap: 0.7rem;
+  padding-top: 0.25rem;
+}
+
+.email-content-value input {
+  width: min(100%, 420px);
+  padding: 0.78rem 0.9rem;
+  border-radius: 12px;
+  color: #263d5a;
+  background: #eef5ff;
+  border: 1px solid rgba(25, 65, 112, 0.14);
+}
+
+.sms-sim.sms-phone-template {
+  width: min(100%, 405px);
+  min-height: 0;
+  padding: 0.7rem;
+  color: #f8fbff;
+  background:
+    linear-gradient(145deg, rgba(15, 27, 45, 0.98), rgba(3, 9, 17, 0.98)),
+    radial-gradient(circle at 18% 0%, rgba(87, 158, 255, 0.28), transparent 42%);
+}
+
+.sms-sim.sms-phone-template::before {
+  content: none;
+}
+
+.sms-sim.sms-phone-template::after {
+  bottom: 0.62rem;
+  z-index: 2;
+}
+
+.sms-phone-screen {
+  min-height: 470px;
+  padding: 0.78rem 0.78rem 2rem;
+  border-radius: 30px;
+  background:
+    linear-gradient(180deg, rgba(247, 250, 255, 0.98), rgba(226, 235, 248, 0.96));
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: inset 0 0 0 1px rgba(7, 19, 34, 0.08);
+}
+
+.sms-status-bar {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.18rem 0.35rem 0.7rem;
+  color: #17283f;
+  font-size: 0.76rem;
+  font-weight: 900;
+}
+
+.sms-conversation-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.85rem;
+  padding: 0.72rem 0.8rem;
+  border-radius: 22px;
+  color: #122033;
+  background: rgba(255, 255, 255, 0.86);
+  border: 1px solid rgba(25, 65, 112, 0.1);
+  box-shadow: 0 10px 24px rgba(37, 70, 112, 0.12);
+}
+
+.sms-sender-avatar {
+  display: inline-grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border-radius: 50%;
+  color: #fff;
+  font-weight: 950;
+  background: linear-gradient(145deg, #2678ff, #1dbb8f);
+  box-shadow: 0 10px 20px rgba(38, 120, 255, 0.24);
+}
+
+.sms-sender-info {
+  display: grid;
+  gap: 0.08rem;
+}
+
+.sms-sender-info strong {
+  color: #102239;
+  font-size: 1.02rem;
+}
+
+.sms-sender-info span {
+  color: #63758d;
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.sms-thread {
+  display: grid;
+  justify-items: start;
+  gap: 0.52rem;
+  padding: 0.2rem 0.2rem 0;
+}
+
+.sms-message-time {
+  justify-self: center;
+  margin: 0.15rem 0 0.28rem;
+  color: #7d8da3;
+  font-size: 0.76rem;
+  font-weight: 850;
+}
+
+.sms-sim .sms-message-bubble {
+  width: fit-content;
+  max-width: 92%;
+  margin: 0;
+  padding: 0.84rem 0.95rem;
+  border-radius: 20px 20px 20px 7px;
+  color: #102239;
+  line-height: 1.55;
+  background: linear-gradient(180deg, #ffffff, #edf5ff);
+  border: 1px solid rgba(25, 65, 112, 0.1);
+  box-shadow: 0 14px 26px rgba(37, 70, 112, 0.16);
+}
+
+.sms-sim .sms-message-bubble a {
+  color: #075fc9;
+}
+
+.portal-sim.website-browser-template {
+  display: block;
+  width: min(100%, 940px);
+  margin-inline: auto;
+}
+
+.browser-window {
+  overflow: hidden;
+  border-radius: 24px;
+  color: #16283e;
+  background: linear-gradient(180deg, #ffffff, #f5f9ff);
+  border: 1px solid rgba(25, 65, 112, 0.16);
+  box-shadow: 0 22px 44px rgba(2, 10, 18, 0.22);
+}
+
+.browser-topbar {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 3rem;
+  align-items: center;
+  padding: 0.85rem 1rem;
+  background: linear-gradient(180deg, #edf5ff, #ddebf9);
+  border-bottom: 1px solid rgba(25, 65, 112, 0.12);
+}
+
+.browser-controls {
+  display: inline-flex;
+  gap: 0.38rem;
+}
+
+.browser-controls i {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: #ff5f57;
+  box-shadow:
+    17px 0 0 #ffbd2e,
+    34px 0 0 #28c840;
+}
+
+.browser-address {
+  min-width: 0;
+  padding: 0.62rem 0.85rem;
+  border-radius: 999px;
+  color: #143453;
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(25, 65, 112, 0.12);
+  font-size: 0.92rem;
+  font-weight: 800;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.88);
+}
+
+.browser-address span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.browser-page {
+  min-height: 240px;
+  padding: 1.25rem;
+  background:
+    radial-gradient(circle at top right, rgba(44, 105, 176, 0.1), transparent 34%),
+    linear-gradient(180deg, #ffffff, #f7fbff);
+}
+
+.browser-page > * {
+  margin-top: 0;
+}
+
+.browser-page > * + * {
+  margin-top: 0.85rem;
+}
+
+.browser-page p {
+  color: #263d5a;
+  line-height: 1.65;
+}
+
+.browser-page button {
+  border: 0;
+  color: #fff;
+  font-weight: 850;
+  background: linear-gradient(135deg, #1f6fe5, #1bb48c);
+  box-shadow: 0 12px 24px rgba(31, 111, 229, 0.2);
+}
+
+.browser-page form {
+  display: grid;
+  gap: 0.75rem;
+  max-width: 460px;
+  padding: 1rem;
+  border-radius: 18px;
+  background: rgba(238, 246, 255, 0.82);
+  border: 1px solid rgba(25, 65, 112, 0.1);
 }
 
 .phone-sim {
@@ -2103,6 +2397,7 @@ textarea {
   background: rgba(25, 65, 112, 0.1);
 }
 
+:root[data-theme="light"] .quiz-card h3,
 :root[data-theme="light"] .quiz-card h2,
 :root[data-theme="light"] .content-card h2,
 :root[data-theme="light"] .hero h1,
@@ -2242,6 +2537,12 @@ textarea {
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.9),
     0 16px 34px rgba(28, 64, 119, 0.08);
+}
+
+:root[data-theme="light"] .scenario-html-content:has(.mail-sim, .invoice-sim, .bank-sim, .portal-sim.website-browser-template) {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
 }
 
 :root[data-theme="light"] .scenario-html-content a {

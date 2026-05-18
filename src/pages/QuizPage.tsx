@@ -17,6 +17,216 @@ type ExplanationStep = {
   hotspotIndex?: number;
 };
 
+function cloneFieldValue(document: Document, fieldNode: Element | null, fallback: string) {
+  const value = document.createElement("div");
+  value.className = "email-field-value";
+
+  if (!fieldNode) {
+    value.textContent = fallback;
+    return value;
+  }
+
+  if (fieldNode.getAttribute("data-spot")) {
+    value.dataset.spot = fieldNode.getAttribute("data-spot") ?? "";
+    value.dataset.label = fieldNode.getAttribute("data-label") ?? "";
+  }
+
+  const clonedField = fieldNode.cloneNode(true) as HTMLElement;
+  const firstStrong = clonedField.querySelector("strong");
+  if (firstStrong && /^(from|subject)\s*:/i.test(firstStrong.textContent?.trim() ?? "")) {
+    firstStrong.remove();
+  }
+  value.append(...Array.from(clonedField.childNodes));
+  if (!value.textContent?.trim()) {
+    value.textContent = fallback;
+  }
+  return value;
+}
+
+function createEmailField(document: Document, label: string, valueNode: Element) {
+  const row = document.createElement("div");
+  row.className = `email-field email-field-${label.toLowerCase()}`;
+
+  const labelNode = document.createElement("span");
+  labelNode.className = "email-field-label";
+  labelNode.textContent = label;
+
+  row.append(labelNode, valueNode);
+  return row;
+}
+
+function normalizeEmailTemplate(document: Document, container: HTMLElement, questionTitle: string) {
+  const childElements = Array.from(container.children);
+  const fromNode =
+    childElements.find((child) => /(^|\s)mail-row(\s|$)/.test(child.className) && /^from\s*:/i.test(child.textContent?.trim() ?? "")) ??
+    childElements.find((child) => /^from\s*:/i.test(child.textContent?.trim() ?? ""));
+  const subjectNode =
+    childElements.find((child) => /(^|\s)mail-row(\s|$)/.test(child.className) && /^subject\s*:/i.test(child.textContent?.trim() ?? "")) ??
+    childElements.find((child) => /^subject\s*:/i.test(child.textContent?.trim() ?? ""));
+  const fromValue = cloneFieldValue(document, fromNode ?? null, "Người gửi không hiển thị rõ");
+  const subjectValue = cloneFieldValue(document, subjectNode ?? null, questionTitle);
+  const contentValue = document.createElement("div");
+  contentValue.className = "email-field-value email-content-value";
+
+  Array.from(container.childNodes).forEach((node) => {
+    if (node === fromNode || node === subjectNode) {
+      return;
+    }
+    if (node.nodeType === Node.TEXT_NODE && !node.textContent?.trim()) {
+      return;
+    }
+    contentValue.append(node.cloneNode(true));
+  });
+
+  if (!contentValue.textContent?.trim()) {
+    contentValue.textContent = "Không có nội dung email.";
+  }
+
+  container.replaceChildren(
+    createEmailField(document, "From", fromValue),
+    createEmailField(document, "Subject", subjectValue),
+    createEmailField(document, "Content", contentValue),
+  );
+}
+
+function normalizeSmsTemplate(document: Document, container: HTMLElement) {
+  if (container.querySelector(".sms-phone-screen")) {
+    return;
+  }
+
+  container.classList.add("sms-phone-template");
+  const children = Array.from(container.children);
+  const senderNode = children[0] ?? null;
+  const sender = senderNode?.textContent?.trim() || "SMS";
+  const senderInitial = sender.trim().charAt(0).toUpperCase() || "S";
+  const messageNodes = Array.from(container.childNodes).filter((node) => {
+    if (node === senderNode) {
+      return false;
+    }
+    return node.nodeType !== Node.TEXT_NODE || Boolean(node.textContent?.trim());
+  });
+
+  const screen = document.createElement("div");
+  screen.className = "sms-phone-screen";
+  const status = document.createElement("div");
+  status.className = "sms-status-bar";
+  status.innerHTML = "<span>09:41</span><span>5G 82%</span>";
+
+  const header = document.createElement("div");
+  header.className = "sms-conversation-header";
+  const avatar = document.createElement("span");
+  avatar.className = "sms-sender-avatar";
+  avatar.textContent = senderInitial;
+  const senderInfo = document.createElement("div");
+  senderInfo.className = "sms-sender-info";
+  const senderName = document.createElement("strong");
+  senderName.textContent = sender;
+  const senderCaption = document.createElement("span");
+  senderCaption.textContent = "Người gửi SMS";
+  senderInfo.append(senderName, senderCaption);
+  header.append(avatar, senderInfo);
+
+  const thread = document.createElement("div");
+  thread.className = "sms-thread";
+  const time = document.createElement("span");
+  time.className = "sms-message-time";
+  time.textContent = "09:41";
+  thread.append(time);
+  messageNodes.forEach((node) => {
+    if (node.nodeType === Node.ELEMENT_NODE) {
+      const clonedMessage = node.cloneNode(true) as HTMLElement;
+      clonedMessage.classList.add("sms-message-bubble");
+      thread.append(clonedMessage);
+      return;
+    }
+    const message = document.createElement("p");
+    message.className = "sms-message-bubble";
+    message.textContent = node.textContent ?? "";
+    thread.append(message);
+  });
+
+  screen.append(status, header, thread);
+  container.replaceChildren(screen);
+}
+
+function normalizeWebsiteTemplate(document: Document, container: HTMLElement, questionTitle: string) {
+  if (container.querySelector(".browser-window")) {
+    return;
+  }
+
+  container.classList.add("website-browser-template");
+  const childElements = Array.from(container.children);
+  const addressSource =
+    childElements.find((child) => child.querySelector("a")) ?? childElements[0] ?? null;
+  const addressLink = addressSource?.querySelector("a") ?? null;
+  const addressText =
+    addressLink?.getAttribute("title") ??
+    addressLink?.getAttribute("href") ??
+    addressLink?.textContent?.trim() ??
+    "https://example.local";
+
+  const browserWindow = document.createElement("div");
+  browserWindow.className = "browser-window";
+  const topbar = document.createElement("div");
+  topbar.className = "browser-topbar";
+  const controls = document.createElement("span");
+  controls.className = "browser-controls";
+  controls.innerHTML = "<i></i><i></i><i></i>";
+  const addressBar = document.createElement("div");
+  addressBar.className = "browser-address";
+  if (addressSource?.getAttribute("data-spot")) {
+    addressBar.dataset.spot = addressSource.getAttribute("data-spot") ?? "";
+    addressBar.dataset.label = addressSource.getAttribute("data-label") ?? "";
+  } else if (addressLink?.getAttribute("data-spot")) {
+    addressBar.dataset.spot = addressLink.getAttribute("data-spot") ?? "";
+    addressBar.dataset.label = addressLink.getAttribute("data-label") ?? "";
+  }
+  const addressValue = document.createElement("span");
+  addressValue.textContent = addressText;
+  addressBar.append(addressValue);
+  topbar.append(controls, addressBar);
+
+  const page = document.createElement("div");
+  page.className = "browser-page";
+  Array.from(container.childNodes).forEach((node) => {
+    if (node === addressSource) {
+      return;
+    }
+    if (node.nodeType === Node.TEXT_NODE && !node.textContent?.trim()) {
+      return;
+    }
+    page.append(node.cloneNode(true));
+  });
+  if (!page.textContent?.trim()) {
+    const fallbackTitle = document.createElement("h4");
+    fallbackTitle.textContent = questionTitle;
+    page.append(fallbackTitle);
+  }
+
+  browserWindow.append(topbar, page);
+  container.replaceChildren(browserWindow);
+}
+
+function normalizeScenarioHtml(html: string, questionTitle: string) {
+  if (typeof window === "undefined") {
+    return html;
+  }
+
+  const parser = new window.DOMParser();
+  const parsedDocument = parser.parseFromString(html, "text/html");
+  parsedDocument
+    .querySelectorAll<HTMLElement>(".mail-sim, .invoice-sim, .bank-sim")
+    .forEach((container) => normalizeEmailTemplate(parsedDocument, container, questionTitle));
+  parsedDocument
+    .querySelectorAll<HTMLElement>(".sms-sim")
+    .forEach((container) => normalizeSmsTemplate(parsedDocument, container));
+  parsedDocument
+    .querySelectorAll<HTMLElement>(".portal-sim")
+    .forEach((container) => normalizeWebsiteTemplate(parsedDocument, container, questionTitle));
+
+  return parsedDocument.body.innerHTML;
+}
+
 export function QuizPage() {
   const { index } = useParams();
   const navigate = useNavigate();
@@ -40,6 +250,7 @@ export function QuizPage() {
   const [explanationViewed, setExplanationViewed] = useState(false);
   const [explanationStepIndex, setExplanationStepIndex] = useState(0);
   const scenarioHtmlRef = useRef<HTMLDivElement | null>(null);
+  const scenarioStageRef = useRef<HTMLDivElement | null>(null);
   const [bubblePosition, setBubblePosition] = useState<{ left: number; top: number } | null>(null);
   const [anchorPosition, setAnchorPosition] = useState<{ left: number; top: number } | null>(null);
 
@@ -103,13 +314,20 @@ export function QuizPage() {
 
   const correct = selectedAnswer ? selectedAnswer === question.correctAnswer : null;
   const progress = (questionNumber / questions.length) * 100;
-  const hotspotNotes = useMemo<HotspotNote[]>(() => {
+  const normalizedScenarioHtml = useMemo(() => {
     if (!question.scenarioHtml || typeof window === "undefined") {
+      return question.scenarioHtml;
+    }
+
+    return normalizeScenarioHtml(question.scenarioHtml, question.title);
+  }, [question.scenarioHtml, question.title]);
+  const hotspotNotes = useMemo<HotspotNote[]>(() => {
+    if (!normalizedScenarioHtml || typeof window === "undefined") {
       return [];
     }
 
     const parser = new window.DOMParser();
-    const parsedDocument = parser.parseFromString(question.scenarioHtml, "text/html");
+    const parsedDocument = parser.parseFromString(normalizedScenarioHtml, "text/html");
     return Array.from(parsedDocument.querySelectorAll<HTMLElement>("[data-spot][data-label]")).map(
       (element, noteIndex) => ({
         id: element.dataset.label ?? `${question.id}-${noteIndex}`,
@@ -117,14 +335,14 @@ export function QuizPage() {
         spot: element.dataset.spot === "safe" ? "safe" : "danger",
       }),
     );
-  }, [question.id, question.scenarioHtml]);
+  }, [normalizedScenarioHtml, question.id]);
   const scenarioHtmlWithSpotOrder = useMemo(() => {
-    if (!question.scenarioHtml || typeof window === "undefined") {
-      return question.scenarioHtml;
+    if (!normalizedScenarioHtml || typeof window === "undefined") {
+      return normalizedScenarioHtml;
     }
 
     const parser = new window.DOMParser();
-    const parsedDocument = parser.parseFromString(question.scenarioHtml, "text/html");
+    const parsedDocument = parser.parseFromString(normalizedScenarioHtml, "text/html");
     Array.from(parsedDocument.querySelectorAll<HTMLElement>("[data-spot][data-label]")).forEach(
       (element, noteIndex) => {
         element.dataset.spotOrder = String(noteIndex);
@@ -132,7 +350,7 @@ export function QuizPage() {
       },
     );
     return parsedDocument.body.innerHTML;
-  }, [explanationStepIndex, explanationViewed, question.scenarioHtml]);
+  }, [explanationStepIndex, explanationViewed, normalizedScenarioHtml]);
   const explanationSteps = useMemo<ExplanationStep[]>(() => {
     if (hotspotNotes.length > 0) {
       return hotspotNotes.map((note, noteIndex) => ({
@@ -169,7 +387,8 @@ export function QuizPage() {
     if (
       !explanationViewed ||
       currentExplanationStep?.hotspotIndex === undefined ||
-      !scenarioHtmlRef.current
+      !scenarioHtmlRef.current ||
+      !scenarioStageRef.current
     ) {
       setBubblePosition(null);
       setAnchorPosition(null);
@@ -177,6 +396,7 @@ export function QuizPage() {
     }
 
     const container = scenarioHtmlRef.current;
+    const stage = scenarioStageRef.current;
     const hotspot = container.querySelector<HTMLElement>(
       `[data-spot-order="${currentExplanationStep.hotspotIndex}"]`,
     );
@@ -187,13 +407,13 @@ export function QuizPage() {
       return;
     }
 
-    const containerRect = container.getBoundingClientRect();
+    const stageRect = stage.getBoundingClientRect();
     const hotspotRect = hotspot.getBoundingClientRect();
     const estimatedBubbleWidth = 320;
-    const maxLeft = Math.max(16, container.clientWidth - estimatedBubbleWidth - 12);
-    const hotspotCenter = hotspotRect.left - containerRect.left + hotspotRect.width / 2;
+    const maxLeft = Math.max(16, stage.clientWidth - estimatedBubbleWidth - 12);
+    const hotspotCenter = hotspotRect.left - stageRect.left + hotspotRect.width / 2;
     const nextLeft = Math.min(Math.max(hotspotCenter - estimatedBubbleWidth / 2, 12), maxLeft);
-    const anchorTop = hotspotRect.bottom - containerRect.top + 8;
+    const anchorTop = hotspotRect.bottom - stageRect.top + 8;
     setBubblePosition({ left: nextLeft, top: anchorTop + 36 });
     setAnchorPosition({
       left: hotspotCenter - 4,
@@ -213,14 +433,13 @@ export function QuizPage() {
         <span className="question-category-pill">Loại: {question.category}</span>
       </div>
       <article className="content-card quiz-card">
-        <p className="eyebrow">{question.category}</p>
-        <h2>{question.title}</h2>
+        <h3>{question.title}</h3>
         <p className="section-text">{question.scenarioIntro}</p>
         <div className="scenario-box">{question.scenarioContent}</div>
         {question.scenarioHtml && (
           <div className="scenario-html-box">
-            <div className="interactive-label">Khu vực mô phỏng để kiểm tra tương tác</div>
-            <div className="scenario-html-stage">
+            <div className="scenario-html-stage" ref={scenarioStageRef}>
+              <div className="interactive-label">Khu vực mô phỏng để kiểm tra tương tác</div>
               <div
                 ref={scenarioHtmlRef}
                 className={`scenario-html-content ${explanationViewed ? "explanation-active explanation-with-bubble" : ""}`}
