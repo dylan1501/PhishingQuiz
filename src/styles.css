@@ -1894,6 +1894,75 @@ textarea {
   background: rgba(44, 105, 176, 0.08);
 }
 
+.captcha-browser-page {
+  display: grid;
+  place-items: center;
+  min-height: 360px;
+}
+
+.captcha-safe {
+  border-color: rgba(31, 148, 97, 0.22);
+  box-shadow: 0 18px 36px rgba(31, 148, 97, 0.12);
+}
+
+.captcha-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 1rem;
+  border-radius: 16px;
+  color: #102239;
+  background: #ffffff;
+  border: 1px solid rgba(25, 65, 112, 0.14);
+  box-shadow: 0 12px 26px rgba(28, 64, 119, 0.1);
+}
+
+.captcha-checkbox span {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: linear-gradient(180deg, #ffffff, #eef5ff);
+  border: 2px solid rgba(44, 105, 176, 0.38);
+}
+
+.captcha-policy {
+  color: #7a8da5;
+  font-size: 0.82rem;
+  text-align: right;
+}
+
+.captcha-extension-card {
+  display: flex;
+  gap: 0.9rem;
+  align-items: center;
+  padding: 0.9rem;
+  border-radius: 18px;
+  color: #102239;
+  background: #ffffff;
+  border: 1px solid rgba(183, 45, 69, 0.22);
+  box-shadow: 0 14px 30px rgba(183, 45, 69, 0.1);
+}
+
+.captcha-extension-card p {
+  color: #5f7088;
+  font-size: 0.88rem;
+}
+
+.extension-icon {
+  display: grid;
+  flex: 0 0 auto;
+  width: 48px;
+  height: 48px;
+  place-items: center;
+  border-radius: 14px;
+  color: #ffffff;
+  font-size: 0.76rem;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  background: linear-gradient(135deg, #b72d45, #e95f6f);
+  box-shadow: 0 12px 24px rgba(183, 45, 69, 0.18);
+}
+
 .phone-sim {
   display: grid;
   width: 100%;
@@ -2094,6 +2163,141 @@ textarea {
 .qr-sim,
 .mfa-sim {
   width: 100%;
+}
+
+.mfa-verify-sim {
+  justify-items: center;
+}
+
+.mfa-phone-shell {
+  width: min(100%, 430px);
+  padding: 0.9rem;
+  border-radius: 36px;
+  background:
+    linear-gradient(145deg, #17243a, #050b15),
+    radial-gradient(circle at 20% 0%, rgba(103, 169, 255, 0.22), transparent 42%);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow:
+    0 30px 64px rgba(0, 0, 0, 0.38),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+}
+
+.mfa-phone-status {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.4rem 0.75rem 0.8rem;
+  color: rgba(239, 246, 255, 0.82);
+  font-size: 0.78rem;
+  font-weight: 850;
+}
+
+.mfa-verify-popup {
+  display: grid;
+  gap: 0.9rem;
+  padding: 1.15rem;
+  border-radius: 28px;
+  color: #122033;
+  background:
+    radial-gradient(circle at top right, rgba(44, 105, 176, 0.12), transparent 38%),
+    linear-gradient(180deg, #ffffff, #f3f8ff);
+  border: 1px solid rgba(25, 65, 112, 0.16);
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.22);
+}
+
+.mfa-popup-icon {
+  display: grid;
+  width: 46px;
+  height: 46px;
+  place-items: center;
+  border-radius: 15px;
+  color: #ffffff;
+  font-size: 1.25rem;
+  font-weight: 950;
+  background: linear-gradient(135deg, #b72d45, #e95f6f);
+  box-shadow: 0 14px 26px rgba(183, 45, 69, 0.22);
+}
+
+.mfa-app-name {
+  margin: 0;
+  color: #60738d;
+  font-size: 0.84rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.mfa-verify-popup h4 {
+  margin: 0;
+  color: #102239;
+  font-size: 1.35rem;
+}
+
+.mfa-request-card {
+  display: grid;
+  gap: 0.65rem;
+  padding: 0.85rem;
+  border-radius: 18px;
+  background: rgba(44, 105, 176, 0.08);
+  border: 1px solid rgba(25, 65, 112, 0.1);
+}
+
+.mfa-request-card div,
+.mfa-number-match {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: center;
+}
+
+.mfa-request-card span,
+.mfa-number-match span {
+  color: #647892;
+  font-size: 0.84rem;
+  font-weight: 800;
+}
+
+.mfa-request-card strong {
+  color: #102239;
+  text-align: right;
+}
+
+.mfa-number-match {
+  padding: 0.82rem 0.9rem;
+  border-radius: 18px;
+  background: rgba(183, 45, 69, 0.08);
+  border: 1px solid rgba(183, 45, 69, 0.16);
+}
+
+.mfa-number-match strong {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  place-items: center;
+  border-radius: 16px;
+  color: #ffffff;
+  font-size: 1.3rem;
+  background: linear-gradient(135deg, #2c69b0, #4d8be8);
+}
+
+.mfa-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.mfa-actions button {
+  border: 0;
+  color: #ffffff;
+  font-weight: 950;
+}
+
+.mfa-deny {
+  background: linear-gradient(135deg, #66748a, #344258);
+}
+
+.mfa-approve {
+  background: linear-gradient(135deg, #b72d45, #e95f6f);
+  box-shadow: 0 14px 28px rgba(183, 45, 69, 0.2);
 }
 
 .button-explain {
