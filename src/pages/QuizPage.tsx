@@ -96,6 +96,11 @@ export function QuizPage() {
     goNext();
   }
 
+  function showExplanation() {
+    setExplanationViewed(true);
+    setExplanationStepIndex(0);
+  }
+
   const correct = selectedAnswer ? selectedAnswer === question.correctAnswer : null;
   const progress = (questionNumber / questions.length) * 100;
   const hotspotNotes = useMemo<HotspotNote[]>(() => {
@@ -284,22 +289,6 @@ export function QuizPage() {
           </button>
         </div>
 
-        <div className="quiz-actions quiz-actions-spaced">
-          {!explanationViewed && (
-            <button
-              type="button"
-              className="button button-ghost button-explain"
-              disabled={!selectedAnswer}
-              onClick={() => {
-                setExplanationViewed(true);
-                setExplanationStepIndex(0);
-              }}
-            >
-              Giải thích
-            </button>
-          )}
-        </div>
-
         {selectedAnswer && (
           <> 
             <div className={`answer-feedback ${correct ? "feedback-correct" : "feedback-wrong"}`}>
@@ -312,6 +301,15 @@ export function QuizPage() {
                     : `Đáp án đúng là ${question.correctAnswer === "phishing" ? "phishing" : "legitimate"}.`}
                 </p>
               </div>
+              {!explanationViewed && (
+                <button
+                  type="button"
+                  className="button feedback-explain-button"
+                  onClick={showExplanation}
+                >
+                  Xem giải thích
+                </button>
+              )}
             </div>
             {!explanationViewed && (
               <div className="notice notice-warning">

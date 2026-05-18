@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { NavLink, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { AdminAttemptsPage } from "./pages/AdminAttemptsPage";
 import { AdminDashboardPage } from "./pages/AdminDashboardPage";
@@ -12,10 +12,23 @@ import { QuizPage } from "./pages/QuizPage";
 import { ResultPage } from "./pages/ResultPage";
 import { initializeStorage, isAdminAuthenticated } from "./storage";
 
+type ThemeMode = "dark" | "light";
+
 function Layout() {
   const location = useLocation();
   const adminView = location.pathname.startsWith("/admin");
   const quizTakingView = location.pathname.startsWith("/quiz/questions");
+  const [themeMode, setThemeMode] = useState<ThemeMode>(() => {
+    if (typeof window === "undefined") {
+      return "dark";
+    }
+    return localStorage.getItem("phishing-quiz-theme") === "light" ? "light" : "dark";
+  });
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = themeMode;
+    localStorage.setItem("phishing-quiz-theme", themeMode);
+  }, [themeMode]);
 
   return (
     <div className={`app-shell ${quizTakingView ? "quiz-taking-shell" : ""}`}>
@@ -24,12 +37,27 @@ function Layout() {
           <NavLink to="/" className="brand">
             Phishing Quiz
           </NavLink>
-          {!adminView && (
-            <nav className="site-nav">
-              <NavLink to="/leaderboard">Bảng xếp hạng</NavLink>
-              <NavLink to="/quiz/start">Làm bài quiz</NavLink>
-            </nav>
-          )}
+          <div className="header-actions">
+            {!adminView && (
+              <nav className="site-nav">
+                <NavLink to="/leaderboard">Bảng xếp hạng</NavLink>
+                <NavLink to="/quiz/start">Làm bài quiz</NavLink>
+              </nav>
+            )}
+            <button
+              type="button"
+              className={`theme-toggle theme-toggle-${themeMode}`}
+              onClick={() => setThemeMode((currentMode) => (currentMode === "dark" ? "light" : "dark"))}
+              aria-label={`Đổi sang giao diện ${themeMode === "dark" ? "Light" : "Dark"}`}
+              aria-pressed={themeMode === "light"}
+            >
+              <span className="theme-toggle-track" aria-hidden="true">
+                <span className="theme-toggle-thumb">
+                  {themeMode === "dark" ? "☾" : "☀"}
+                </span>
+              </span>
+            </button>
+          </div>
         </header>
       )}
       <main className={`page-shell ${quizTakingView ? "quiz-taking-page" : ""}`}>
@@ -47,6 +75,11 @@ function Layout() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
+      {!quizTakingView && (
+        <footer className="site-footer">
+          Phòng An ninh thông tin - Trung tâm Công nghệ Thông tin
+        </footer>
+      )}
     </div>
   );
 }

@@ -41,7 +41,7 @@ export function AdminDashboardPage() {
         );
 
   return (
-    <section className="stack">
+    <section className="stack admin-dashboard-stack">
       <div className="admin-links">
         <Link to="/admin/participants">
           <img src="/assets/icons/participants.svg" alt="" className="admin-tab-icon" />
