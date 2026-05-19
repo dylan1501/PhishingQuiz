@@ -302,7 +302,7 @@ export function AdminQuestionsPage() {
                 </p>
               </div>
               <span className="preview-answer-pill">
-                Đáp án đúng: {form.correctAnswer === "phishing" ? "Phishing" : "Legitimate"}
+                Đáp án đúng: {form.correctAnswer === "phishing" ? "Phishing" : "An toàn"}
               </span>
             </div>
             <div className="scenario-box">
@@ -360,7 +360,7 @@ export function AdminQuestionsPage() {
                   setPreviewStepIndex(0);
                 }}
               >
-                Legitimate
+                An toàn
               </button>
             </div>
             {previewAnswer && (
@@ -370,8 +370,8 @@ export function AdminQuestionsPage() {
                   <strong>{previewCorrect ? "Chính xác" : "Chưa chính xác"}</strong>
                   <p>
                     {previewCorrect
-                      ? `Preview đang nhận diện đúng đây là ${form.correctAnswer}.`
-                      : `Đáp án đúng trong preview là ${form.correctAnswer}.`}
+                      ? `Preview đang nhận diện đúng đây là ${form.correctAnswer === "phishing" ? "phishing" : "an toàn"}.`
+                      : `Đáp án đúng trong preview là ${form.correctAnswer === "phishing" ? "phishing" : "an toàn"}.`}
                   </p>
                 </div>
               </div>
@@ -431,7 +431,7 @@ export function AdminQuestionsPage() {
               onChange={(event) => setField("correctAnswer", event.target.value as AnswerOption)}
             >
               <option value="phishing">Phishing</option>
-              <option value="legitimate">Legitimate</option>
+              <option value="legitimate">An toàn</option>
             </select>
           </label>
           <label className="admin-check-row">

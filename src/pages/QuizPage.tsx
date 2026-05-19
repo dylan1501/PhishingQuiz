@@ -567,7 +567,7 @@ export function QuizPage() {
             className={`answer-button ${selectedAnswer === "legitimate" ? "selected-legitimate" : ""}`}
             onClick={() => answerQuestion("legitimate")}
           >
-            Legitimate
+            An toàn
           </button>
         </div>
 
@@ -579,8 +579,8 @@ export function QuizPage() {
                 <strong>{correct ? "Chính xác" : "Chưa chính xác"}</strong>
                 <p>
                   {correct
-                    ? `Bạn đã nhận diện đúng đây là ${question.correctAnswer === "phishing" ? "phishing" : "legitimate"}.`
-                    : `Đáp án đúng là ${question.correctAnswer === "phishing" ? "phishing" : "legitimate"}.`}
+                    ? `Bạn đã nhận diện đúng đây là ${question.correctAnswer === "phishing" ? "phishing" : "an toàn"}.`
+                    : `Đáp án đúng là ${question.correctAnswer === "phishing" ? "phishing" : "an toàn"}.`}
                 </p>
               </div>
               {!explanationViewed && (

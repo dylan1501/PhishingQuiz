@@ -3,7 +3,7 @@ import type { QuizQuestion } from "./types";
 export const seedQuestions: QuizQuestion[] = [
   {
     id: "q1",
-    title: "Yêu cầu đổi mật khẩu khẩn cấp",
+    title: "Thông báo đổi mật khẩu từ bộ phận IT",
     category: "Email",
     scenarioIntro: "Bạn nhận được email tự xưng là từ bộ phận IT.",
     scenarioContent:
@@ -26,7 +26,7 @@ export const seedQuestions: QuizQuestion[] = [
   },
   {
     id: "q2",
-    title: "Xác nhận giao hàng thất bại",
+    title: "Tin nhắn về bưu kiện giao không thành công",
     category: "SMS",
     scenarioIntro: "Bạn nhận được tin nhắn báo bưu kiện giao không thành công.",
     scenarioContent:
@@ -48,7 +48,7 @@ export const seedQuestions: QuizQuestion[] = [
   },
   {
     id: "q3",
-    title: "Cập nhật chính sách nghỉ phép",
+    title: "Cập nhật chính sách nghỉ phép trên cổng nhân sự",
     category: "Website",
     scenarioIntro: "Cổng thông tin nhân sự thông báo có chính sách nghỉ phép mới.",
     scenarioContent:
@@ -70,7 +70,7 @@ export const seedQuestions: QuizQuestion[] = [
   },
   {
     id: "q4",
-    title: "Hóa đơn quá hạn từ nhà cung cấp lạ",
+    title: "Hóa đơn quá hạn cần xác nhận",
     category: "Invoice",
     scenarioIntro: "Bạn nhận được hóa đơn quá hạn từ một nhà cung cấp không quen thuộc.",
     scenarioContent:
@@ -110,7 +110,7 @@ export const seedQuestions: QuizQuestion[] = [
   },
   {
     id: "q5",
-    title: "Cảnh báo bảo mật từ ngân hàng",
+    title: "Cảnh báo hoạt động bất thường từ ngân hàng",
     category: "Email",
     scenarioIntro: "Một email cho biết tài khoản ngân hàng của bạn có hoạt động bất thường.",
     scenarioContent:
@@ -136,7 +136,7 @@ export const seedQuestions: QuizQuestion[] = [
   },
   {
     id: "q6",
-    title: "Yêu cầu xác thực MFA bất ngờ",
+    title: "Yêu cầu phê duyệt đăng nhập MFA",
     category: "Account Alert",
     scenarioIntro: "Ứng dụng xác thực trên điện thoại liên tục hiện yêu cầu phê duyệt đăng nhập.",
     scenarioContent:
@@ -176,7 +176,7 @@ export const seedQuestions: QuizQuestion[] = [
   },
   {
     id: "q7",
-    title: "Lời mời họp nội bộ hằng tuần",
+    title: "Lịch họp vận hành hằng tuần",
     category: "Email",
     scenarioIntro: "Bạn nhận được lịch họp từ quản lý trực tiếp.",
     scenarioContent:
@@ -198,7 +198,7 @@ export const seedQuestions: QuizQuestion[] = [
   },
   {
     id: "q8",
-    title: "Mã QR truy cập bảng lương",
+    title: "Mã QR tra cứu cập nhật bảng lương",
     category: "QR",
     scenarioIntro: "Một tờ poster đặt gần máy in yêu cầu nhân viên quét QR để xem cập nhật bảng lương.",
     scenarioContent:
@@ -220,7 +220,7 @@ export const seedQuestions: QuizQuestion[] = [
   },
   {
     id: "q9",
-    title: "Tài liệu hợp đồng từ bộ phận pháp chế",
+    title: "Tài liệu hợp đồng cần rà soát",
     category: "Website",
     scenarioIntro: "Phòng pháp chế gửi yêu cầu đọc một hợp đồng trên nền tảng tài liệu đã được phê duyệt.",
     scenarioContent:
@@ -241,7 +241,7 @@ export const seedQuestions: QuizQuestion[] = [
   },
   {
     id: "q10",
-    title: "Yêu cầu chuyển khoản từ CEO",
+    title: "Yêu cầu chuyển khoản từ lãnh đạo",
     category: "Email",
     scenarioIntro: "Bạn nhận được một email ngắn có vẻ như đến từ CEO.",
     scenarioContent:
@@ -264,7 +264,7 @@ export const seedQuestions: QuizQuestion[] = [
   },
   {
     id: "q11",
-    title: "Ảnh chụp website đăng nhập giả mạo",
+    title: "Trang đăng nhập cần kiểm tra",
     category: "Website",
     scenarioIntro: "Bạn được gửi ảnh chụp màn hình của một trang đăng nhập để kiểm tra độ an toàn.",
     scenarioContent:
@@ -287,7 +287,7 @@ export const seedQuestions: QuizQuestion[] = [
   },
   {
     id: "q12",
-    title: "SMS gia hạn gói dữ liệu di động",
+    title: "Thông báo gia hạn gói dữ liệu di động",
     category: "SMS",
     scenarioIntro: "Bạn nhận được tin nhắn thông báo gói cước sắp hết hạn.",
     scenarioContent:
@@ -309,7 +309,7 @@ export const seedQuestions: QuizQuestion[] = [
   },
   {
     id: "q13",
-    title: "Tin nhắn OTP từ dịch vụ quen thuộc",
+    title: "Mã OTP cho phiên đăng nhập vừa thực hiện",
     category: "SMS",
     scenarioIntro: "Bạn vừa thực hiện đăng nhập vào ứng dụng ngân hàng trên điện thoại.",
     scenarioContent:
@@ -330,7 +330,7 @@ export const seedQuestions: QuizQuestion[] = [
   },
   {
     id: "q14",
-    title: "Hình ảnh QR dán ở khu pantry",
+    title: "Mã QR nhận quà tại khu pantry",
     category: "QR",
     scenarioIntro: "Một mã QR được dán trên poster nội bộ với nội dung nhận quà nhân viên.",
     scenarioContent:
@@ -353,7 +353,7 @@ export const seedQuestions: QuizQuestion[] = [
   },
   {
     id: "q15",
-    title: "Email VPS yêu cầu cập nhật eKYC",
+    title: "Cập nhật eKYC cho tài khoản VPS",
     category: "Email",
     scenarioIntro: "Bạn nhận được email thông báo cần cập nhật eKYC cho tài khoản chứng khoán VPS.",
     scenarioContent:
@@ -376,7 +376,7 @@ export const seedQuestions: QuizQuestion[] = [
   },
   {
     id: "q16",
-    title: "SMS VPS thông báo khóa tài khoản",
+    title: "Thông báo trạng thái tài khoản VPS qua SMS",
     category: "SMS",
     scenarioIntro: "Bạn nhận được SMS thông báo tài khoản chứng khoán VPS sắp bị khóa.",
     scenarioContent:
@@ -398,7 +398,7 @@ export const seedQuestions: QuizQuestion[] = [
   },
   {
     id: "q17",
-    title: "Thông báo VPS từ domain lookalike",
+    title: "Thông báo xác nhận lệnh rút tiền VPS",
     category: "Email",
     scenarioIntro: "Một email thông báo xác nhận lệnh rút tiền được gửi tới hộp thư của bạn.",
     scenarioContent:
@@ -421,7 +421,7 @@ export const seedQuestions: QuizQuestion[] = [
   },
   {
     id: "q18",
-    title: "Thông báo bảo trì từ VPS",
+    title: "Lịch bảo trì hệ thống VPS",
     category: "Email",
     scenarioIntro: "Bạn nhận được email thông báo lịch bảo trì hệ thống từ VPS.",
     scenarioContent:
@@ -444,7 +444,7 @@ export const seedQuestions: QuizQuestion[] = [
   },
   {
     id: "q19",
-    title: "SMS nhận thưởng cổ phiếu VPS",
+    title: "Chương trình cổ phiếu qua SMS",
     category: "SMS",
     scenarioIntro: "Bạn nhận được SMS nói rằng mình được nhận thưởng cổ phiếu miễn phí.",
     scenarioContent:
@@ -490,7 +490,7 @@ export const seedQuestions: QuizQuestion[] = [
   },
   {
     id: "q21",
-    title: "Website VPS sai tên miền đăng nhập",
+    title: "Trang đăng nhập VPS trong nhóm chat",
     category: "Website",
     scenarioIntro: "Bạn mở một trang đăng nhập được chia sẻ trong nhóm chat đầu tư.",
     scenarioContent:
@@ -515,7 +515,7 @@ export const seedQuestions: QuizQuestion[] = [
   },
   {
     id: "q22",
-    title: "Email VPS nhắc lịch sự kiện đầu tư",
+    title: "Lịch hội thảo đầu tư từ VPS",
     category: "Email",
     scenarioIntro: "Bạn nhận được email nhắc lịch hội thảo đầu tư từ VPS.",
     scenarioContent:
@@ -538,7 +538,7 @@ export const seedQuestions: QuizQuestion[] = [
   },
   {
     id: "q23",
-    title: "Thông báo tăng hạn mức giao dịch VPS",
+    title: "Thông báo tăng hạn mức giao dịch",
     category: "Email",
     scenarioIntro: "Một email thông báo bạn được tăng hạn mức giao dịch trong ngày.",
     scenarioContent:
@@ -561,7 +561,7 @@ export const seedQuestions: QuizQuestion[] = [
   },
   {
     id: "q24",
-    title: "SMS xác nhận OTP giao dịch VPS",
+    title: "Mã OTP xác nhận giao dịch chứng khoán",
     category: "SMS",
     scenarioIntro: "Bạn nhận được SMS yêu cầu xác nhận OTP cho một giao dịch chứng khoán.",
     scenarioContent:
@@ -583,7 +583,7 @@ export const seedQuestions: QuizQuestion[] = [
   },
   {
     id: "q25",
-    title: "Link hiển thị đúng VPS nhưng trỏ tới trang giả",
+    title: "Đường dẫn VPS hiển thị trong email",
     category: "Email",
     scenarioIntro: "Bạn nhận được email có đường dẫn nhìn giống website chính thức của VPS.",
     scenarioContent:
@@ -608,7 +608,7 @@ export const seedQuestions: QuizQuestion[] = [
   },
   {
     id: "q26",
-    title: "Email tài liệu nội bộ có hyperlink ẩn",
+    title: "Tài liệu nội bộ được chia sẻ qua email",
     category: "Email",
     scenarioIntro: "Bạn nhận được email chia sẻ tài liệu từ hệ thống nội bộ.",
     scenarioContent:
@@ -633,7 +633,7 @@ export const seedQuestions: QuizQuestion[] = [
   },
   {
     id: "q27",
-    title: "Xác nhận lịch bảo trì với link hợp lệ",
+    title: "Xác nhận lịch bảo trì hệ thống nội bộ",
     category: "Email",
     scenarioIntro: "Bạn nhận được email thông báo bảo trì từ hệ thống nội bộ.",
     scenarioContent:
@@ -658,7 +658,7 @@ export const seedQuestions: QuizQuestion[] = [
   },
   {
     id: "q28",
-    title: "SMS ngân hàng dạng màn hình điện thoại",
+    title: "Cảnh báo giao dịch ngân hàng qua SMS",
     category: "SMS",
     scenarioIntro: "Bạn nhận được một SMS cảnh báo giao dịch ngân hàng trên điện thoại.",
     scenarioContent:
@@ -691,7 +691,7 @@ export const seedQuestions: QuizQuestion[] = [
   },
   {
     id: "q29",
-    title: "SMS VPS SmartOne trên điện thoại",
+    title: "Tin nhắn tài khoản VPS SmartOne",
     category: "SMS",
     scenarioIntro: "Bạn nhận được tin nhắn về tài khoản VPS SmartOne trên điện thoại.",
     scenarioContent:
@@ -724,7 +724,7 @@ export const seedQuestions: QuizQuestion[] = [
   },
   {
     id: "q30",
-    title: "SMS giao hàng hợp lệ trên điện thoại",
+    title: "Cập nhật trạng thái giao hàng qua SMS",
     category: "SMS",
     scenarioIntro: "Bạn vừa đặt hàng và nhận được SMS cập nhật trạng thái giao hàng.",
     scenarioContent:
@@ -756,7 +756,7 @@ export const seedQuestions: QuizQuestion[] = [
   },
   {
     id: "q31",
-    title: "Website yêu cầu xác minh Captcha bằng lệnh",
+    title: "Màn hình xác minh Captcha trên website",
     category: "Website",
     scenarioIntro: "Bạn truy cập một website thông báo cần xác minh Captcha trước khi tiếp tục.",
     scenarioContent:
@@ -794,7 +794,7 @@ export const seedQuestions: QuizQuestion[] = [
   },
   {
     id: "q32",
-    title: "Captcha đăng nhập VPS hợp lệ",
+    title: "Captcha trong phiên đăng nhập VPS",
     category: "Website",
     scenarioIntro: "Bạn đang mở trang đăng nhập chính thức của VPS và gặp bước xác minh Captcha.",
     scenarioContent:
@@ -831,7 +831,7 @@ export const seedQuestions: QuizQuestion[] = [
   },
   {
     id: "q33",
-    title: "Captcha yêu cầu chạy lệnh Terminal trên macOS",
+    title: "Captcha kèm hướng dẫn thao tác trên macOS",
     category: "Website",
     scenarioIntro: "Một website hiển thị Captcha nhưng yêu cầu bạn mở Terminal để hoàn tất xác minh.",
     scenarioContent:
@@ -869,7 +869,7 @@ export const seedQuestions: QuizQuestion[] = [
   },
   {
     id: "q34",
-    title: "Captcha yêu cầu cài tiện ích trình duyệt",
+    title: "Captcha kèm yêu cầu cài tiện ích trình duyệt",
     category: "Website",
     scenarioIntro: "Bạn truy cập một trang báo cần cài tiện ích để vượt qua Captcha.",
     scenarioContent:
@@ -908,7 +908,7 @@ export const seedQuestions: QuizQuestion[] = [
   },
   {
     id: "q35",
-    title: "Email giả mạo ngân hàng VCB yêu cầu xác minh",
+    title: "Yêu cầu xác minh tài khoản VCB",
     category: "Email",
     scenarioIntro: "Bạn nhận được email thông báo tài khoản ngân hàng bị tạm khóa.",
     scenarioContent:
@@ -932,7 +932,7 @@ export const seedQuestions: QuizQuestion[] = [
   },
   {
     id: "q36",
-    title: "Link rút gọn nhận thưởng Shopee",
+    title: "Đường dẫn rút gọn về phần thưởng Shopee",
     category: "Website",
     scenarioIntro: "Bạn nhận được tin nhắn từ một người quen nói rằng vừa trúng thưởng.",
     scenarioContent:
@@ -963,7 +963,7 @@ export const seedQuestions: QuizQuestion[] = [
   },
   {
     id: "q37",
-    title: "Popup cảnh báo virus giả",
+    title: "Popup cảnh báo virus khi đang duyệt web",
     category: "Website",
     scenarioIntro: "Một trang web bất ngờ hiển thị popup cảnh báo máy tính bị nhiễm virus.",
     scenarioContent:
@@ -996,7 +996,7 @@ export const seedQuestions: QuizQuestion[] = [
   },
   {
     id: "q38",
-    title: "Email xác nhận đơn hàng Tiki hợp lệ",
+    title: "Xác nhận đơn hàng Tiki",
     category: "Email",
     scenarioIntro: "Bạn nhận được email xác nhận đơn hàng từ Tiki sau khi mua hàng.",
     scenarioContent:
@@ -1020,7 +1020,7 @@ export const seedQuestions: QuizQuestion[] = [
   },
   {
     id: "q39",
-    title: "Thông báo SharePoint chia sẻ tài liệu giả",
+    title: "Thông báo chia sẻ tài liệu SharePoint",
     category: "Email",
     scenarioIntro: "Bạn nhận được email thông báo có người chia sẻ file tài chính qua SharePoint.",
     scenarioContent:
@@ -1047,7 +1047,7 @@ export const seedQuestions: QuizQuestion[] = [
   },
   {
     id: "q40",
-    title: "Email QR giả mạo cổng HR nội bộ",
+    title: "Mã QR truy cập cổng HR trong email",
     category: "QR",
     scenarioIntro: "Bạn nhận được email yêu cầu quét QR để hoàn thành đánh giá KPI.",
     scenarioContent:
@@ -1074,7 +1074,7 @@ export const seedQuestions: QuizQuestion[] = [
   },
   {
     id: "q41",
-    title: "Email giả HR yêu cầu cập nhật tài khoản nhận lương",
+    title: "Cập nhật tài khoản nhận lương",
     category: "Email",
     scenarioIntro: "Bạn nhận được email yêu cầu cập nhật thông tin lương trước kỳ trả lương.",
     scenarioContent:
@@ -1099,7 +1099,7 @@ export const seedQuestions: QuizQuestion[] = [
   },
   {
     id: "q42",
-    title: "Yêu cầu ký DocuSign giả mạo",
+    title: "Yêu cầu ký tài liệu qua DocuSign",
     category: "Email",
     scenarioIntro: "Bạn nhận được email yêu cầu ký phụ lục hợp đồng lao động qua DocuSign.",
     scenarioContent:
@@ -1126,7 +1126,7 @@ export const seedQuestions: QuizQuestion[] = [
   },
   {
     id: "q43",
-    title: "Thông báo bảo mật GitHub hợp lệ",
+    title: "Cảnh báo bảo mật từ GitHub",
     category: "Email",
     scenarioIntro: "Bạn nhận được email GitHub thông báo lỗ hổng trong repository.",
     scenarioContent:
@@ -1150,7 +1150,7 @@ export const seedQuestions: QuizQuestion[] = [
   },
   {
     id: "q44",
-    title: "Email giả mạo Tổng cục Thuế yêu cầu truy thu",
+    title: "Thông báo truy thu thuế thu nhập cá nhân",
     category: "Email",
     scenarioIntro: "Bạn nhận được email thông báo truy thu thuế thu nhập cá nhân.",
     scenarioContent:
@@ -1174,7 +1174,7 @@ export const seedQuestions: QuizQuestion[] = [
   },
   {
     id: "q45",
-    title: "File Excel macro báo cáo Q4 từ nguồn lạ",
+    title: "Báo cáo Q4 dạng file Excel",
     category: "Email",
     scenarioIntro: "Bạn nhận được email gửi báo cáo thị trường Q4 dạng Excel có macro.",
     scenarioContent:
@@ -1201,7 +1201,7 @@ export const seedQuestions: QuizQuestion[] = [
   },
   {
     id: "q46",
-    title: "Thông báo Microsoft Teams giả có tin nhắn bỏ lỡ",
+    title: "Thông báo tin nhắn Microsoft Teams chưa đọc",
     category: "Email",
     scenarioIntro: "Bạn nhận email thông báo có nhiều tin nhắn Microsoft Teams chưa đọc.",
     scenarioContent:
@@ -1225,7 +1225,7 @@ export const seedQuestions: QuizQuestion[] = [
   },
   {
     id: "q47",
-    title: "Tin nhắn đầu tư crypto lợi nhuận cao",
+    title: "Lời mời đầu tư crypto qua tin nhắn",
     category: "SMS",
     scenarioIntro: "Một người lạ nhắn tin làm quen và mời đầu tư crypto lợi nhuận rất cao.",
     scenarioContent:
@@ -1248,7 +1248,7 @@ export const seedQuestions: QuizQuestion[] = [
   },
   {
     id: "q48",
-    title: "Popup Norton hết hạn giả mạo",
+    title: "Popup thông báo gói Norton hết hạn",
     category: "Website",
     scenarioIntro: "Một website hiển thị thông báo gói Norton đã hết hạn và máy có nhiều mã độc.",
     scenarioContent:
@@ -1281,7 +1281,7 @@ export const seedQuestions: QuizQuestion[] = [
   },
   {
     id: "q49",
-    title: "Lời mời tuyển dụng tài chính có file PDF",
+    title: "Lời mời tuyển dụng trong lĩnh vực tài chính",
     category: "Email",
     scenarioIntro: "Bạn nhận được lời mời tuyển dụng với mức lương rất cao và file mô tả công việc.",
     scenarioContent:

@@ -7,9 +7,17 @@ const keys = {
   attempts: "phishing-quiz-attempts",
   session: "phishing-quiz-session",
   admin: "phishing-quiz-admin-auth",
+  adminCredentials: "phishing-quiz-admin-credentials",
   questionSeedVersion: "phishing-quiz-question-seed-version",
 };
-const currentQuestionSeedVersion = "2026-05-19.vps-question-bank.v8";
+const currentQuestionSeedVersion = "2026-05-19.vps-question-bank.v9";
+
+type AdminCredentials = {
+  email: string;
+  salt: string;
+  passwordHash: string;
+  createdAt: string;
+};
 
 function read<T>(key: string, fallback: T): T {
   const raw = localStorage.getItem(key);
@@ -25,6 +33,15 @@ function read<T>(key: string, fallback: T): T {
 
 function write<T>(key: string, value: T) {
   localStorage.setItem(key, JSON.stringify(value));
+}
+
+async function hashAdminPassword(email: string, password: string, salt: string) {
+  const normalizedEmail = email.trim().toLowerCase();
+  const payload = new TextEncoder().encode(`${normalizedEmail}:${salt}:${password}`);
+  const digest = await crypto.subtle.digest("SHA-256", payload);
+  return Array.from(new Uint8Array(digest))
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
 }
 
 function replaceEvery(value: string, search: string, replacement: string) {
@@ -226,8 +243,30 @@ export function getLeaderboard() {
     });
 }
 
-export function signInAdmin(email: string, password: string) {
-  const valid = email === "admin@phishingquiz.local" && password === "Admin123!";
+export function hasAdminCredentials() {
+  return Boolean(localStorage.getItem(keys.adminCredentials));
+}
+
+export async function createAdminCredentials(email: string, password: string) {
+  const normalizedEmail = email.trim().toLowerCase();
+  const salt = crypto.randomUUID();
+  const credentials: AdminCredentials = {
+    email: normalizedEmail,
+    salt,
+    passwordHash: await hashAdminPassword(normalizedEmail, password, salt),
+    createdAt: new Date().toISOString(),
+  };
+  write(keys.adminCredentials, credentials);
+  localStorage.setItem(keys.admin, "true");
+}
+
+export async function signInAdmin(email: string, password: string) {
+  const credentials = read<AdminCredentials | null>(keys.adminCredentials, null);
+  if (!credentials) {
+    return false;
+  }
+  const passwordHash = await hashAdminPassword(email, password, credentials.salt);
+  const valid = credentials.email === email.trim().toLowerCase() && passwordHash === credentials.passwordHash;
   if (valid) {
     localStorage.setItem(keys.admin, "true");
   }
@@ -235,7 +274,7 @@ export function signInAdmin(email: string, password: string) {
 }
 
 export function isAdminAuthenticated() {
-  return localStorage.getItem(keys.admin) === "true";
+  return hasAdminCredentials() && localStorage.getItem(keys.admin) === "true";
 }
 
 export function signOutAdmin() {
