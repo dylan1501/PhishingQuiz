@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --config vite.config.ts",
-    "build": "tsc -b && vite build --config vite.config.ts",
+    "build": "prisma generate && tsc -b && vite build --config vite.config.ts",
     "preview": "vite preview --config vite.config.ts",
     "db:format": "prisma format",
     "db:generate": "prisma generate",

@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import type { AnswerOption } from "../src/types";
+import type { AnswerOption, QuizQuestion, QuizSession } from "../src/types";
 import {
   clearAdminCookie,
   getAdminStatus,
@@ -419,7 +419,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
       if (!requireMethod(request, response, "GET")) {
         return;
       }
-      const session = await withDevFallback(
+      const session = await withDevFallback<{ session: QuizSession; questions: QuizQuestion[] } | null>(
         () => getQuizSession(resourceId),
         () => devGetQuizSession(resourceId),
       );
