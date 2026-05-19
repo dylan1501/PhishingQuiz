@@ -1,6 +1,6 @@
 import { createHmac, pbkdf2Sync, randomBytes, timingSafeEqual } from "crypto";
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { getPrisma } from "./_db";
+import { getPrisma } from "./_db.js";
 
 const cookieName = "phishing_admin_session";
 const sessionTtlSeconds = 8 * 60 * 60;

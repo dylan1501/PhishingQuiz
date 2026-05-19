@@ -1,6 +1,6 @@
 import { AnswerOption as DbAnswerOption, Prisma } from "@prisma/client";
 import { randomUUID } from "crypto";
-import { seedQuestions } from "../src/data";
+import { seedQuestions } from "../src/data.js";
 import type {
   AnswerOption as ClientAnswerOption,
   Attempt,
@@ -8,8 +8,8 @@ import type {
   QuizConfig,
   QuizQuestion,
   QuizSession,
-} from "../src/types";
-import { getPrisma } from "./_db";
+} from "../src/types.js";
+import { getPrisma } from "./_db.js";
 
 const defaultQuizTitle = "Phishing Quiz";
 

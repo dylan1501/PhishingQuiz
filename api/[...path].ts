@@ -1,12 +1,12 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import type { AnswerOption, QuizQuestion, QuizSession } from "../src/types";
+import type { AnswerOption, QuizQuestion, QuizSession } from "../src/types.js";
 import {
   clearAdminCookie,
   getAdminStatus,
   loginAdmin,
   requireAdmin,
   setupAdmin,
-} from "./_adminAuth";
+} from "./_adminAuth.js";
 import {
   devClearAdminCookie,
   devCreateQuestion,
@@ -29,7 +29,7 @@ import {
   devUpdateQuestion,
   devUpdateQuestionState,
   devUpsertParticipant,
-} from "./_devStore";
+} from "./_devStore.js";
 import {
   createQuestion,
   ensureDefaultQuiz,
@@ -47,7 +47,7 @@ import {
   updateQuestion,
   updateQuestionState,
   upsertParticipant,
-} from "./_quizRepository";
+} from "./_quizRepository.js";
 
 function getPathSegments(request: VercelRequest) {
   const path = request.query.path;
@@ -132,7 +132,7 @@ async function withDevFallback<T>(databaseAction: () => Promise<T>, devAction: (
 }
 
 async function getResolvedAdminStatus(request: VercelRequest) {
-  const status = await withDevFallback(
+  const status = await withDevFallback<{ hasAdmin: boolean; authenticated: boolean }>(
     () => getAdminStatus(request),
     () => devGetAdminStatus(request),
   );

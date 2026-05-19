@@ -1,6 +1,6 @@
 import { createHmac, pbkdf2Sync, randomBytes, timingSafeEqual } from "crypto";
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { seedQuestions } from "../src/data";
+import { seedQuestions } from "../src/data.js";
 import type {
   AnswerOption,
   Attempt,
@@ -9,7 +9,7 @@ import type {
   QuizConfig,
   QuizQuestion,
   QuizSession,
-} from "../src/types";
+} from "../src/types.js";
 
 type LeaderboardEntry = Attempt & { participant: Participant };
 
