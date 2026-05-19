@@ -52,9 +52,20 @@ import {
 function getPathSegments(request: VercelRequest) {
   const path = request.query.path;
   if (Array.isArray(path)) {
-    return path;
+    return path.flatMap((segment) => segment.split("/")).filter(Boolean);
   }
-  return path ? [path] : [];
+  if (path) {
+    return path.split("/").filter(Boolean);
+  }
+
+  const requestUrl = request.url ?? "";
+  const url = new URL(requestUrl, "http://localhost");
+  const pathFromQuery = url.searchParams.getAll("path");
+  if (pathFromQuery.length > 0) {
+    return pathFromQuery.flatMap((segment) => segment.split("/")).filter(Boolean);
+  }
+
+  return url.pathname.replace(/^\/api\/?/, "").split("/").filter(Boolean);
 }
 
 function readBody<T>(request: VercelRequest): T {

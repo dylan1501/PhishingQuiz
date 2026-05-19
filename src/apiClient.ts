@@ -8,8 +8,15 @@ export type LeaderboardEntry = Attempt & {
   participant?: Participant;
 };
 
+function createApiUrl(path: string) {
+  const [resourcePath, queryString = ""] = path.split("?");
+  const params = new URLSearchParams(queryString);
+  params.set("path", resourcePath);
+  return `/api?${params.toString()}`;
+}
+
 async function requestApi<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`/api/${path}`, {
+  const response = await fetch(createApiUrl(path), {
     ...init,
     credentials: "same-origin",
     headers: {
@@ -18,7 +25,18 @@ async function requestApi<T>(path: string, init?: RequestInit): Promise<T> {
     },
   });
 
-  const payload = (await response.json().catch(() => null)) as ApiEnvelope<T> | { error?: string } | null;
+  const contentType = response.headers.get("content-type") ?? "";
+  const isJsonResponse = contentType.includes("application/json");
+  const payload = isJsonResponse
+    ? ((await response.json().catch(() => null)) as ApiEnvelope<T> | { error?: string } | null)
+    : null;
+
+  if (!isJsonResponse) {
+    throw new Error(
+      `API không trả về JSON (HTTP ${response.status}). Kiểm tra rewrite /api hoặc Deployment Protection trên Vercel.`,
+    );
+  }
+
   if (!response.ok) {
     const message = payload && "error" in payload && payload.error ? payload.error : "Không gọi được API.";
     throw new Error(message);
