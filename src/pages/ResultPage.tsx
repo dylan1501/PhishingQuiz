@@ -50,10 +50,12 @@ export function ResultPage() {
 
       <div className="result-hero-score">
         <div className="result-score-ring">
-          <span className="result-score-value">
-            {attempt.score}/{attempt.totalQuestions}
-          </span>
-          <span className="result-score-percent">{percent}%</span>
+          <div className="result-score-center">
+            <span className="result-score-value">
+              {attempt.score}/{attempt.totalQuestions}
+            </span>
+            <span className="result-score-percent">{percent}%</span>
+          </div>
         </div>
         <div className="result-summary">
           <p className="result-rating">{getRating(attempt.score, attempt.totalQuestions)}</p>

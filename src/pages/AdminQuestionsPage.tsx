@@ -77,6 +77,7 @@ export function AdminQuestionsPage() {
   const [previewBubblePosition, setPreviewBubblePosition] = useState<{ left: number; top: number } | null>(null);
   const [previewAnchorPosition, setPreviewAnchorPosition] = useState<{ left: number; top: number } | null>(null);
   const previewScenarioHtmlRef = useRef<HTMLDivElement | null>(null);
+  const editFormRef = useRef<HTMLDivElement | null>(null);
 
   function setField<K extends keyof QuestionFormState>(key: K, value: QuestionFormState[K]) {
     setForm((current) => ({ ...current, [key]: value }));
@@ -112,6 +113,9 @@ export function AdminQuestionsPage() {
     setPreviewAnswer(null);
     setPreviewExplanationViewed(false);
     setPreviewStepIndex(0);
+    window.requestAnimationFrame(() => {
+      editFormRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
   }
 
   function resetForm() {
@@ -246,7 +250,7 @@ export function AdminQuestionsPage() {
 
   return (
     <section className="stack">
-      <div className="content-card">
+      <div className="content-card" ref={editFormRef}>
         <p className="eyebrow">Ngân Hàng Câu Hỏi</p>
         <h2>Quản lý tình huống</h2>
         <p className="section-text">

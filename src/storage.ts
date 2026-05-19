@@ -1,5 +1,5 @@
 import { seedQuestions } from "./data";
-import type { Attempt, Participant, QuizQuestion, QuizSession } from "./types";
+import type { Attempt, Participant, QuizConfig, QuizQuestion, QuizSession } from "./types";
 
 const keys = {
   participants: "phishing-quiz-participants",
@@ -8,9 +8,14 @@ const keys = {
   session: "phishing-quiz-session",
   admin: "phishing-quiz-admin-auth",
   adminCredentials: "phishing-quiz-admin-credentials",
+  quizConfig: "phishing-quiz-config",
   questionSeedVersion: "phishing-quiz-question-seed-version",
 };
-const currentQuestionSeedVersion = "2026-05-19.vps-question-bank.v9";
+const currentQuestionSeedVersion = "2026-05-19.vps-question-bank.v10";
+const defaultQuizConfig: QuizConfig = {
+  questionCount: 10,
+  updatedAt: new Date(0).toISOString(),
+};
 
 type AdminCredentials = {
   email: string;
@@ -89,10 +94,18 @@ function shuffle<T>(items: T[]) {
   return next;
 }
 
-function selectQuizQuestionIds(limit = 10) {
+function clampQuestionCount(value: number, maxQuestions: number) {
+  if (!Number.isFinite(value)) {
+    return 10;
+  }
+  return Math.min(Math.max(Math.round(value), 1), Math.max(maxQuestions, 1));
+}
+
+function selectQuizQuestionIds(limit = getQuizConfig().questionCount) {
   const questions = getQuestions();
-  const requiredQuestions = questions.filter((question) => question.alwaysIncluded).slice(0, limit);
-  const remainingSlots = Math.max(0, limit - requiredQuestions.length);
+  const questionLimit = clampQuestionCount(limit, questions.length);
+  const requiredQuestions = questions.filter((question) => question.alwaysIncluded).slice(0, questionLimit);
+  const remainingSlots = Math.max(0, questionLimit - requiredQuestions.length);
   const randomQuestions = shuffle(questions.filter((question) => !question.alwaysIncluded)).slice(
     0,
     remainingSlots,
@@ -117,6 +130,9 @@ export function initializeStorage() {
   if (!localStorage.getItem(keys.attempts)) {
     write<Attempt[]>(keys.attempts, []);
   }
+  if (!localStorage.getItem(keys.quizConfig)) {
+    write<QuizConfig>(keys.quizConfig, defaultQuizConfig);
+  }
 }
 
 export function getQuestions() {
@@ -134,6 +150,25 @@ export function getAllQuestions() {
 
 export function saveQuestions(questions: QuizQuestion[]) {
   write(keys.questions, questions);
+}
+
+export function getQuizConfig() {
+  const activeQuestionCount = Math.max(getQuestions().length, 1);
+  const config = read<Partial<QuizConfig>>(keys.quizConfig, defaultQuizConfig);
+  return {
+    questionCount: clampQuestionCount(config.questionCount ?? defaultQuizConfig.questionCount, activeQuestionCount),
+    updatedAt: config.updatedAt ?? defaultQuizConfig.updatedAt,
+  };
+}
+
+export function saveQuizConfig(config: Pick<QuizConfig, "questionCount">) {
+  const activeQuestionCount = Math.max(getQuestions().length, 1);
+  const nextConfig: QuizConfig = {
+    questionCount: clampQuestionCount(config.questionCount, activeQuestionCount),
+    updatedAt: new Date().toISOString(),
+  };
+  write(keys.quizConfig, nextConfig);
+  return nextConfig;
 }
 
 export function createParticipant(fullName: string, email: string, consent: boolean) {

@@ -47,3 +47,8 @@ export interface QuizSession {
   questionIds: string[];
   answers: AttemptAnswer[];
 }
+
+export interface QuizConfig {
+  questionCount: number;
+  updatedAt: string;
+}

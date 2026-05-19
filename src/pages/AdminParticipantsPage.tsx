@@ -1,22 +1,77 @@
+import { useState } from "react";
 import { exportTableToExcel } from "../excelExport";
 import { getAttempts, getParticipants } from "../storage";
+
+type ParticipantSortKey = "fullName" | "email" | "totalAttempts" | "createdAt";
+type SortDirection = "asc" | "desc";
+
+interface ParticipantRow {
+  id: string;
+  fullName: string;
+  email: string;
+  totalAttempts: number;
+  createdAt: string;
+}
 
 export function AdminParticipantsPage() {
   const participants = getParticipants();
   const attempts = getAttempts();
+  const [sortKey, setSortKey] = useState<ParticipantSortKey>("createdAt");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
+
+  const participantRows: ParticipantRow[] = participants.map((participant) => ({
+    id: participant.id,
+    fullName: participant.fullName,
+    email: participant.email,
+    totalAttempts: attempts.filter((attempt) => attempt.participantId === participant.id).length,
+    createdAt: participant.createdAt,
+  }));
+
+  const sortedRows = [...participantRows].sort((firstRow, secondRow) => {
+    const direction = sortDirection === "asc" ? 1 : -1;
+
+    if (sortKey === "totalAttempts") {
+      return (firstRow.totalAttempts - secondRow.totalAttempts) * direction;
+    }
+
+    if (sortKey === "createdAt") {
+      return (new Date(firstRow.createdAt).getTime() - new Date(secondRow.createdAt).getTime()) * direction;
+    }
+
+    return firstRow[sortKey].localeCompare(secondRow[sortKey], "vi", { sensitivity: "base" }) * direction;
+  });
+
+  function changeSort(nextSortKey: ParticipantSortKey) {
+    if (nextSortKey === sortKey) {
+      setSortDirection((currentDirection) => (currentDirection === "asc" ? "desc" : "asc"));
+      return;
+    }
+
+    setSortKey(nextSortKey);
+    setSortDirection(nextSortKey === "createdAt" || nextSortKey === "totalAttempts" ? "desc" : "asc");
+  }
+
+  function renderSortHeader(label: string, nextSortKey: ParticipantSortKey) {
+    const isActive = sortKey === nextSortKey;
+    return (
+      <button type="button" className="table-sort-button" onClick={() => changeSort(nextSortKey)}>
+        <span>{label}</span>
+        <span className={`sort-indicator ${isActive ? "sort-indicator-active" : ""}`}>
+          {isActive ? (sortDirection === "asc" ? "▲" : "▼") : "↕"}
+        </span>
+      </button>
+    );
+  }
 
   function exportExcel() {
-    const rows = participants
-      .map((participant) => {
-        const totalAttempts = attempts.filter((attempt) => attempt.participantId === participant.id).length;
-        return [
-          participant.fullName,
-          participant.email,
-          totalAttempts,
-          new Date(participant.createdAt).toLocaleString("vi-VN"),
-        ];
-      });
-    exportTableToExcel("Danh sách tham dự", ["Họ tên", "Email", "Số lần thi", "Ngày tham gia"], rows);
+    const rows = sortedRows.map((participant, index) => [
+      index + 1,
+      participant.fullName,
+      participant.email,
+      participant.totalAttempts,
+      new Date(participant.createdAt).toLocaleString("vi-VN"),
+    ]);
+    exportTableToExcel("Danh sách tham dự", ["STT", "Họ tên", "Email", "Số lần thi", "Ngày tham gia"], rows);
   }
 
   return (
@@ -34,20 +89,20 @@ export function AdminParticipantsPage() {
       <table className="table">
         <thead>
           <tr>
-            <th>Họ tên</th>
-            <th>Email</th>
-            <th>Số lần thi</th>
-            <th>Ngày tham gia</th>
+            <th className="stt-col">STT</th>
+            <th>{renderSortHeader("Họ tên", "fullName")}</th>
+            <th>{renderSortHeader("Email", "email")}</th>
+            <th>{renderSortHeader("Số lần thi", "totalAttempts")}</th>
+            <th>{renderSortHeader("Ngày tham gia", "createdAt")}</th>
           </tr>
         </thead>
         <tbody>
-          {participants.map((participant) => (
+          {sortedRows.map((participant, index) => (
             <tr key={participant.id}>
+              <td className="stt-col">{index + 1}</td>
               <td>{participant.fullName}</td>
               <td>{participant.email}</td>
-              <td>
-                {attempts.filter((attempt) => attempt.participantId === participant.id).length}
-              </td>
+              <td>{participant.totalAttempts}</td>
               <td>{new Date(participant.createdAt).toLocaleString()}</td>
             </tr>
           ))}

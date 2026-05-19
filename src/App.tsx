@@ -20,9 +20,9 @@ function Layout() {
   const quizTakingView = location.pathname.startsWith("/quiz/questions");
   const [themeMode, setThemeMode] = useState<ThemeMode>(() => {
     if (typeof window === "undefined") {
-      return "dark";
+      return "light";
     }
-    return localStorage.getItem("phishing-quiz-theme") === "light" ? "light" : "dark";
+    return localStorage.getItem("phishing-quiz-theme") === "dark" ? "dark" : "light";
   });
 
   useEffect(() => {

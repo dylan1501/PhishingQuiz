@@ -1,10 +1,23 @@
+import { FormEvent, useState } from "react";
 import { Link } from "react-router-dom";
-import { getAttempts, getLeaderboard, getParticipants, signOutAdmin } from "../storage";
+import {
+  getAttempts,
+  getLeaderboard,
+  getParticipants,
+  getQuestions,
+  getQuizConfig,
+  saveQuizConfig,
+  signOutAdmin,
+} from "../storage";
 
 export function AdminDashboardPage() {
   const attempts = getAttempts();
   const participants = getParticipants();
   const leaderboard = getLeaderboard();
+  const activeQuestions = getQuestions();
+  const [quizConfig, setQuizConfig] = useState(getQuizConfig());
+  const [questionCountInput, setQuestionCountInput] = useState(String(quizConfig.questionCount));
+  const [configMessage, setConfigMessage] = useState("");
   const fastestAttempt = attempts.length
     ? Math.min(...attempts.map((attempt) => attempt.durationSeconds))
     : 0;
@@ -39,6 +52,15 @@ export function AdminDashboardPage() {
             attempts.length) *
             100,
         );
+
+  function saveQuestionCount(event: FormEvent) {
+    event.preventDefault();
+    const parsedQuestionCount = Number(questionCountInput);
+    const nextConfig = saveQuizConfig({ questionCount: parsedQuestionCount });
+    setQuizConfig(nextConfig);
+    setQuestionCountInput(String(nextConfig.questionCount));
+    setConfigMessage(`Đã lưu cấu hình ${nextConfig.questionCount} câu hỏi cho mỗi lượt thi.`);
+  }
 
   return (
     <section className="stack admin-dashboard-stack">
@@ -81,6 +103,38 @@ export function AdminDashboardPage() {
           alt="Minh họa bảng điều khiển"
           className="admin-hero-illustration"
         />
+      </div>
+      <div className="content-card quiz-config-card">
+        <div>
+          <p className="eyebrow">Cấu Hình Bài Thi</p>
+          <h3>Số câu hỏi mỗi lượt thi</h3>
+          <p className="section-text">
+            Mặc định là 10 câu. Các câu được đánh dấu “Luôn có” vẫn được ưu tiên đưa vào đề,
+            phần còn lại được random từ ngân hàng câu hỏi đang bật.
+          </p>
+        </div>
+        <form className="quiz-config-form" onSubmit={saveQuestionCount}>
+          <label>
+            Số câu
+            <input
+              type="number"
+              min={1}
+              max={Math.max(activeQuestions.length, 1)}
+              value={questionCountInput}
+              onChange={(event) => {
+                setQuestionCountInput(event.target.value);
+                setConfigMessage("");
+              }}
+            />
+          </label>
+          <button type="submit" className="button button-primary">
+            Lưu cấu hình
+          </button>
+          <span className="quiz-config-hint">
+            Đang bật {activeQuestions.length} câu. Hiện cấu hình: {quizConfig.questionCount} câu/lượt.
+          </span>
+          {configMessage && <span className="quiz-config-message">{configMessage}</span>}
+        </form>
       </div>
       <div className="dashboard-grid">
         <article className="content-card dashboard-metric-card">

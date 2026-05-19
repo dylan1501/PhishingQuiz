@@ -52,7 +52,7 @@ export const seedQuestions: QuizQuestion[] = [
     category: "Website",
     scenarioIntro: "Cổng thông tin nhân sự thông báo có chính sách nghỉ phép mới.",
     scenarioContent:
-      "Hãy kiểm tra nội dung mô phỏng bên dưới và quyết định xem đây là phishing hay legitimate.",
+      "Hãy kiểm tra nội dung mô phỏng bên dưới và quyết định xem đây là Phishing hay An toàn.",
     scenarioHtml: `
       <div class="portal-sim">
         <div class="mail-row" data-spot="safe" data-label="Đúng domain nội bộ VPS"><strong>Trang đích:</strong> <a href="https://hrm.vps.com.vn/policy/leave-2026" title="https://hrm.vps.com.vn/policy/leave-2026">https://hrm.vps.com.vn/policy/leave-2026</a></div>
@@ -114,7 +114,7 @@ export const seedQuestions: QuizQuestion[] = [
     category: "Email",
     scenarioIntro: "Một email cho biết tài khoản ngân hàng của bạn có hoạt động bất thường.",
     scenarioContent:
-      "Hãy xem kỹ yêu cầu trong email trước khi quyết định đây là phishing hay legitimate.",
+      "Hãy xem kỹ yêu cầu trong email trước khi quyết định đây là Phishing hay An toàn.",
     scenarioHtml: `
       <div class="bank-sim">
         <div class="mail-row" data-spot="danger" data-label="Người gửi không thuộc ngân hàng thật"><strong>From:</strong> security@secure-banking-alert.com</div>
@@ -180,7 +180,7 @@ export const seedQuestions: QuizQuestion[] = [
     category: "Email",
     scenarioIntro: "Bạn nhận được lịch họp từ quản lý trực tiếp.",
     scenarioContent:
-      "Hãy xem lời mời họp và quyết định xem tình huống này là phishing hay legitimate.",
+      "Hãy xem lời mời họp và quyết định xem tình huống này là Phishing hay An toàn.",
     scenarioHtml: `
       <div class="mail-sim">
         <div class="mail-row" data-spot="safe" data-label="Người gửi nội bộ quen thuộc thuộc domain VPS"><strong>From:</strong> manager@vps.com.vn</div>
@@ -224,7 +224,7 @@ export const seedQuestions: QuizQuestion[] = [
     category: "Website",
     scenarioIntro: "Phòng pháp chế gửi yêu cầu đọc một hợp đồng trên nền tảng tài liệu đã được phê duyệt.",
     scenarioContent:
-      "Hãy xem thông tin trong mô phỏng và quyết định đây là phishing hay legitimate.",
+      "Hãy xem thông tin trong mô phỏng và quyết định đây là Phishing hay An toàn.",
     scenarioHtml: `
       <div class="portal-sim">
         <div class="mail-row" data-spot="safe" data-label="Nền tảng tài liệu VPS đã phê duyệt"><strong>Opened via:</strong> <a href="https://docs.vps.com.vn/legal/contract-2026" title="https://docs.vps.com.vn/legal/contract-2026">docs.vps.com.vn/legal/contract-2026</a></div>
@@ -291,7 +291,7 @@ export const seedQuestions: QuizQuestion[] = [
     category: "SMS",
     scenarioIntro: "Bạn nhận được tin nhắn thông báo gói cước sắp hết hạn.",
     scenarioContent:
-      "Hãy đọc tin nhắn và quyết định xem đây là phishing hay legitimate.",
+      "Hãy đọc tin nhắn và quyết định xem đây là Phishing hay An toàn.",
     scenarioHtml: `
       <div class="sms-sim">
         <p><strong>Mobile Rewards</strong></p>
@@ -760,7 +760,7 @@ export const seedQuestions: QuizQuestion[] = [
     category: "Website",
     scenarioIntro: "Bạn truy cập một website thông báo cần xác minh Captcha trước khi tiếp tục.",
     scenarioContent:
-      "Hãy kiểm tra cách website yêu cầu xác minh và quyết định đây là phishing hay legitimate.",
+      "Hãy kiểm tra cách website yêu cầu xác minh và quyết định đây là Phishing hay An toàn.",
     scenarioHtml: `
       <div class="portal-sim website-browser-template">
         <div class="browser-window">
@@ -798,7 +798,7 @@ export const seedQuestions: QuizQuestion[] = [
     category: "Website",
     scenarioIntro: "Bạn đang mở trang đăng nhập chính thức của VPS và gặp bước xác minh Captcha.",
     scenarioContent:
-      "Hãy quan sát domain, cách xác minh và quyết định tình huống này là phishing hay legitimate.",
+      "Hãy quan sát domain, cách xác minh và quyết định tình huống này là Phishing hay An toàn.",
     scenarioHtml: `
       <div class="portal-sim website-browser-template">
         <div class="browser-window">
@@ -835,7 +835,7 @@ export const seedQuestions: QuizQuestion[] = [
     category: "Website",
     scenarioIntro: "Một website hiển thị Captcha nhưng yêu cầu bạn mở Terminal để hoàn tất xác minh.",
     scenarioContent:
-      "Hãy kiểm tra cách website yêu cầu xác minh và quyết định đây là phishing hay legitimate.",
+      "Hãy kiểm tra cách website yêu cầu xác minh và quyết định đây là Phishing hay An toàn.",
     scenarioHtml: `
       <div class="portal-sim website-browser-template">
         <div class="browser-window">
@@ -873,7 +873,7 @@ export const seedQuestions: QuizQuestion[] = [
     category: "Website",
     scenarioIntro: "Bạn truy cập một trang báo cần cài tiện ích để vượt qua Captcha.",
     scenarioContent:
-      "Hãy đánh giá yêu cầu trên website và quyết định đây là phishing hay legitimate.",
+      "Hãy đánh giá yêu cầu trên website và quyết định đây là Phishing hay An toàn.",
     scenarioHtml: `
       <div class="portal-sim website-browser-template">
         <div class="browser-window">
@@ -912,7 +912,7 @@ export const seedQuestions: QuizQuestion[] = [
     category: "Email",
     scenarioIntro: "Bạn nhận được email thông báo tài khoản ngân hàng bị tạm khóa.",
     scenarioContent:
-      "Hãy kiểm tra người gửi, nội dung cảnh báo và liên kết xác minh để quyết định đây là phishing hay legitimate.",
+      "Hãy kiểm tra người gửi, nội dung cảnh báo và liên kết xác minh để quyết định đây là Phishing hay An toàn.",
     scenarioHtml: `
       <div class="mail-sim">
         <div class="mail-row" data-spot="danger" data-label="Domain người gửi là vietcombank-alert.com, không phải domain chính thức vietcombank.com.vn"><strong>From:</strong> Security VCB &lt;security@vietcombank-alert.com&gt;</div>
@@ -936,7 +936,7 @@ export const seedQuestions: QuizQuestion[] = [
     category: "Website",
     scenarioIntro: "Bạn nhận được tin nhắn từ một người quen nói rằng vừa trúng thưởng.",
     scenarioContent:
-      "Hãy quan sát link rút gọn và trang đích được hiển thị để quyết định đây là phishing hay legitimate.",
+      "Hãy quan sát link rút gọn và trang đích được hiển thị để quyết định đây là Phishing hay An toàn.",
     scenarioHtml: `
       <div class="portal-sim website-browser-template">
         <div class="browser-window">
@@ -967,7 +967,7 @@ export const seedQuestions: QuizQuestion[] = [
     category: "Website",
     scenarioIntro: "Một trang web bất ngờ hiển thị popup cảnh báo máy tính bị nhiễm virus.",
     scenarioContent:
-      "Hãy đánh giá nội dung popup và quyết định đây là phishing hay legitimate.",
+      "Hãy đánh giá nội dung popup và quyết định đây là Phishing hay An toàn.",
     scenarioHtml: `
       <div class="portal-sim website-browser-template">
         <div class="browser-window">
@@ -1000,7 +1000,7 @@ export const seedQuestions: QuizQuestion[] = [
     category: "Email",
     scenarioIntro: "Bạn nhận được email xác nhận đơn hàng từ Tiki sau khi mua hàng.",
     scenarioContent:
-      "Hãy kiểm tra domain, nội dung và yêu cầu trong email để quyết định đây là phishing hay legitimate.",
+      "Hãy kiểm tra domain, nội dung và yêu cầu trong email để quyết định đây là Phishing hay An toàn.",
     scenarioHtml: `
       <div class="mail-sim">
         <div class="mail-row" data-spot="safe" data-label="Người gửi dùng domain chính thức tiki.vn"><strong>From:</strong> Tiki &lt;no-reply@tiki.vn&gt;</div>
@@ -1024,7 +1024,7 @@ export const seedQuestions: QuizQuestion[] = [
     category: "Email",
     scenarioIntro: "Bạn nhận được email thông báo có người chia sẻ file tài chính qua SharePoint.",
     scenarioContent:
-      "Hãy kiểm tra domain người gửi và nút mở tài liệu để quyết định đây là phishing hay legitimate.",
+      "Hãy kiểm tra domain người gửi và nút mở tài liệu để quyết định đây là Phishing hay An toàn.",
     scenarioHtml: `
       <div class="mail-sim">
         <div class="mail-row" data-spot="danger" data-label="Domain sharepoint-docshare.net không phải Microsoft hoặc SharePoint nội bộ của tổ chức"><strong>From:</strong> no-reply@sharepoint-docshare.net</div>
@@ -1051,7 +1051,7 @@ export const seedQuestions: QuizQuestion[] = [
     category: "QR",
     scenarioIntro: "Bạn nhận được email yêu cầu quét QR để hoàn thành đánh giá KPI.",
     scenarioContent:
-      "Hãy kiểm tra người gửi, yêu cầu quét QR và bối cảnh để quyết định đây là phishing hay legitimate.",
+      "Hãy kiểm tra người gửi, yêu cầu quét QR và bối cảnh để quyết định đây là Phishing hay An toàn.",
     scenarioHtml: `
       <div class="mail-sim">
         <div class="mail-row" data-spot="danger" data-label="Domain hrsystem-portal.net không phải hệ thống HR chính thức của VPS"><strong>From:</strong> HR Portal &lt;hr-portal@hrsystem-portal.net&gt;</div>
@@ -1205,7 +1205,7 @@ export const seedQuestions: QuizQuestion[] = [
     category: "Email",
     scenarioIntro: "Bạn nhận email thông báo có nhiều tin nhắn Microsoft Teams chưa đọc.",
     scenarioContent:
-      "Hãy kiểm tra domain gửi và nội dung thông báo để quyết định đây là phishing hay legitimate.",
+      "Hãy kiểm tra domain gửi và nội dung thông báo để quyết định đây là Phishing hay An toàn.",
     scenarioHtml: `
       <div class="mail-sim">
         <div class="mail-row" data-spot="danger" data-label="Email Teams thật thường đến từ domain Microsoft, không phải ms-teams-alerts.com"><strong>From:</strong> notify@ms-teams-alerts.com</div>
