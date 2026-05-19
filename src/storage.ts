@@ -9,7 +9,7 @@ const keys = {
   admin: "phishing-quiz-admin-auth",
   questionSeedVersion: "phishing-quiz-question-seed-version",
 };
-const currentQuestionSeedVersion = "2026-05-18.vps-question-bank.v7";
+const currentQuestionSeedVersion = "2026-05-19.vps-question-bank.v8";
 
 function read<T>(key: string, fallback: T): T {
   const raw = localStorage.getItem(key);

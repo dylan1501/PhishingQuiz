@@ -906,5 +906,405 @@ export const seedQuestions: QuizQuestion[] = [
     alwaysIncluded: false,
     orderIndex: 34,
   },
+  {
+    id: "q35",
+    title: "Email giả mạo ngân hàng VCB yêu cầu xác minh",
+    category: "Email",
+    scenarioIntro: "Bạn nhận được email thông báo tài khoản ngân hàng bị tạm khóa.",
+    scenarioContent:
+      "Hãy kiểm tra người gửi, nội dung cảnh báo và liên kết xác minh để quyết định đây là phishing hay legitimate.",
+    scenarioHtml: `
+      <div class="mail-sim">
+        <div class="mail-row" data-spot="danger" data-label="Domain người gửi là vietcombank-alert.com, không phải domain chính thức vietcombank.com.vn"><strong>From:</strong> Security VCB &lt;security@vietcombank-alert.com&gt;</div>
+        <div class="mail-row"><strong>Subject:</strong> Tài khoản của bạn bị tạm khóa - Xác minh ngay</div>
+        <p>Chúng tôi phát hiện hoạt động <strong data-spot="danger" data-label="Từ ngữ gây sợ hãi khiến người nhận phản ứng vội">đáng ngờ</strong> trên tài khoản của bạn.</p>
+        <p>Tài khoản đã bị <strong data-spot="danger" data-label="Đe dọa khóa tài khoản là kỹ thuật tạo áp lực phổ biến trong phishing">TẠM KHÓA</strong>. Vui lòng xác minh trong <strong data-spot="danger" data-label="Mốc 24 giờ tạo cảm giác cấp bách bất thường">24 giờ</strong>.</p>
+        <p><a href="https://vietcombank-alert.com/verify" title="https://vietcombank-alert.com/verify" data-spot="danger" data-label="Link xác minh không thuộc domain chính thức của ngân hàng">Xác minh tài khoản ngay</a></p>
+      </div>
+    `,
+    correctAnswer: "phishing",
+    explanation:
+      "Đây là email phishing giả mạo ngân hàng. Dấu hiệu chính là domain người gửi không chính thức, nội dung đe dọa khóa tài khoản và yêu cầu xác minh qua link lạ.",
+    indicators: ["Domain ngân hàng giả", "Tạo áp lực 24 giờ", "Yêu cầu xác minh qua link"],
+    active: true,
+    alwaysIncluded: false,
+    orderIndex: 35,
+  },
+  {
+    id: "q36",
+    title: "Link rút gọn nhận thưởng Shopee",
+    category: "Website",
+    scenarioIntro: "Bạn nhận được tin nhắn từ một người quen nói rằng vừa trúng thưởng.",
+    scenarioContent:
+      "Hãy quan sát link rút gọn và trang đích được hiển thị để quyết định đây là phishing hay legitimate.",
+    scenarioHtml: `
+      <div class="portal-sim website-browser-template">
+        <div class="browser-window">
+          <div class="browser-topbar">
+            <div class="browser-controls"><i></i></div>
+            <div class="browser-address" data-spot="danger" data-label="Link rút gọn che giấu địa chỉ thật, người dùng không biết sẽ đi tới domain nào"><span>https://bit.ly/shopee-giftxyz</span></div>
+          </div>
+          <div class="browser-page">
+            <h4>Chúc mừng bạn đã nhận được quà tặng Shopee</h4>
+            <p>Trang đích sau khi mở link là <strong data-spot="danger" data-label="Domain shopee-gift.net không phải shopee.vn chính thức">http://shopee-gift.net/dang-nhap</strong>.</p>
+            <p data-spot="danger" data-label="Mồi nhử trúng thưởng thường được dùng để dụ nhập tài khoản hoặc thông tin cá nhân">Điền thông tin đăng nhập để nhận iPhone 15 trong hôm nay.</p>
+            <button type="button" data-spot="danger" data-label="Nút nhận thưởng dẫn người dùng tới form thu thập thông tin">Nhận thưởng ngay</button>
+          </div>
+        </div>
+      </div>
+    `,
+    correctAnswer: "phishing",
+    explanation:
+      "Đây là phishing. Link rút gọn che giấu URL thật, trang đích không thuộc shopee.vn và nội dung trúng thưởng là mồi nhử phổ biến.",
+    indicators: ["Link rút gọn", "Domain Shopee giả", "Mồi nhử trúng thưởng"],
+    active: true,
+    alwaysIncluded: false,
+    orderIndex: 36,
+  },
+  {
+    id: "q37",
+    title: "Popup cảnh báo virus giả",
+    category: "Website",
+    scenarioIntro: "Một trang web bất ngờ hiển thị popup cảnh báo máy tính bị nhiễm virus.",
+    scenarioContent:
+      "Hãy đánh giá nội dung popup và quyết định đây là phishing hay legitimate.",
+    scenarioHtml: `
+      <div class="portal-sim website-browser-template">
+        <div class="browser-window">
+          <div class="browser-topbar">
+            <div class="browser-controls"><i></i></div>
+            <div class="browser-address" data-spot="danger" data-label="Cảnh báo bảo mật xuất hiện từ website lạ, không phải ứng dụng bảo mật cài trên máy"><span>https://security-scan-warning.net/alert</span></div>
+          </div>
+          <div class="browser-page">
+            <div class="captcha-verify">
+              <h4 data-spot="danger" data-label="Tiêu đề gây hoảng loạn là đặc trưng của scareware">CẢNH BÁO BẢO MẬT</h4>
+              <p>Máy tính của bạn bị nhiễm <strong data-spot="danger" data-label="Số lượng virus cụ thể thường là thông tin bịa đặt để gây sợ hãi">5 virus nguy hiểm</strong>.</p>
+              <p data-spot="danger" data-label="Microsoft không hiển thị popup trên web yêu cầu gọi số hỗ trợ">Gọi ngay đường dây hỗ trợ Microsoft: 1800-xxx-xxxx</p>
+              <button type="button" data-spot="danger" data-label="Nút quét virus trên website lạ có thể dẫn tới tải phần mềm độc hại hoặc lừa thanh toán">Quét virus ngay</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `,
+    correctAnswer: "phishing",
+    explanation:
+      "Đây là scareware/phishing. Website lạ tạo cảnh báo virus giả, yêu cầu gọi số hỗ trợ hoặc bấm quét để dụ cài phần mềm điều khiển từ xa hay thanh toán giả.",
+    indicators: ["Popup gây hoảng loạn", "Số hỗ trợ giả", "Nút quét virus trên website lạ"],
+    active: true,
+    alwaysIncluded: false,
+    orderIndex: 37,
+  },
+  {
+    id: "q38",
+    title: "Email xác nhận đơn hàng Tiki hợp lệ",
+    category: "Email",
+    scenarioIntro: "Bạn nhận được email xác nhận đơn hàng từ Tiki sau khi mua hàng.",
+    scenarioContent:
+      "Hãy kiểm tra domain, nội dung và yêu cầu trong email để quyết định đây là phishing hay legitimate.",
+    scenarioHtml: `
+      <div class="mail-sim">
+        <div class="mail-row" data-spot="safe" data-label="Người gửi dùng domain chính thức tiki.vn"><strong>From:</strong> Tiki &lt;no-reply@tiki.vn&gt;</div>
+        <div class="mail-row"><strong>Subject:</strong> Xác nhận đơn hàng #TK20241215-88421</div>
+        <p>Xin chào, đơn hàng của bạn đã được xác nhận.</p>
+        <p data-spot="safe" data-label="Email chỉ cung cấp thông tin đơn hàng, không yêu cầu nhập mật khẩu hay OTP">Mã đơn: <strong>#TK20241215-88421</strong>. Tổng tiền: <strong>12.990.000đ</strong>. Giao hàng dự kiến: <strong>17/12/2024</strong>.</p>
+        <p>Theo dõi đơn hàng tại <a href="https://tiki.vn/order" title="https://tiki.vn/order" data-spot="safe" data-label="Link thuộc domain chính thức tiki.vn">tiki.vn/order</a> hoặc ứng dụng Tiki.</p>
+      </div>
+    `,
+    correctAnswer: "legitimate",
+    explanation:
+      "Đây là email hợp lệ: domain người gửi đúng, nội dung chỉ xác nhận đơn hàng và không yêu cầu cung cấp thông tin nhạy cảm.",
+    indicators: ["Domain chính thức", "Không yêu cầu OTP", "Thông tin đơn hàng rõ ràng"],
+    active: true,
+    alwaysIncluded: false,
+    orderIndex: 38,
+  },
+  {
+    id: "q39",
+    title: "Thông báo SharePoint chia sẻ tài liệu giả",
+    category: "Email",
+    scenarioIntro: "Bạn nhận được email thông báo có người chia sẻ file tài chính qua SharePoint.",
+    scenarioContent:
+      "Hãy kiểm tra domain người gửi và nút mở tài liệu để quyết định đây là phishing hay legitimate.",
+    scenarioHtml: `
+      <div class="mail-sim">
+        <div class="mail-row" data-spot="danger" data-label="Domain sharepoint-docshare.net không phải Microsoft hoặc SharePoint nội bộ của tổ chức"><strong>From:</strong> no-reply@sharepoint-docshare.net</div>
+        <div class="mail-row"><strong>Subject:</strong> Michael Chen shared "Q4_Financial_Report_FINAL.xlsx" with you</div>
+        <p><strong>Michael Chen</strong> shared a file with you.</p>
+        <div class="attachment-card" data-spot="danger" data-label="File tài chính bất ngờ từ nguồn không xác minh có thể là mồi nhử đánh cắp tài khoản Microsoft 365">
+          <span class="file-icon">XLS</span>
+          <div><strong>Q4_Financial_Report_FINAL.xlsx</strong><p>Excel Workbook - 1.8 MB</p></div>
+        </div>
+        <p><a href="https://sharepoint-docshare.net/login" title="https://sharepoint-docshare.net/login" data-spot="danger" data-label="Nút mở SharePoint dẫn đến domain giả để thu thập thông tin đăng nhập">Open in SharePoint</a></p>
+      </div>
+    `,
+    correctAnswer: "phishing",
+    explanation:
+      "Đây là phishing giả mạo SharePoint. Người gửi dùng domain lạ và nút mở tài liệu dẫn đến trang đăng nhập giả để đánh cắp tài khoản Microsoft 365.",
+    indicators: ["Domain SharePoint giả", "Tài liệu bất ngờ", "Nút mở dẫn tới login giả"],
+    active: true,
+    alwaysIncluded: false,
+    orderIndex: 39,
+  },
+  {
+    id: "q40",
+    title: "Email QR giả mạo cổng HR nội bộ",
+    category: "QR",
+    scenarioIntro: "Bạn nhận được email yêu cầu quét QR để hoàn thành đánh giá KPI.",
+    scenarioContent:
+      "Hãy kiểm tra người gửi, yêu cầu quét QR và bối cảnh để quyết định đây là phishing hay legitimate.",
+    scenarioHtml: `
+      <div class="mail-sim">
+        <div class="mail-row" data-spot="danger" data-label="Domain hrsystem-portal.net không phải hệ thống HR chính thức của VPS"><strong>From:</strong> HR Portal &lt;hr-portal@hrsystem-portal.net&gt;</div>
+        <div class="mail-row"><strong>Subject:</strong> Xác nhận đánh giá KPI Q4 - Hạn chót 20/12</div>
+        <p>Hệ thống HR yêu cầu bạn hoàn thành đánh giá KPI Q4 trước <strong data-spot="danger" data-label="Thời hạn gấp được dùng để thúc ép người nhận quét QR ngay">20/12/2024</strong>.</p>
+        <div class="qr-card" data-spot="danger" data-label="QR code che giấu URL thật và có thể vượt qua bộ lọc link trong email">
+          <div class="qr-pattern"></div>
+          <span>Quét bằng camera điện thoại để đăng nhập</span>
+        </div>
+        <p data-spot="danger" data-label="Yêu cầu chỉ dùng di động làm người dùng khó kiểm tra URL trước khi đăng nhập">Link chỉ hoạt động trên thiết bị di động.</p>
+      </div>
+    `,
+    correctAnswer: "phishing",
+    explanation:
+      "Đây là quishing. QR code có thể che giấu URL thật, email đến từ domain HR giả và yêu cầu chỉ dùng điện thoại để tránh người dùng kiểm tra địa chỉ.",
+    indicators: ["QR che giấu URL", "Domain HR giả", "Yêu cầu chỉ dùng di động"],
+    active: true,
+    alwaysIncluded: false,
+    orderIndex: 40,
+  },
+  {
+    id: "q41",
+    title: "Email giả HR yêu cầu cập nhật tài khoản nhận lương",
+    category: "Email",
+    scenarioIntro: "Bạn nhận được email yêu cầu cập nhật thông tin lương trước kỳ trả lương.",
+    scenarioContent:
+      "Hãy đánh giá domain người gửi và loại thông tin được yêu cầu.",
+    scenarioHtml: `
+      <div class="mail-sim">
+        <div class="mail-row" data-spot="danger" data-label="Domain nhan-su-portal.com không thuộc hệ thống nhân sự VPS"><strong>From:</strong> luong@nhan-su-portal.com</div>
+        <div class="mail-row"><strong>Subject:</strong> Cập nhật thông tin tài khoản nhận lương trước 25/12</div>
+        <p>Hệ thống thanh toán lương sẽ nâng cấp từ tháng 01/2025.</p>
+        <p data-spot="danger" data-label="Yêu cầu cung cấp CCCD và tài khoản ngân hàng qua link ngoài là rủi ro lộ dữ liệu cá nhân">Vui lòng cập nhật số CCCD và tài khoản ngân hàng trước ngày 25/12.</p>
+        <p><a href="https://nhan-su-portal.com/payroll/update" title="https://nhan-su-portal.com/payroll/update" data-spot="danger" data-label="Link cập nhật lương nằm ngoài domain nội bộ được xác thực">Cập nhật ngay</a></p>
+        <p data-spot="danger" data-label="Đe dọa trì hoãn lương tạo áp lực để người nhận bỏ qua bước xác minh">Nếu không cập nhật, lương tháng 01 có thể bị trì hoãn.</p>
+      </div>
+    `,
+    correctAnswer: "phishing",
+    explanation:
+      "Đây là phishing giả mạo HR. Dấu hiệu là domain ngoài, yêu cầu thông tin nhạy cảm và dùng áp lực lương để thúc ép thao tác nhanh.",
+    indicators: ["Domain HR giả", "Yêu cầu CCCD/tài khoản ngân hàng", "Đe dọa trì hoãn lương"],
+    active: true,
+    alwaysIncluded: false,
+    orderIndex: 41,
+  },
+  {
+    id: "q42",
+    title: "Yêu cầu ký DocuSign giả mạo",
+    category: "Email",
+    scenarioIntro: "Bạn nhận được email yêu cầu ký phụ lục hợp đồng lao động qua DocuSign.",
+    scenarioContent:
+      "Hãy kiểm tra domain người gửi và nút mở tài liệu để xác định tình huống.",
+    scenarioHtml: `
+      <div class="mail-sim">
+        <div class="mail-row" data-spot="danger" data-label="DocuSign hợp lệ thường dùng docusign.com hoặc docusign.net, không phải docusign-secure-document.com"><strong>From:</strong> dse@docusign-secure-document.com</div>
+        <div class="mail-row"><strong>Subject:</strong> Please DocuSign: Employment_Contract_Amendment_2025.pdf</div>
+        <p><strong>HR Department</strong> sent you a document to review and sign.</p>
+        <div class="attachment-card" data-spot="danger" data-label="Tài liệu nhân sự bất ngờ nên được xác minh lại trực tiếp với HR trước khi mở">
+          <span class="file-icon">PDF</span>
+          <div><strong>Employment_Contract_Amendment_2025.pdf</strong><p>Deadline: December 31, 2024</p></div>
+        </div>
+        <p><a href="https://docusign-secure-document.com/review" title="https://docusign-secure-document.com/review" data-spot="danger" data-label="Nút Review Document dẫn tới domain giả có thể đánh cắp tài khoản Microsoft hoặc Google">REVIEW DOCUMENT</a></p>
+      </div>
+    `,
+    correctAnswer: "phishing",
+    explanation:
+      "Đây là phishing giả mạo DocuSign. Domain người gửi không phải domain chính thức và nút xem tài liệu có thể dẫn tới trang đăng nhập giả.",
+    indicators: ["Domain DocuSign giả", "Tài liệu bất ngờ", "Nút review dẫn tới login giả"],
+    active: true,
+    alwaysIncluded: false,
+    orderIndex: 42,
+  },
+  {
+    id: "q43",
+    title: "Thông báo bảo mật GitHub hợp lệ",
+    category: "Email",
+    scenarioIntro: "Bạn nhận được email GitHub thông báo lỗ hổng trong repository.",
+    scenarioContent:
+      "Hãy kiểm tra người gửi và nội dung hướng dẫn để xác định email này.",
+    scenarioHtml: `
+      <div class="mail-sim">
+        <div class="mail-row" data-spot="safe" data-label="Người gửi sử dụng domain chính thức github.com"><strong>From:</strong> GitHub &lt;noreply@github.com&gt;</div>
+        <div class="mail-row"><strong>Subject:</strong> [GitHub] A security vulnerability has been found in your repository</div>
+        <p>We found a potential security vulnerability in one of your dependencies.</p>
+        <p data-spot="safe" data-label="Email nêu repository, package và CVE cụ thể để người dùng tự kiểm tra trong GitHub">Repository: <strong>your-org/internal-api</strong>. Package: <strong>lodash 4.17.15</strong>. Severity: <strong>High</strong>.</p>
+        <p data-spot="safe" data-label="Hướng dẫn truy cập trực tiếp github.com thay vì ép bấm link đăng nhập trong email">To view and fix this alert, visit your repository's Security tab directly at <strong>github.com</strong>.</p>
+      </div>
+    `,
+    correctAnswer: "legitimate",
+    explanation:
+      "Đây là email hợp lệ. Người gửi thuộc github.com, nội dung có thông tin kỹ thuật cụ thể và không ép bấm link đăng nhập.",
+    indicators: ["Domain chính thức", "Thông tin CVE cụ thể", "Không ép đăng nhập qua link"],
+    active: true,
+    alwaysIncluded: false,
+    orderIndex: 43,
+  },
+  {
+    id: "q44",
+    title: "Email giả mạo Tổng cục Thuế yêu cầu truy thu",
+    category: "Email",
+    scenarioIntro: "Bạn nhận được email thông báo truy thu thuế thu nhập cá nhân.",
+    scenarioContent:
+      "Hãy kiểm tra domain gửi, thời hạn xử lý và đường dẫn nộp thuế.",
+    scenarioHtml: `
+      <div class="mail-sim">
+        <div class="mail-row" data-spot="danger" data-label="Cơ quan nhà nước Việt Nam thường dùng domain .gov.vn, không phải tong-cuc-thue-gov.com"><strong>From:</strong> thongbao@tong-cuc-thue-gov.com</div>
+        <div class="mail-row"><strong>Subject:</strong> THÔNG BÁO TRUY THU THUẾ - Cần xử lý trong 7 ngày làm việc</div>
+        <p>Qua rà soát kỳ tính thuế 2022-2024, hệ thống phát hiện số thuế TNCN còn thiếu.</p>
+        <p data-spot="danger" data-label="Số tiền lớn và thời hạn ngắn tạo áp lực tâm lý để người nhận bấm link">Số tiền truy thu: <strong>42.800.000 VNĐ</strong>. Thời hạn: <strong>7 ngày làm việc</strong>.</p>
+        <p><a href="https://tong-cuc-thue-gov.com/payment" title="https://tong-cuc-thue-gov.com/payment" data-spot="danger" data-label="Link nộp thuế không thuộc cổng thuedientu.gdt.gov.vn chính thức">Nộp thuế ngay</a></p>
+      </div>
+    `,
+    correctAnswer: "phishing",
+    explanation:
+      "Đây là phishing giả mạo cơ quan thuế. Domain không phải .gov.vn, nội dung gây áp lực bằng số tiền lớn và link nộp thuế không chính thức.",
+    indicators: ["Domain cơ quan nhà nước giả", "Tạo áp lực bằng số tiền lớn", "Link nộp thuế không chính thức"],
+    active: true,
+    alwaysIncluded: false,
+    orderIndex: 44,
+  },
+  {
+    id: "q45",
+    title: "File Excel macro báo cáo Q4 từ nguồn lạ",
+    category: "Email",
+    scenarioIntro: "Bạn nhận được email gửi báo cáo thị trường Q4 dạng Excel có macro.",
+    scenarioContent:
+      "Hãy kiểm tra người gửi, định dạng file và hướng dẫn mở file.",
+    scenarioHtml: `
+      <div class="mail-sim">
+        <div class="mail-row" data-spot="danger" data-label="Domain business-reports-online.com là nguồn ngoài không quen thuộc"><strong>From:</strong> analytics@business-reports-online.com</div>
+        <div class="mail-row"><strong>Subject:</strong> Q4 2024 Market Intelligence Report - Action Required</div>
+        <p>Please find attached the Q4 2024 Market Intelligence Report prepared for your department.</p>
+        <div class="attachment-card" data-spot="danger" data-label="File .xlsm là Excel có macro, có thể thực thi mã khi người dùng bật nội dung">
+          <span class="file-icon file-icon-danger">XLSM</span>
+          <div><strong>Q4_Market_Report_2024.xlsm</strong><p>Excel Macro-Enabled Workbook - 3.1 MB</p></div>
+        </div>
+        <p data-spot="danger" data-label="Yêu cầu Enable Content là dấu hiệu nguy hiểm vì macro thường bị lợi dụng để chạy mã độc">When Excel shows a yellow security bar, click <strong>Enable Content</strong> to load charts.</p>
+      </div>
+    `,
+    correctAnswer: "phishing",
+    explanation:
+      "Đây là phishing phát tán mã độc qua macro. File .xlsm từ nguồn lạ và hướng dẫn bật Enable Content là dấu hiệu rủi ro cao.",
+    indicators: ["File .xlsm có macro", "Nguồn gửi lạ", "Yêu cầu Enable Content"],
+    active: true,
+    alwaysIncluded: false,
+    orderIndex: 45,
+  },
+  {
+    id: "q46",
+    title: "Thông báo Microsoft Teams giả có tin nhắn bỏ lỡ",
+    category: "Email",
+    scenarioIntro: "Bạn nhận email thông báo có nhiều tin nhắn Microsoft Teams chưa đọc.",
+    scenarioContent:
+      "Hãy kiểm tra domain gửi và nội dung thông báo để quyết định đây là phishing hay legitimate.",
+    scenarioHtml: `
+      <div class="mail-sim">
+        <div class="mail-row" data-spot="danger" data-label="Email Teams thật thường đến từ domain Microsoft, không phải ms-teams-alerts.com"><strong>From:</strong> notify@ms-teams-alerts.com</div>
+        <div class="mail-row"><strong>Subject:</strong> You have 3 missed messages in Microsoft Teams</div>
+        <p>You have <strong>3 unread messages</strong> waiting for you.</p>
+        <p data-spot="danger" data-label="Tin nhắn giả từ IT Support về khóa tài khoản là chiến thuật tạo khẩn cấp">IT Support: "Your account will be suspended. Verify now."</p>
+        <p><a href="https://ms-teams-alerts.com/messages" title="https://ms-teams-alerts.com/messages" data-spot="danger" data-label="Nút mở Teams dẫn tới domain giả, không phải teams.microsoft.com">Open Teams Messages</a></p>
+      </div>
+    `,
+    correctAnswer: "phishing",
+    explanation:
+      "Đây là phishing giả mạo Microsoft Teams. Domain gửi và link mở Teams đều giả, nội dung khóa tài khoản tạo áp lực để đánh cắp thông tin đăng nhập.",
+    indicators: ["Domain Teams giả", "Tạo khẩn cấp bằng khóa tài khoản", "Link không phải teams.microsoft.com"],
+    active: true,
+    alwaysIncluded: false,
+    orderIndex: 46,
+  },
+  {
+    id: "q47",
+    title: "Tin nhắn đầu tư crypto lợi nhuận cao",
+    category: "SMS",
+    scenarioIntro: "Một người lạ nhắn tin làm quen và mời đầu tư crypto lợi nhuận rất cao.",
+    scenarioContent:
+      "Hãy đánh giá nội dung tin nhắn, lời hứa lợi nhuận và đường dẫn đăng ký.",
+    scenarioHtml: `
+      <div class="sms-sim">
+        <div data-spot="danger" data-label="Người gửi lạ tiếp cận bằng câu chuyện nhắn nhầm để tạo quan hệ giả">Linh Nguyễn - WhatsApp</div>
+        <p>Chào anh/chị! Em là Linh, chuyên viên tài chính tại Hà Nội. Em vô tình nhắn nhầm nhưng thấy profile của anh/chị rất chuyên nghiệp.</p>
+        <p data-spot="danger" data-label="Lời hứa lợi nhuận 15-30%/tuần là phi thực tế và thường dùng trong lừa đảo đầu tư">Em đang dùng nền tảng CryptoGold Pro, lợi nhuận 15-30%/tuần.</p>
+        <p>Đây là link đăng ký: <a href="https://cryptogold-pro.vip/register" title="https://cryptogold-pro.vip/register" data-spot="danger" data-label="Domain .vip và nền tảng đầu tư không xác minh là dấu hiệu rủi ro cao">cryptogold-pro.vip/register</a></p>
+      </div>
+    `,
+    correctAnswer: "phishing",
+    explanation:
+      "Đây là lừa đảo đầu tư kiểu pig butchering. Người lạ tạo quan hệ, hứa lợi nhuận phi thực tế và dẫn tới nền tảng không xác minh.",
+    indicators: ["Người lạ nhắn nhầm", "Lợi nhuận phi thực tế", "Nền tảng đầu tư không xác minh"],
+    active: true,
+    alwaysIncluded: false,
+    orderIndex: 47,
+  },
+  {
+    id: "q48",
+    title: "Popup Norton hết hạn giả mạo",
+    category: "Website",
+    scenarioIntro: "Một website hiển thị thông báo gói Norton đã hết hạn và máy có nhiều mã độc.",
+    scenarioContent:
+      "Hãy kiểm tra cách popup gây áp lực và yêu cầu thanh toán.",
+    scenarioHtml: `
+      <div class="portal-sim website-browser-template">
+        <div class="browser-window">
+          <div class="browser-topbar">
+            <div class="browser-controls"><i></i></div>
+            <div class="browser-address" data-spot="danger" data-label="Popup xuất hiện trong trình duyệt từ domain lạ, không phải ứng dụng Norton cài trên máy"><span>https://norton-renewal-warning.com/scan</span></div>
+          </div>
+          <div class="browser-page">
+            <div class="captcha-verify">
+              <h4>NORTON - Cảnh báo bảo mật khẩn cấp</h4>
+              <p>Gói bảo vệ Norton của bạn đã <strong data-spot="danger" data-label="Thông báo hết hạn được dùng để thúc ép thanh toán ngay">HẾT HẠN</strong>.</p>
+              <p data-spot="danger" data-label="Danh sách virus cụ thể trong popup web thường là bịa đặt để gây hoảng loạn">Trojans phát hiện: 3. Spyware phát hiện: 7. Adware phát hiện: 12.</p>
+              <button type="button" data-spot="danger" data-label="Nút gia hạn có thể dẫn tới trang thanh toán giả để đánh cắp thẻ">Gia hạn ngay - 299.000đ/năm</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `,
+    correctAnswer: "phishing",
+    explanation:
+      "Đây là scareware giả mạo Norton. Popup web tạo hoảng loạn bằng danh sách virus giả và dẫn người dùng tới thanh toán giả.",
+    indicators: ["Popup web giả Norton", "Danh sách virus gây hoảng loạn", "Yêu cầu thanh toán ngay"],
+    active: true,
+    alwaysIncluded: false,
+    orderIndex: 48,
+  },
+  {
+    id: "q49",
+    title: "Lời mời tuyển dụng tài chính có file PDF",
+    category: "Email",
+    scenarioIntro: "Bạn nhận được lời mời tuyển dụng với mức lương rất cao và file mô tả công việc.",
+    scenarioContent:
+      "Hãy kiểm tra domain nhà tuyển dụng, mức lương, thời hạn phản hồi và file đính kèm.",
+    scenarioHtml: `
+      <div class="mail-sim">
+        <div class="mail-row" data-spot="danger" data-label="Domain financialcareers-apac.com chưa được xác minh là đơn vị tuyển dụng uy tín"><strong>From:</strong> recruitment@financialcareers-apac.com</div>
+        <div class="mail-row"><strong>Subject:</strong> Exclusive Opportunity: Senior Financial Analyst - DBS Bank Singapore</div>
+        <p>Compensation: <strong data-spot="danger" data-label="Mức lương rất cao so với bối cảnh có thể là mồi nhử cho mục tiêu tài chính">SGD 12,000-15,000/month</strong> + relocation package.</p>
+        <div class="attachment-card" data-spot="danger" data-label="File đính kèm từ lời mời chưa xác minh có thể chứa mã độc hoặc khai thác lỗ hổng trình đọc PDF">
+          <span class="file-icon file-icon-danger">PDF</span>
+          <div><strong>JobDescription_SeniorAnalyst_DBS.pdf</strong><p>Please open to confirm interest</p></div>
+        </div>
+        <p data-spot="danger" data-label="Thời hạn 48 giờ tạo áp lực để người nhận mở file trước khi kiểm chứng">Please respond within 48 hours to be considered.</p>
+      </div>
+    `,
+    correctAnswer: "phishing",
+    explanation:
+      "Đây là spear phishing dùng lời mời tuyển dụng hấp dẫn. Domain chưa xác minh, mức lương bất thường, thời hạn gấp và file đính kèm đều là dấu hiệu rủi ro.",
+    indicators: ["Domain tuyển dụng chưa xác minh", "Mức lương quá hấp dẫn", "File đính kèm bất ngờ"],
+    active: true,
+    alwaysIncluded: false,
+    orderIndex: 49,
+  },
 ];
 
