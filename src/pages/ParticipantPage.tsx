@@ -1,15 +1,16 @@
 import { FormEvent, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { createParticipant, startSession } from "../storage";
+import { createRemoteParticipant, startRemoteSession } from "../apiClient";
 
 export function ParticipantPage() {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [consent, setConsent] = useState(true);
   const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
 
-  function onSubmit(event: FormEvent) {
+  async function onSubmit(event: FormEvent) {
     event.preventDefault();
     if (fullName.trim().length < 2) {
       setError("Họ tên phải có ít nhất 2 ký tự.");
@@ -19,9 +20,17 @@ export function ParticipantPage() {
       setError("Vui lòng nhập email hợp lệ.");
       return;
     }
-    const participant = createParticipant(fullName.trim(), email.trim(), consent);
-    startSession(participant.id);
-    navigate("/quiz/questions/1");
+    setSubmitting(true);
+    setError("");
+    try {
+      const remoteParticipant = await createRemoteParticipant(fullName.trim(), email.trim(), consent);
+      const remoteSession = await startRemoteSession(remoteParticipant.id);
+      navigate(`/quiz/questions/1?session=${encodeURIComponent(remoteSession.id ?? "")}`);
+    } catch (remoteError) {
+      setError(remoteError instanceof Error ? remoteError.message : "Không khởi tạo được bài thi.");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -53,8 +62,8 @@ export function ParticipantPage() {
           Tôi đồng ý cho phép lưu kết quả để phục vụ bảng xếp hạng và báo cáo.
         </label>
         {error && <div className="notice notice-error">{error}</div>}
-        <button type="submit" className="button button-primary">
-          Bắt đầu làm bài
+        <button type="submit" className="button button-primary" disabled={submitting}>
+          {submitting ? "Đang khởi tạo..." : "Bắt đầu làm bài"}
         </button>
       </form>
     </section>

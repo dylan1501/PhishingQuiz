@@ -42,6 +42,8 @@ export interface Attempt {
 }
 
 export interface QuizSession {
+  id?: string;
+  remote?: boolean;
   participantId: string;
   startedAt: string;
   questionIds: string[];

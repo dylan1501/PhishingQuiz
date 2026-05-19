@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Navigate, useNavigate, useParams } from "react-router-dom";
-import { finishAttempt, getQuestions, getSession, saveSession } from "../storage";
-import type { AnswerOption } from "../types";
+import { Navigate, useLocation, useNavigate, useParams } from "react-router-dom";
+import { finishRemoteSession, getRemoteSession, saveRemoteAnswer } from "../apiClient";
+import type { AnswerOption, QuizQuestion, QuizSession } from "../types";
 
 type HotspotNote = {
   id: string;
@@ -254,25 +254,21 @@ function normalizeScenarioHtml(html: string, questionTitle: string) {
 export function QuizPage() {
   const { index } = useParams();
   const navigate = useNavigate();
-  const session = getSession();
-  const questions = useMemo(() => {
-    const allQuestions = getQuestions();
-    if (!session) {
-      return allQuestions;
-    }
-    const orderMap = new Map(allQuestions.map((question) => [question.id, question] as const));
-    return session.questionIds
-      .map((questionId) => orderMap.get(questionId))
-      .filter((question): question is NonNullable<typeof question> => Boolean(question));
-  }, [session]);
+  const location = useLocation();
+  const sessionId = useMemo(() => new URLSearchParams(location.search).get("session") ?? "", [location.search]);
+  const [session, setSession] = useState<QuizSession | null>(null);
+  const [questions, setQuestions] = useState<QuizQuestion[]>([]);
+  const [loadingSession, setLoadingSession] = useState(true);
+  const [loadError, setLoadError] = useState("");
   const questionNumber = Number(index ?? 1);
-  const question = questions[questionNumber - 1];
+  const question = questions[questionNumber - 1] ?? null;
   const existingAnswer = session?.answers.find((answer) => answer.questionId === question?.id);
   const [selectedAnswer, setSelectedAnswer] = useState<AnswerOption | null>(
     existingAnswer?.selectedAnswer ?? null,
   );
   const [explanationViewed, setExplanationViewed] = useState(false);
   const [explanationStepIndex, setExplanationStepIndex] = useState(0);
+  const [finishError, setFinishError] = useState("");
   const scenarioHtmlRef = useRef<HTMLDivElement | null>(null);
   const scenarioStageRef = useRef<HTMLDivElement | null>(null);
   const correctAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -281,13 +277,37 @@ export function QuizPage() {
   const [bubblePosition, setBubblePosition] = useState<{ left: number; top: number } | null>(null);
   const [anchorPosition, setAnchorPosition] = useState<{ left: number; top: number } | null>(null);
 
-  if (!session) {
-    return <Navigate to="/quiz/start" replace />;
-  }
-  if (!question) {
-    return <Navigate to="/quiz/result" replace />;
-  }
-  const activeSession = session;
+  useEffect(() => {
+    if (!sessionId) {
+      setLoadingSession(false);
+      return;
+    }
+
+    let active = true;
+    setLoadingSession(true);
+    setLoadError("");
+    getRemoteSession(sessionId)
+      .then((payload) => {
+        if (active) {
+          setSession(payload.session);
+          setQuestions(payload.questions);
+        }
+      })
+      .catch((error) => {
+        if (active) {
+          setLoadError(error instanceof Error ? error.message : "Không tải được phiên làm bài.");
+        }
+      })
+      .finally(() => {
+        if (active) {
+          setLoadingSession(false);
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [sessionId]);
 
   useEffect(() => {
     setSelectedAnswer(existingAnswer?.selectedAnswer ?? null);
@@ -295,7 +315,8 @@ export function QuizPage() {
     setExplanationStepIndex(0);
     setBubblePosition(null);
     setAnchorPosition(null);
-  }, [existingAnswer?.selectedAnswer, question.id]);
+    setFinishError("");
+  }, [existingAnswer?.selectedAnswer, question?.id]);
 
   useEffect(() => {
     correctAudioRef.current = new Audio(QUIZ_SOUNDS.correct);
@@ -330,37 +351,51 @@ export function QuizPage() {
     });
 
     return () => stopAudio(thinkingAudio);
-  }, [question.id, selectedAnswer]);
+  }, [question?.id, selectedAnswer]);
 
-  function answerQuestion(answer: AnswerOption) {
-    if (selectedAnswer) {
+  async function answerQuestion(answer: AnswerOption) {
+    if (!session || !question || selectedAnswer) {
       return;
     }
     setSelectedAnswer(answer);
     stopAudio(thinkingAudioRef.current);
     playAudio(answer === question.correctAnswer ? correctAudioRef.current : wrongAudioRef.current);
-    const nextAnswers = activeSession.answers.filter((entry) => entry.questionId !== question.id);
-    nextAnswers.push({
-      questionId: question.id,
-      selectedAnswer: answer,
-      isCorrect: answer === question.correctAnswer,
-      answeredAt: new Date().toISOString(),
-    });
-    saveSession({ ...activeSession, answers: nextAnswers });
+    try {
+      const savedAnswer = await saveRemoteAnswer(sessionId, question.id, answer);
+      setSession((currentSession) => {
+        if (!currentSession) {
+          return currentSession;
+        }
+        return {
+          ...currentSession,
+          answers: [
+            ...currentSession.answers.filter((entry) => entry.questionId !== question.id),
+            savedAnswer,
+          ],
+        };
+      });
+    } catch (error) {
+      setSelectedAnswer(null);
+      setFinishError(error instanceof Error ? error.message : "Không lưu được câu trả lời.");
+    }
   }
 
-  function goNext() {
+  async function goNext() {
     window.scrollTo({ top: 0, behavior: "smooth" });
     if (questionNumber === questions.length) {
-      const attempt = finishAttempt();
-      const route = attempt?.id ? `/quiz/result?attempt=${attempt.id}` : "/quiz/result";
-      navigate(route, { replace: true });
+      try {
+        const attempt = await finishRemoteSession(sessionId);
+        navigate(`/quiz/result?attempt=${attempt.id}`, { replace: true });
+      } catch (error) {
+        console.error("Không hoàn tất được lượt thi trên DB.", error);
+        setFinishError("Không lưu được kết quả lên cơ sở dữ liệu. Vui lòng thử bấm Next lại.");
+      }
       return;
     }
     setExplanationViewed(false);
     setBubblePosition(null);
     setAnchorPosition(null);
-    navigate(`/quiz/questions/${questionNumber + 1}`, { replace: true });
+    navigate(`/quiz/questions/${questionNumber + 1}?session=${encodeURIComponent(sessionId)}`, { replace: true });
   }
 
   function handleExplanationNext() {
@@ -368,7 +403,7 @@ export function QuizPage() {
       setExplanationStepIndex((currentStep) => currentStep + 1);
       return;
     }
-    goNext();
+    void goNext();
   }
 
   function showExplanation() {
@@ -376,17 +411,17 @@ export function QuizPage() {
     setExplanationStepIndex(0);
   }
 
-  const correct = selectedAnswer ? selectedAnswer === question.correctAnswer : null;
-  const progress = (questionNumber / questions.length) * 100;
+  const correct = selectedAnswer && question ? selectedAnswer === question.correctAnswer : null;
+  const progress = questions.length > 0 ? (questionNumber / questions.length) * 100 : 0;
   const normalizedScenarioHtml = useMemo(() => {
-    if (!question.scenarioHtml || typeof window === "undefined") {
-      return question.scenarioHtml;
+    if (!question?.scenarioHtml || typeof window === "undefined") {
+      return question?.scenarioHtml ?? "";
     }
 
     return normalizeScenarioHtml(question.scenarioHtml, question.title);
-  }, [question.scenarioHtml, question.title]);
+  }, [question?.scenarioHtml, question?.title]);
   const hotspotNotes = useMemo<HotspotNote[]>(() => {
-    if (!normalizedScenarioHtml || typeof window === "undefined") {
+    if (!question || !normalizedScenarioHtml || typeof window === "undefined") {
       return [];
     }
 
@@ -399,7 +434,7 @@ export function QuizPage() {
         spot: element.dataset.spot === "safe" ? "safe" : "danger",
       }),
     );
-  }, [normalizedScenarioHtml, question.id]);
+  }, [normalizedScenarioHtml, question?.id]);
   const scenarioHtmlWithSpotOrder = useMemo(() => {
     if (!normalizedScenarioHtml || typeof window === "undefined") {
       return normalizedScenarioHtml;
@@ -416,6 +451,9 @@ export function QuizPage() {
     return parsedDocument.body.innerHTML;
   }, [explanationStepIndex, explanationViewed, normalizedScenarioHtml]);
   const explanationSteps = useMemo<ExplanationStep[]>(() => {
+    if (!question) {
+      return [];
+    }
     if (hotspotNotes.length > 0) {
       return hotspotNotes.map((note, noteIndex) => ({
         id: `${question.id}-hotspot-${noteIndex}`,
@@ -443,7 +481,7 @@ export function QuizPage() {
     });
 
     return fallbackSteps;
-  }, [hotspotNotes, question.explanation, question.id, question.indicators]);
+  }, [hotspotNotes, question?.explanation, question?.id, question?.indicators]);
   const currentExplanationStep = explanationSteps[explanationStepIndex] ?? null;
   const hasMoreExplanationSteps = explanationStepIndex < explanationSteps.length - 1;
 
@@ -484,6 +522,33 @@ export function QuizPage() {
       top: anchorTop,
     });
   }, [currentExplanationStep, explanationViewed, scenarioHtmlWithSpotOrder]);
+
+  if (!sessionId) {
+    return <Navigate to="/quiz/start" replace />;
+  }
+
+  if (loadingSession) {
+    return (
+      <section className="content-card quiz-card">
+        <p className="eyebrow">Đang tải bài thi</p>
+        <h3>Hệ thống đang lấy phiên làm bài từ cơ sở dữ liệu</h3>
+      </section>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <section className="content-card quiz-card">
+        <p className="eyebrow">Không tải được bài thi</p>
+        <h3>Vui lòng quay lại và bắt đầu lượt thi mới</h3>
+        <p className="section-text">{loadError}</p>
+      </section>
+    );
+  }
+
+  if (!session || !question) {
+    return <Navigate to="/quiz/start" replace />;
+  }
 
   return (
     <section className="quiz-layout">
@@ -609,6 +674,7 @@ export function QuizPage() {
               </strong>
             </div>
           )}
+          {finishError && <div className="notice notice-error">{finishError}</div>}
       </article>
     </section>
   );

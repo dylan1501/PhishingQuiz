@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { getRemoteAttempts, getRemoteParticipants } from "../apiClient";
 import { exportTableToExcel } from "../excelExport";
-import { getAttempts, getParticipants } from "../storage";
 
 type ParticipantSortKey = "fullName" | "email" | "totalAttempts" | "createdAt";
 type SortDirection = "asc" | "desc";
@@ -14,10 +14,28 @@ interface ParticipantRow {
 }
 
 export function AdminParticipantsPage() {
-  const participants = getParticipants();
-  const attempts = getAttempts();
+  const [participants, setParticipants] = useState<Awaited<ReturnType<typeof getRemoteParticipants>>>([]);
+  const [attempts, setAttempts] = useState<Awaited<ReturnType<typeof getRemoteAttempts>>>([]);
+  const [loadError, setLoadError] = useState("");
   const [sortKey, setSortKey] = useState<ParticipantSortKey>("createdAt");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
+
+  useEffect(() => {
+    let active = true;
+    Promise.all([getRemoteParticipants(), getRemoteAttempts()])
+      .then(([remoteParticipants, remoteAttempts]) => {
+        if (active) {
+          setParticipants(remoteParticipants);
+          setAttempts(remoteAttempts);
+        }
+      })
+      .catch((error) => {
+        setLoadError(error instanceof Error ? error.message : "Không tải được danh sách người tham gia.");
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const participantRows: ParticipantRow[] = participants.map((participant) => ({
     id: participant.id,
@@ -86,6 +104,7 @@ export function AdminParticipantsPage() {
           Xuất Excel
         </button>
       </div>
+      {loadError && <div className="notice notice-error">{loadError}</div>}
       <table className="table">
         <thead>
           <tr>

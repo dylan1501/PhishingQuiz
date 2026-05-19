@@ -1,5 +1,10 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
-import { getAllQuestions, saveQuestions } from "../storage";
+import {
+  createAdminQuestion,
+  getAdminQuestions,
+  patchAdminQuestionState,
+  updateAdminQuestion,
+} from "../apiClient";
 import type { AnswerOption, QuizQuestion } from "../types";
 
 interface QuestionFormState {
@@ -68,9 +73,11 @@ function parseHotspotNotes(html: string): HotspotNote[] {
 }
 
 export function AdminQuestionsPage() {
-  const [questions, setQuestions] = useState(getAllQuestions());
+  const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<QuestionFormState>(emptyForm);
+  const [loadError, setLoadError] = useState("");
+  const [saving, setSaving] = useState(false);
   const [previewAnswer, setPreviewAnswer] = useState<AnswerOption | null>(null);
   const [previewExplanationViewed, setPreviewExplanationViewed] = useState(false);
   const [previewStepIndex, setPreviewStepIndex] = useState(0);
@@ -86,25 +93,54 @@ export function AdminQuestionsPage() {
     setPreviewStepIndex(0);
   }
 
-  function persist(nextQuestions: QuizQuestion[]) {
-    setQuestions(nextQuestions);
-    saveQuestions(nextQuestions);
+  useEffect(() => {
+    let active = true;
+    getAdminQuestions()
+      .then((remoteQuestions) => {
+        if (active) {
+          setQuestions(remoteQuestions);
+        }
+      })
+      .catch((error) => {
+        if (active) {
+          setLoadError(error instanceof Error ? error.message : "Không tải được ngân hàng câu hỏi.");
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  async function toggleActive(questionId: string) {
+    const currentQuestion = questions.find((question) => question.id === questionId);
+    if (!currentQuestion) {
+      return;
+    }
+    try {
+      const updatedQuestion = await patchAdminQuestionState(questionId, { active: !currentQuestion.active });
+      setQuestions((currentQuestions) =>
+        currentQuestions.map((question) => (question.id === questionId ? updatedQuestion : question)),
+      );
+    } catch (error) {
+      setLoadError(error instanceof Error ? error.message : "Không cập nhật được trạng thái câu hỏi.");
+    }
   }
 
-  function toggleActive(questionId: string) {
-    const nextQuestions = questions.map((question) =>
-      question.id === questionId ? { ...question, active: !question.active } : question,
-    );
-    persist(nextQuestions);
-  }
-
-  function toggleAlwaysIncluded(questionId: string) {
-    const nextQuestions = questions.map((question) =>
-      question.id === questionId
-        ? { ...question, alwaysIncluded: !question.alwaysIncluded, active: question.alwaysIncluded ? question.active : true }
-        : question,
-    );
-    persist(nextQuestions);
+  async function toggleAlwaysIncluded(questionId: string) {
+    const currentQuestion = questions.find((question) => question.id === questionId);
+    if (!currentQuestion) {
+      return;
+    }
+    try {
+      const updatedQuestion = await patchAdminQuestionState(questionId, {
+        alwaysIncluded: !currentQuestion.alwaysIncluded,
+      });
+      setQuestions((currentQuestions) =>
+        currentQuestions.map((question) => (question.id === questionId ? updatedQuestion : question)),
+      );
+    } catch (error) {
+      setLoadError(error instanceof Error ? error.message : "Không cập nhật được câu hỏi luôn có.");
+    }
   }
 
   function editQuestion(question: QuizQuestion) {
@@ -211,7 +247,7 @@ export function AdminQuestionsPage() {
     setPreviewStepIndex(0);
   }
 
-  function onSubmit(event: FormEvent) {
+  async function onSubmit(event: FormEvent) {
     event.preventDefault();
     const payload = {
       title: form.title.trim(),
@@ -228,24 +264,32 @@ export function AdminQuestionsPage() {
       alwaysIncluded: form.alwaysIncluded,
     };
 
+    setSaving(true);
+    setLoadError("");
     if (editingId) {
-      const nextQuestions = questions.map((question) =>
-        question.id === editingId ? { ...question, ...payload } : question,
-      );
-      persist(nextQuestions);
-      resetForm();
+      try {
+        const updatedQuestion = await updateAdminQuestion(editingId, payload);
+        setQuestions((currentQuestions) =>
+          currentQuestions.map((question) => (question.id === editingId ? updatedQuestion : question)),
+        );
+        resetForm();
+      } catch (error) {
+        setLoadError(error instanceof Error ? error.message : "Không lưu được câu hỏi.");
+      } finally {
+        setSaving(false);
+      }
       return;
     }
 
-    const nextQuestion: QuizQuestion = {
-      id: crypto.randomUUID(),
-      ...payload,
-      active: true,
-      alwaysIncluded: form.alwaysIncluded,
-      orderIndex: questions.length + 1,
-    };
-    persist([...questions, nextQuestion]);
-    resetForm();
+    try {
+      const nextQuestion = await createAdminQuestion(payload);
+      setQuestions((currentQuestions) => [...currentQuestions, nextQuestion].sort((a, b) => a.orderIndex - b.orderIndex));
+      resetForm();
+    } catch (error) {
+      setLoadError(error instanceof Error ? error.message : "Không thêm được câu hỏi.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -258,6 +302,7 @@ export function AdminQuestionsPage() {
           phần còn lại được random từ các câu đang bật khác, sau đó toàn bộ đề được trộn lại. Hiện có{" "}
           {alwaysIncludedCount} câu đang được đánh dấu luôn có.
         </p>
+        {loadError && <div className="notice notice-error">{loadError}</div>}
       </div>
       <div className="content-card">
         <form className="stack" onSubmit={onSubmit}>
@@ -462,8 +507,8 @@ export function AdminQuestionsPage() {
             />
           </label>
           <div className="hero-actions">
-            <button className="button button-primary" type="submit">
-              {editingId ? "Lưu chỉnh sửa" : "Thêm câu hỏi"}
+            <button className="button button-primary" type="submit" disabled={saving}>
+              {saving ? "Đang lưu..." : editingId ? "Lưu chỉnh sửa" : "Thêm câu hỏi"}
             </button>
             {editingId && (
               <button type="button" className="button button-ghost" onClick={resetForm}>

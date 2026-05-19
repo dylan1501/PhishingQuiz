@@ -1,11 +1,6 @@
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
-import {
-  createAdminCredentials,
-  hasAdminCredentials,
-  isAdminAuthenticated,
-  signInAdmin,
-} from "../storage";
+import { getRemoteAdminStatus, loginRemoteAdmin, setupRemoteAdmin } from "../apiClient";
 
 export function AdminLoginPage() {
   const navigate = useNavigate();
@@ -14,10 +9,45 @@ export function AdminLoginPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const needsSetup = !hasAdminCredentials();
+  const [needsSetup, setNeedsSetup] = useState(false);
+  const [authenticated, setAuthenticated] = useState(false);
+  const [loadingStatus, setLoadingStatus] = useState(true);
 
-  if (isAdminAuthenticated()) {
+  useEffect(() => {
+    let active = true;
+    getRemoteAdminStatus()
+      .then((status) => {
+        if (active) {
+          setNeedsSetup(!status.hasAdmin);
+          setAuthenticated(status.authenticated);
+        }
+      })
+      .catch((error) => {
+        if (active) {
+          setError(error instanceof Error ? error.message : "Không kiểm tra được trạng thái quản trị.");
+        }
+      })
+      .finally(() => {
+        if (active) {
+          setLoadingStatus(false);
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  if (authenticated) {
     return <Navigate to="/admin/dashboard" replace />;
+  }
+
+  if (loadingStatus) {
+    return (
+      <section className="content-card form-card">
+        <p className="eyebrow">Quản Trị</p>
+        <h2>Đang kiểm tra trạng thái quản trị</h2>
+      </section>
+    );
   }
 
   async function onSubmit(event: FormEvent) {
@@ -41,16 +71,15 @@ export function AdminLoginPage() {
           setError("Mật khẩu xác nhận không khớp.");
           return;
         }
-        await createAdminCredentials(email, password);
+        await setupRemoteAdmin(email, password);
         navigate("/admin/dashboard");
         return;
       }
 
-      if (!(await signInAdmin(email, password))) {
-        setError("Thông tin đăng nhập quản trị không đúng.");
-        return;
-      }
+      await loginRemoteAdmin(email, password);
       navigate("/admin/dashboard");
+    } catch (submitError) {
+      setError(submitError instanceof Error ? submitError.message : "Không xử lý được đăng nhập quản trị.");
     } finally {
       setSubmitting(false);
     }
@@ -62,7 +91,7 @@ export function AdminLoginPage() {
       <h2>{needsSetup ? "Thiết lập tài khoản quản trị" : "Đăng nhập quản trị"}</h2>
       <p className="section-text">
         {needsSetup
-          ? "Tạo tài khoản quản trị đầu tiên cho trình duyệt này. Thông tin đăng nhập không được hardcode trong source hoặc bundle JS."
+          ? "Tạo tài khoản quản trị đầu tiên trong cơ sở dữ liệu. Thông tin đăng nhập không được lưu ở trình duyệt."
           : "Nhập thông tin quản trị để truy cập dashboard và dữ liệu quiz."}
       </p>
       <form className="stack" onSubmit={onSubmit}>

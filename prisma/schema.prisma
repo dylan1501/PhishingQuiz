@@ -1,0 +1,275 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum AnswerOption {
+  PHISHING   @map("phishing")
+  LEGITIMATE @map("legitimate")
+
+  @@map("answer_option")
+}
+
+enum HotspotType {
+  DANGER @map("danger")
+  SAFE   @map("safe")
+
+  @@map("hotspot_type")
+}
+
+enum AdminRole {
+  ADMIN     @map("admin")
+  VIEWER    @map("viewer")
+  SUPERUSER @map("superuser")
+
+  @@map("admin_role")
+}
+
+enum QuizSessionStatus {
+  IN_PROGRESS @map("in_progress")
+  COMPLETED   @map("completed")
+  EXPIRED     @map("expired")
+  ABANDONED   @map("abandoned")
+
+  @@map("quiz_session_status")
+}
+
+model Participant {
+  id        String   @id @default(uuid()) @db.Uuid
+  fullName  String   @map("full_name") @db.VarChar(160)
+  email     String   @unique @db.VarChar(254)
+  consent   Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  attempts Attempt[]
+  sessions QuizSession[]
+
+  @@index([createdAt])
+  @@map("participants")
+}
+
+model AdminAccount {
+  id           String    @id @default(uuid()) @db.Uuid
+  email        String    @unique @db.VarChar(254)
+  passwordHash String    @map("password_hash") @db.VarChar(255)
+  passwordSalt String    @map("password_salt") @db.VarChar(255)
+  role         AdminRole @default(ADMIN)
+  isActive     Boolean   @default(true) @map("is_active")
+  lastLoginAt  DateTime? @map("last_login_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  auditLogs AuditLog[]
+
+  @@index([isActive])
+  @@map("admin_accounts")
+}
+
+model Quiz {
+  id          String   @id @default(uuid()) @db.Uuid
+  title       String   @db.VarChar(180)
+  description String?  @db.Text
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  attempts  Attempt[]
+  questions Question[]
+  sessions  QuizSession[]
+  setting   QuizSetting?
+
+  @@index([isActive])
+  @@map("quizzes")
+}
+
+model QuizSetting {
+  id                 String   @id @default(uuid()) @db.Uuid
+  quizId             String   @unique @map("quiz_id") @db.Uuid
+  questionCount      Int      @default(10) @map("question_count")
+  randomizeQuestions Boolean  @default(true) @map("randomize_questions")
+  randomizeAnswers   Boolean  @default(false) @map("randomize_answers")
+  requireExplanation Boolean  @default(true) @map("require_explanation")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  quiz Quiz @relation(fields: [quizId], references: [id], onDelete: Cascade)
+
+  @@map("quiz_settings")
+}
+
+model Question {
+  id              String       @id @db.VarChar(80)
+  quizId          String       @map("quiz_id") @db.Uuid
+  title           String       @db.VarChar(220)
+  category        String       @db.VarChar(80)
+  scenarioIntro   String       @map("scenario_intro") @db.Text
+  scenarioContent String       @map("scenario_content") @db.Text
+  scenarioHtml    String       @map("scenario_html") @db.Text
+  correctAnswer   AnswerOption @map("correct_answer")
+  explanation     String       @db.Text
+  active          Boolean      @default(true)
+  alwaysIncluded  Boolean      @default(false) @map("always_included")
+  orderIndex      Int          @map("order_index")
+  createdAt       DateTime     @default(now()) @map("created_at")
+  updatedAt       DateTime     @updatedAt @map("updated_at")
+
+  answers        AttemptAnswer[]
+  hotspots       QuestionHotspot[]
+  indicators     QuestionIndicator[]
+  quiz           Quiz                  @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  sessionAnswers QuizSessionAnswer[]
+  sessions       QuizSessionQuestion[]
+
+  @@index([quizId, active, orderIndex])
+  @@index([quizId, alwaysIncluded])
+  @@map("questions")
+}
+
+model QuestionIndicator {
+  id         String   @id @default(uuid()) @db.Uuid
+  questionId String   @map("question_id") @db.VarChar(80)
+  label      String   @db.VarChar(240)
+  orderIndex Int      @default(1) @map("order_index")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@index([questionId, orderIndex])
+  @@map("question_indicators")
+}
+
+model QuestionHotspot {
+  id         String      @id @default(uuid()) @db.Uuid
+  questionId String      @map("question_id") @db.VarChar(80)
+  label      String      @db.Text
+  spot       HotspotType @default(DANGER)
+  htmlTarget String?     @map("html_target") @db.VarChar(180)
+  orderIndex Int         @default(1) @map("order_index")
+  createdAt  DateTime    @default(now()) @map("created_at")
+
+  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@index([questionId, orderIndex])
+  @@map("question_hotspots")
+}
+
+model QuizSession {
+  id            String            @id @default(uuid()) @db.Uuid
+  participantId String            @map("participant_id") @db.Uuid
+  quizId        String            @map("quiz_id") @db.Uuid
+  status        QuizSessionStatus @default(IN_PROGRESS)
+  startedAt     DateTime          @default(now()) @map("started_at")
+  expiresAt     DateTime?         @map("expires_at")
+  completedAt   DateTime?         @map("completed_at")
+  createdAt     DateTime          @default(now()) @map("created_at")
+  updatedAt     DateTime          @updatedAt @map("updated_at")
+
+  participant Participant           @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  quiz        Quiz                  @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  answers     QuizSessionAnswer[]
+  questions   QuizSessionQuestion[]
+
+  @@index([participantId, startedAt])
+  @@index([quizId, status])
+  @@map("quiz_sessions")
+}
+
+model QuizSessionQuestion {
+  id         String @id @default(uuid()) @db.Uuid
+  sessionId  String @map("session_id") @db.Uuid
+  questionId String @map("question_id") @db.VarChar(80)
+  orderIndex Int    @map("order_index")
+
+  question Question    @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  session  QuizSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, questionId])
+  @@index([sessionId, orderIndex])
+  @@map("quiz_session_questions")
+}
+
+model QuizSessionAnswer {
+  id             String       @id @default(uuid()) @db.Uuid
+  sessionId      String       @map("session_id") @db.Uuid
+  questionId     String       @map("question_id") @db.VarChar(80)
+  selectedAnswer AnswerOption @map("selected_answer")
+  isCorrect      Boolean      @map("is_correct")
+  answeredAt     DateTime     @map("answered_at")
+  createdAt      DateTime     @default(now()) @map("created_at")
+
+  question Question    @relation(fields: [questionId], references: [id], onDelete: Restrict)
+  session  QuizSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, questionId])
+  @@index([questionId, isCorrect])
+  @@map("quiz_session_answers")
+}
+
+model Attempt {
+  id              String   @id @default(uuid()) @db.Uuid
+  participantId   String   @map("participant_id") @db.Uuid
+  quizId          String   @map("quiz_id") @db.Uuid
+  score           Int
+  totalQuestions  Int      @map("total_questions")
+  durationSeconds Int      @map("duration_seconds")
+  startedAt       DateTime @map("started_at")
+  completedAt     DateTime @map("completed_at")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  answers     AttemptAnswer[]
+  participant Participant     @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  quiz        Quiz            @relation(fields: [quizId], references: [id], onDelete: Cascade)
+
+  @@index([participantId, completedAt])
+  @@index([quizId, score, durationSeconds, completedAt])
+  @@map("attempts")
+}
+
+model AttemptAnswer {
+  id             String       @id @default(uuid()) @db.Uuid
+  attemptId      String       @map("attempt_id") @db.Uuid
+  questionId     String       @map("question_id") @db.VarChar(80)
+  selectedAnswer AnswerOption @map("selected_answer")
+  correctAnswer  AnswerOption @map("correct_answer")
+  isCorrect      Boolean      @map("is_correct")
+  answeredAt     DateTime     @map("answered_at")
+  responseMs     Int?         @map("response_ms")
+
+  attempt  Attempt  @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question Question @relation(fields: [questionId], references: [id], onDelete: Restrict)
+
+  @@unique([attemptId, questionId])
+  @@index([questionId, isCorrect])
+  @@map("attempt_answers")
+}
+
+model AppSetting {
+  key       String   @id @db.VarChar(120)
+  value     Json
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("app_settings")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  adminId    String?  @map("admin_id") @db.Uuid
+  action     String   @db.VarChar(120)
+  entityType String   @map("entity_type") @db.VarChar(120)
+  entityId   String?  @map("entity_id") @db.VarChar(120)
+  before     Json?
+  after      Json?
+  ipAddress  String?  @map("ip_address") @db.VarChar(80)
+  userAgent  String?  @map("user_agent") @db.Text
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  admin AdminAccount? @relation(fields: [adminId], references: [id], onDelete: SetNull)
+
+  @@index([adminId, createdAt])
+  @@index([entityType, entityId])
+  @@map("audit_logs")
+}

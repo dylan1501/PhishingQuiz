@@ -1,4 +1,5 @@
-import { getLeaderboard } from "../storage";
+import { useEffect, useState } from "react";
+import { getRemoteLeaderboard, type LeaderboardEntry } from "../apiClient";
 
 function maskEmail(email: string) {
   const [name = "", domain = "hidden.local"] = email.split("@");
@@ -82,7 +83,25 @@ function getProgress(score: number, totalQuestions: number) {
 }
 
 export function LeaderboardPage() {
-  const entries = getLeaderboard();
+  const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
+  const [loadError, setLoadError] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    getRemoteLeaderboard()
+      .then((remoteEntries) => {
+        if (active) {
+          setEntries(remoteEntries);
+        }
+      })
+      .catch((error) => {
+        setLoadError(error instanceof Error ? error.message : "Không tải được bảng xếp hạng.");
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
   const topOne = entries[0];
   const sidePodium = [entries[1], entries[2]].filter(Boolean);
   const sideLabels = ["Hạng 2", "Hạng 3"];
@@ -96,6 +115,7 @@ export function LeaderboardPage() {
         <p className="section-text">
           Xếp hạng theo điểm cao hơn, thời gian ngắn hơn, rồi đến thời điểm hoàn thành sớm hơn.
         </p>
+        {loadError && <div className="notice notice-error">{loadError}</div>}
       </div>
       {topOne && (
         <div className="leaderboard-hero">

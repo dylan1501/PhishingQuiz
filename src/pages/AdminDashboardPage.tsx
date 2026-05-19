@@ -1,23 +1,27 @@
-import { FormEvent, useState } from "react";
-import { Link } from "react-router-dom";
+import { FormEvent, useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import {
-  getAttempts,
-  getLeaderboard,
-  getParticipants,
-  getQuestions,
-  getQuizConfig,
-  saveQuizConfig,
-  signOutAdmin,
-} from "../storage";
+  getRemoteAttempts,
+  getRemoteLeaderboard,
+  getRemoteParticipants,
+  getRemoteQuizConfig,
+  getRemoteQuestions,
+  logoutRemoteAdmin,
+  saveRemoteQuizConfig,
+  type LeaderboardEntry,
+} from "../apiClient";
+import type { Attempt, Participant, QuizConfig, QuizQuestion } from "../types";
 
 export function AdminDashboardPage() {
-  const attempts = getAttempts();
-  const participants = getParticipants();
-  const leaderboard = getLeaderboard();
-  const activeQuestions = getQuestions();
-  const [quizConfig, setQuizConfig] = useState(getQuizConfig());
+  const navigate = useNavigate();
+  const [attempts, setAttempts] = useState<Attempt[]>([]);
+  const [participants, setParticipants] = useState<Participant[]>([]);
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [activeQuestions, setActiveQuestions] = useState<QuizQuestion[]>([]);
+  const [quizConfig, setQuizConfig] = useState<QuizConfig>({ questionCount: 10, updatedAt: new Date(0).toISOString() });
   const [questionCountInput, setQuestionCountInput] = useState(String(quizConfig.questionCount));
   const [configMessage, setConfigMessage] = useState("");
+  const [loadError, setLoadError] = useState("");
   const fastestAttempt = attempts.length
     ? Math.min(...attempts.map((attempt) => attempt.durationSeconds))
     : 0;
@@ -53,13 +57,49 @@ export function AdminDashboardPage() {
             100,
         );
 
-  function saveQuestionCount(event: FormEvent) {
+  useEffect(() => {
+    let active = true;
+    Promise.all([
+      getRemoteAttempts(),
+      getRemoteParticipants(),
+      getRemoteLeaderboard(),
+      getRemoteQuestions(),
+      getRemoteQuizConfig(),
+    ])
+      .then(([remoteAttempts, remoteParticipants, remoteLeaderboard, remoteQuestions, remoteQuizConfig]) => {
+        if (active) {
+          setAttempts(remoteAttempts);
+          setParticipants(remoteParticipants);
+          setLeaderboard(remoteLeaderboard);
+          setActiveQuestions(remoteQuestions);
+          setQuizConfig(remoteQuizConfig);
+          setQuestionCountInput(String(remoteQuizConfig.questionCount));
+        }
+      })
+      .catch((error) => {
+        setLoadError(error instanceof Error ? error.message : "Không tải được dữ liệu dashboard.");
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  async function saveQuestionCount(event: FormEvent) {
     event.preventDefault();
     const parsedQuestionCount = Number(questionCountInput);
-    const nextConfig = saveQuizConfig({ questionCount: parsedQuestionCount });
-    setQuizConfig(nextConfig);
-    setQuestionCountInput(String(nextConfig.questionCount));
-    setConfigMessage(`Đã lưu cấu hình ${nextConfig.questionCount} câu hỏi cho mỗi lượt thi.`);
+    try {
+      const nextConfig = await saveRemoteQuizConfig(parsedQuestionCount);
+      setQuizConfig(nextConfig);
+      setQuestionCountInput(String(nextConfig.questionCount));
+      setConfigMessage(`Đã lưu cấu hình ${nextConfig.questionCount} câu hỏi cho mỗi lượt thi.`);
+    } catch (error) {
+      setConfigMessage(error instanceof Error ? error.message : "Không lưu được cấu hình bài thi.");
+    }
+  }
+
+  async function signOut() {
+    await logoutRemoteAdmin().catch(() => undefined);
+    navigate("/admin/login", { replace: true });
   }
 
   return (
@@ -77,7 +117,7 @@ export function AdminDashboardPage() {
           <img src="/assets/icons/questions.svg" alt="" className="admin-tab-icon" />
           Câu hỏi
         </Link>
-        <button type="button" className="button button-small admin-signout-button" onClick={signOutAdmin}>
+        <button type="button" className="button button-small admin-signout-button" onClick={signOut}>
           <img src="/assets/icons/signout.svg" alt="" className="admin-tab-icon" />
           Đăng xuất
         </button>
@@ -104,6 +144,7 @@ export function AdminDashboardPage() {
           className="admin-hero-illustration"
         />
       </div>
+      {loadError && <div className="notice notice-error">{loadError}</div>}
       <div className="content-card quiz-config-card">
         <div>
           <p className="eyebrow">Cấu Hình Bài Thi</p>

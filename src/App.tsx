@@ -10,7 +10,7 @@ import { LeaderboardPage } from "./pages/LeaderboardPage";
 import { ParticipantPage } from "./pages/ParticipantPage";
 import { QuizPage } from "./pages/QuizPage";
 import { ResultPage } from "./pages/ResultPage";
-import { initializeStorage, isAdminAuthenticated } from "./storage";
+import { getRemoteAdminStatus } from "./apiClient";
 
 type ThemeMode = "dark" | "light";
 
@@ -18,16 +18,10 @@ function Layout() {
   const location = useLocation();
   const adminView = location.pathname.startsWith("/admin");
   const quizTakingView = location.pathname.startsWith("/quiz/questions");
-  const [themeMode, setThemeMode] = useState<ThemeMode>(() => {
-    if (typeof window === "undefined") {
-      return "light";
-    }
-    return localStorage.getItem("phishing-quiz-theme") === "dark" ? "dark" : "light";
-  });
+  const [themeMode, setThemeMode] = useState<ThemeMode>("light");
 
   useEffect(() => {
     document.documentElement.dataset.theme = themeMode;
-    localStorage.setItem("phishing-quiz-theme", themeMode);
   }, [themeMode]);
 
   return (
@@ -85,16 +79,41 @@ function Layout() {
 }
 
 function AdminRoute({ children }: { children: React.ReactElement }) {
-  if (!isAdminAuthenticated()) {
+  const [authenticated, setAuthenticated] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    getRemoteAdminStatus()
+      .then((status) => {
+        if (active) {
+          setAuthenticated(status.authenticated);
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setAuthenticated(false);
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  if (authenticated === null) {
+    return (
+      <section className="content-card form-card">
+        <p className="eyebrow">Quản Trị</p>
+        <h2>Đang kiểm tra phiên đăng nhập</h2>
+      </section>
+    );
+  }
+
+  if (!authenticated) {
     return <Navigate to="/admin/login" replace />;
   }
   return children;
 }
 
 export default function App() {
-  useEffect(() => {
-    initializeStorage();
-  }, []);
-
   return <Layout />;
 }
