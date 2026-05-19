@@ -108,6 +108,17 @@ function canUseDevFallback(error: unknown) {
   ].some((pattern) => message.includes(pattern));
 }
 
+function canUseDevAuthFallback() {
+  return process.env.NODE_ENV !== "production" && process.env.DISABLE_DEV_API_FALLBACK !== "true";
+}
+
+function warnDevFallback(error: unknown) {
+  console.warn(
+    "[dev-api-fallback] Không kết nối được PostgreSQL, dùng bộ nhớ tạm phía server cho môi trường dev.",
+    error instanceof Error ? error.message : error,
+  );
+}
+
 async function withDevFallback<T>(databaseAction: () => Promise<T>, devAction: () => Promise<T>) {
   try {
     return await databaseAction();
@@ -115,11 +126,41 @@ async function withDevFallback<T>(databaseAction: () => Promise<T>, devAction: (
     if (!canUseDevFallback(error)) {
       throw error;
     }
-    console.warn(
-      "[dev-api-fallback] Không kết nối được PostgreSQL, dùng bộ nhớ tạm phía server cho môi trường dev.",
-      error instanceof Error ? error.message : error,
-    );
+    warnDevFallback(error);
     return devAction();
+  }
+}
+
+async function getResolvedAdminStatus(request: VercelRequest) {
+  const status = await withDevFallback(
+    () => getAdminStatus(request),
+    () => devGetAdminStatus(request),
+  );
+
+  if (status.authenticated || !canUseDevAuthFallback()) {
+    return status;
+  }
+
+  const devStatus = await devGetAdminStatus(request);
+  return {
+    hasAdmin: status.hasAdmin || devStatus.hasAdmin,
+    authenticated: devStatus.authenticated,
+  };
+}
+
+async function requireResolvedAdmin(request: VercelRequest) {
+  try {
+    const admin = await requireAdmin(request);
+    if (admin || !canUseDevAuthFallback()) {
+      return admin;
+    }
+    return devRequireAdmin(request);
+  } catch (error) {
+    if (!canUseDevFallback(error)) {
+      throw error;
+    }
+    warnDevFallback(error);
+    return devRequireAdmin(request);
   }
 }
 
@@ -173,13 +214,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
         if (!requireMethod(request, response, "GET")) {
           return;
         }
-        sendOk(
-          response,
-          await withDevFallback(
-            () => getAdminStatus(request),
-            () => devGetAdminStatus(request),
-          ),
-        );
+        sendOk(response, await getResolvedAdminStatus(request));
         return;
       }
 
@@ -236,10 +271,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
         return;
       }
 
-      const admin = await withDevFallback(
-        () => requireAdmin(request),
-        () => devRequireAdmin(request),
-      );
+      const admin = await requireResolvedAdmin(request);
       if (!admin) {
         sendError(response, 401, "Bạn cần đăng nhập quản trị.");
         return;
@@ -408,6 +440,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
         sendError(response, 400, "Dữ liệu câu trả lời không hợp lệ.");
         return;
       }
+      const selectedAnswer = body.selectedAnswer;
       sendOk(
         response,
         await withDevFallback(
@@ -415,13 +448,13 @@ export default async function handler(request: VercelRequest, response: VercelRe
             saveSessionAnswer({
               sessionId: resourceId,
               questionId: body.questionId,
-              selectedAnswer: body.selectedAnswer,
+              selectedAnswer,
             }),
           () =>
             devSaveSessionAnswer({
               sessionId: resourceId,
               questionId: body.questionId,
-              selectedAnswer: body.selectedAnswer,
+              selectedAnswer,
             }),
         ),
       );

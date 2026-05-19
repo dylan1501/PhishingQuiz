@@ -121,5 +121,11 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react(), localVercelApiPlugin()],
+    build: {
+      sourcemap: false,
+    },
+    css: {
+      devSourcemap: false,
+    },
   };
 });

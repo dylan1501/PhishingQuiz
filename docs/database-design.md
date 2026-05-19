@@ -93,6 +93,7 @@ npm run db:studio
 ## Ghi chú triển khai
 
 - Không import Prisma Client vào code chạy trên trình duyệt. Chỉ dùng trong serverless/API/backend.
+- Khi chạy `npm run dev`, Vite có middleware xử lý `/api/*` bằng cùng handler với Vercel. Nếu PostgreSQL chưa bật hoặc `DATABASE_URL` trỏ sai, môi trường dev sẽ dùng bộ nhớ tạm phía server để UI vẫn chạy được. Production không dùng fallback này.
 - Khi migrate thật, cần viết script seed để đưa `seedQuestions` từ `src/data.ts` vào `quizzes`, `questions`, `question_indicators`, `question_hotspots`.
 - Password admin được hash ở server trước khi lưu vào `admin_accounts`. Có thể nâng cấp thuật toán sang Argon2 hoặc bcrypt nếu cần tiêu chuẩn mạnh hơn.
 - Leaderboard không hiển thị email đầy đủ; chỉ trả về tên, điểm, thời gian, ngày làm bài.
