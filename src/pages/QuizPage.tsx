@@ -269,6 +269,8 @@ export function QuizPage() {
   const [explanationViewed, setExplanationViewed] = useState(false);
   const [explanationStepIndex, setExplanationStepIndex] = useState(0);
   const [finishError, setFinishError] = useState("");
+  const [finishingResult, setFinishingResult] = useState(false);
+  const finishInProgressRef = useRef(false);
   const scenarioHtmlRef = useRef<HTMLDivElement | null>(null);
   const scenarioStageRef = useRef<HTMLDivElement | null>(null);
   const correctAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -316,6 +318,8 @@ export function QuizPage() {
     setBubblePosition(null);
     setAnchorPosition(null);
     setFinishError("");
+    setFinishingResult(false);
+    finishInProgressRef.current = false;
   }, [existingAnswer?.selectedAnswer, question?.id]);
 
   useEffect(() => {
@@ -383,12 +387,20 @@ export function QuizPage() {
   async function goNext() {
     window.scrollTo({ top: 0, behavior: "smooth" });
     if (questionNumber === questions.length) {
+      if (finishInProgressRef.current) {
+        return;
+      }
+      finishInProgressRef.current = true;
+      setFinishingResult(true);
+      setFinishError("");
       try {
         const attempt = await finishRemoteSession(sessionId);
         navigate(`/quiz/result?attempt=${attempt.id}`, { replace: true });
       } catch (error) {
         console.error("Không hoàn tất được lượt thi trên DB.", error);
         setFinishError("Không lưu được kết quả lên cơ sở dữ liệu. Vui lòng thử bấm Next lại.");
+        setFinishingResult(false);
+        finishInProgressRef.current = false;
       }
       return;
     }
@@ -399,6 +411,9 @@ export function QuizPage() {
   }
 
   function handleExplanationNext() {
+    if (finishingResult) {
+      return;
+    }
     if (hasMoreExplanationSteps) {
       setExplanationStepIndex((currentStep) => currentStep + 1);
       return;
@@ -484,6 +499,7 @@ export function QuizPage() {
   }, [hotspotNotes, question?.explanation, question?.id, question?.indicators]);
   const currentExplanationStep = explanationSteps[explanationStepIndex] ?? null;
   const hasMoreExplanationSteps = explanationStepIndex < explanationSteps.length - 1;
+  const finalExplanationStep = questionNumber === questions.length && !hasMoreExplanationSteps;
 
   useEffect(() => {
     if (
@@ -589,9 +605,10 @@ export function QuizPage() {
                   <button
                     type="button"
                     className="button button-primary explanation-next-button"
+                    disabled={finishingResult}
                     onClick={handleExplanationNext}
                   >
-                    Next
+                    {finishingResult && finalExplanationStep ? "Đang lưu..." : "Next"}
                   </button>
                 </div>
               )}
@@ -609,9 +626,10 @@ export function QuizPage() {
                     <button
                       type="button"
                       className="button button-primary explanation-next-button"
+                      disabled={finishingResult}
                       onClick={handleExplanationNext}
                     >
-                      Next
+                      {finishingResult && finalExplanationStep ? "Đang lưu..." : "Next"}
                     </button>
                   </div>
                 )}
@@ -623,6 +641,7 @@ export function QuizPage() {
           <button
             type="button"
             className={`answer-button ${selectedAnswer === "phishing" ? "selected-phishing" : ""}`}
+            disabled={Boolean(selectedAnswer) || finishingResult}
             onClick={() => answerQuestion("phishing")}
           >
             Phishing
@@ -630,6 +649,7 @@ export function QuizPage() {
           <button
             type="button"
             className={`answer-button ${selectedAnswer === "legitimate" ? "selected-legitimate" : ""}`}
+            disabled={Boolean(selectedAnswer) || finishingResult}
             onClick={() => answerQuestion("legitimate")}
           >
             An toàn
@@ -668,7 +688,9 @@ export function QuizPage() {
               <strong>
                 {hasMoreExplanationSteps
                   ? "Bấm Next để xem phần tiếp theo"
-                  : questionNumber === questions.length
+                  : finishingResult
+                    ? "Đang lưu kết quả và chuyển sang màn hình tổng kết..."
+                    : questionNumber === questions.length
                     ? "Bấm Next để sang kết quả"
                     : "Bấm Next để sang câu tiếp theo"}
               </strong>

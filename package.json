@@ -12,6 +12,7 @@
     "db:validate": "prisma validate",
     "db:push": "prisma db push",
     "db:deploy": "prisma migrate deploy",
+    "db:status": "prisma migrate status",
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
     "api:smoke": "tsx scripts/api-smoke-test.ts"

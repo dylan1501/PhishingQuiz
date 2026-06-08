@@ -8,3 +8,4 @@ api/**/*.d.ts
 .env.local
 .env.*.local
 !.env.example
+docs/*

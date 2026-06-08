@@ -13,15 +13,17 @@ import { getPrisma } from "./_db.js";
 
 const defaultQuizTitle = "Phishing Quiz";
 
+const attemptInclude = {
+  answers: true,
+  participant: true,
+} satisfies Prisma.AttemptInclude;
+
 type QuestionWithIndicators = Prisma.QuestionGetPayload<{
   include: { indicators: { orderBy: { orderIndex: "asc" } } };
 }>;
 
 type AttemptWithRelations = Prisma.AttemptGetPayload<{
-  include: {
-    answers: true;
-    participant: true;
-  };
+  include: typeof attemptInclude;
 }>;
 
 type QuestionInput = {
@@ -472,6 +474,14 @@ export async function saveSessionAnswer(input: {
 
 export async function finishQuizSession(sessionId: string) {
   const prisma = getPrisma();
+  const existingAttempt = await prisma.attempt.findUnique({
+    where: { quizSessionId: sessionId },
+    include: attemptInclude,
+  });
+  if (existingAttempt) {
+    return serializeAttempt(existingAttempt);
+  }
+
   const session = await prisma.quizSession.findUniqueOrThrow({
     where: { id: sessionId },
     include: {
@@ -493,52 +503,68 @@ export async function finishQuizSession(sessionId: string) {
   const durationSeconds = Math.max(1, Math.round((completedAt.getTime() - session.startedAt.getTime()) / 1000));
   const score = answeredQuestions.filter((answer) => answer.isCorrect).length;
 
-  const attempt = await prisma.$transaction(async (tx) => {
-    const nextAttempt = await tx.attempt.create({
-      data: {
-        participantId: session.participantId,
-        quizId: session.quizId,
-        score,
-        totalQuestions: questionIds.length,
-        durationSeconds,
-        startedAt: session.startedAt,
-        completedAt,
-        answers: {
-          create: answeredQuestions.map((answer) => ({
-            questionId: answer.questionId,
-            selectedAnswer: answer.selectedAnswer,
-            correctAnswer: correctAnswerByQuestionId.get(answer.questionId) ?? answer.selectedAnswer,
-            isCorrect: answer.isCorrect,
-            answeredAt: answer.answeredAt,
-          })),
-        },
-      },
-      include: {
-        answers: true,
-        participant: true,
-      },
-    });
-    await tx.quizSession.update({
-      where: { id: sessionId },
-      data: {
-        status: "COMPLETED",
-        completedAt,
-      },
-    });
-    return nextAttempt;
-  });
+  try {
+    const attempt = await prisma.$transaction(async (tx) => {
+      const existingSessionAttempt = await tx.attempt.findUnique({
+        where: { quizSessionId: sessionId },
+        include: attemptInclude,
+      });
+      if (existingSessionAttempt) {
+        return existingSessionAttempt;
+      }
 
-  return serializeAttempt(attempt);
+      const nextAttempt = await tx.attempt.create({
+        data: {
+          participantId: session.participantId,
+          quizId: session.quizId,
+          quizSessionId: session.id,
+          score,
+          totalQuestions: questionIds.length,
+          durationSeconds,
+          startedAt: session.startedAt,
+          completedAt,
+          answers: {
+            create: answeredQuestions.map((answer) => ({
+              questionId: answer.questionId,
+              selectedAnswer: answer.selectedAnswer,
+              correctAnswer: correctAnswerByQuestionId.get(answer.questionId) ?? answer.selectedAnswer,
+              isCorrect: answer.isCorrect,
+              answeredAt: answer.answeredAt,
+            })),
+          },
+        },
+        include: attemptInclude,
+      });
+      await tx.quizSession.update({
+        where: { id: sessionId },
+        data: {
+          status: "COMPLETED",
+          completedAt,
+        },
+      });
+      return nextAttempt;
+    });
+
+    return serializeAttempt(attempt);
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      const attempt = await prisma.attempt.findUnique({
+        where: { quizSessionId: sessionId },
+        include: attemptInclude,
+      });
+      if (attempt) {
+        return serializeAttempt(attempt);
+      }
+    }
+    throw error;
+  }
 }
 
 export async function getAttemptById(attemptId: string) {
   const prisma = getPrisma();
   const attempt = await prisma.attempt.findUnique({
     where: { id: attemptId },
-    include: {
-      answers: true,
-      participant: true,
-    },
+    include: attemptInclude,
   });
   return attempt ? serializeAttempt(attempt) : null;
 }
@@ -546,10 +572,7 @@ export async function getAttemptById(attemptId: string) {
 export async function listAttempts() {
   const prisma = getPrisma();
   const attempts = await prisma.attempt.findMany({
-    include: {
-      answers: true,
-      participant: true,
-    },
+    include: attemptInclude,
     orderBy: { completedAt: "desc" },
   });
   return attempts.map(serializeAttempt);
@@ -558,10 +581,7 @@ export async function listAttempts() {
 export async function getLeaderboard() {
   const prisma = getPrisma();
   const attempts = await prisma.attempt.findMany({
-    include: {
-      answers: true,
-      participant: true,
-    },
+    include: attemptInclude,
     orderBy: [
       { score: "desc" },
       { durationSeconds: "asc" },

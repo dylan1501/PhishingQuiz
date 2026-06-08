@@ -107,6 +107,12 @@ async function main() {
   const attempt = await callApi<{ id: string }>(`quiz-sessions/${session.data.id}/finish`, {
     method: "POST",
   });
+  const repeatedAttempt = await callApi<{ id: string }>(`quiz-sessions/${session.data.id}/finish`, {
+    method: "POST",
+  });
+  if (repeatedAttempt.data.id !== attempt.data.id) {
+    throw new Error("API finish không idempotent, cùng một phiên tạo ra nhiều attempt.");
+  }
   await callApi(`attempts?attemptId=${attempt.data.id}`);
   await callApi("leaderboard");
   await callApi("quiz-config");

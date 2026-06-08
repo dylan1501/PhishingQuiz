@@ -341,6 +341,13 @@ export async function devFinishQuizSession(sessionId: string) {
   if (!session) {
     throw new Error("Không tìm thấy phiên làm bài.");
   }
+  const existingAttempt = state.attempts.find(
+    (attempt) => attempt.participantId === session.participantId && attempt.startedAt === session.startedAt,
+  );
+  if (existingAttempt) {
+    return existingAttempt;
+  }
+
   const completedAt = new Date().toISOString();
   const attempt: Attempt = {
     id: crypto.randomUUID(),

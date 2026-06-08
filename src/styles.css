@@ -983,6 +983,14 @@ textarea {
   box-shadow: 0 16px 28px rgba(1, 7, 15, 0.3);
 }
 
+.answer-button:disabled,
+.explanation-next-button:disabled {
+  cursor: wait;
+  opacity: 0.62;
+  transform: none;
+  box-shadow: none;
+}
+
 .answer-button::after {
   content: "";
   position: absolute;
@@ -994,6 +1002,10 @@ textarea {
 
 .answer-button:hover::after {
   transform: translateX(120%);
+}
+
+.answer-button:disabled::after {
+  display: none;
 }
 
 .answer-feedback {

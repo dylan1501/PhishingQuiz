@@ -171,6 +171,7 @@ model QuizSession {
   participant Participant           @relation(fields: [participantId], references: [id], onDelete: Cascade)
   quiz        Quiz                  @relation(fields: [quizId], references: [id], onDelete: Cascade)
   answers     QuizSessionAnswer[]
+  attempt     Attempt?
   questions   QuizSessionQuestion[]
 
   @@index([participantId, startedAt])
@@ -213,6 +214,7 @@ model Attempt {
   id              String   @id @default(uuid()) @db.Uuid
   participantId   String   @map("participant_id") @db.Uuid
   quizId          String   @map("quiz_id") @db.Uuid
+  quizSessionId   String?  @unique @map("quiz_session_id") @db.Uuid
   score           Int
   totalQuestions  Int      @map("total_questions")
   durationSeconds Int      @map("duration_seconds")
@@ -223,6 +225,7 @@ model Attempt {
   answers     AttemptAnswer[]
   participant Participant     @relation(fields: [participantId], references: [id], onDelete: Cascade)
   quiz        Quiz            @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  quizSession QuizSession?    @relation(fields: [quizSessionId], references: [id], onDelete: SetNull)
 
   @@index([participantId, completedAt])
   @@index([quizId, score, durationSeconds, completedAt])
