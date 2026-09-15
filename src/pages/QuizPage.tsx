@@ -431,7 +431,11 @@ export function QuizPage() {
       setFinishError("");
       try {
         const attempt = await finishRemoteSession(sessionId);
-        navigate(`/quiz/result?attempt=${attempt.id}`, { replace: true });
+        // Mang kết quả + ngưỡng sang màn kết quả để hiển thị ngay, không cần tải lại.
+        navigate(`/quiz/result?attempt=${attempt.id}`, {
+          replace: true,
+          state: { result: { attempt, passScore } },
+        });
       } catch (error) {
         console.error("Không hoàn tất được lượt thi trên DB.", error);
         setFinishError(

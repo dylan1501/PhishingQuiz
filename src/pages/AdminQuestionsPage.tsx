@@ -1,11 +1,32 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { QuestionPreview } from "../components/QuestionPreview";
 import {
   createAdminQuestion,
+  deleteAdminQuestion,
   getAdminQuestions,
   patchAdminQuestionState,
   updateAdminQuestion,
 } from "../apiClient";
 import type { AnswerOption, QuizQuestion } from "../types";
+import { EyeIcon, PencilIcon, PinIcon, PinOffIcon, PlusIcon, PowerIcon, SearchIcon, TrashIcon } from "../components/icons";
+
+type QuestionSortKey = "orderIndex" | "title" | "category" | "active" | "createdAt" | "updatedAt";
+type SortDirection = "asc" | "desc";
+type StatusFilter = "all" | "active" | "inactive";
+type AlwaysFilter = "all" | "yes" | "no";
+
+function formatDateTime(value?: string) {
+  if (!value) {
+    return "—";
+  }
+  return new Date(value).toLocaleString("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
 
 interface QuestionFormState {
   title: string;
@@ -18,18 +39,6 @@ interface QuestionFormState {
   indicators: string;
   alwaysIncluded: boolean;
 }
-
-type HotspotNote = {
-  label: string;
-  spot: "danger" | "safe";
-};
-
-type PreviewStep = {
-  title: string;
-  body: string;
-  spot?: "danger" | "safe";
-  hotspotIndex?: number;
-};
 
 const emptyForm: QuestionFormState = {
   title: "",
@@ -57,40 +66,62 @@ function mapQuestionToForm(question: QuizQuestion): QuestionFormState {
   };
 }
 
-function parseHotspotNotes(html: string): HotspotNote[] {
-  if (!html || typeof window === "undefined") {
-    return [];
-  }
-
-  const parser = new window.DOMParser();
-  const parsedDocument = parser.parseFromString(html, "text/html");
-  return Array.from(parsedDocument.querySelectorAll<HTMLElement>("[data-spot][data-label]")).map(
-    (element) => ({
-      label: element.dataset.label ?? "",
-      spot: element.dataset.spot === "safe" ? "safe" : "danger",
-    }),
-  );
-}
-
 export function AdminQuestionsPage() {
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<QuestionFormState>(emptyForm);
   const [loadError, setLoadError] = useState("");
   const [saving, setSaving] = useState(false);
-  const [previewAnswer, setPreviewAnswer] = useState<AnswerOption | null>(null);
-  const [previewExplanationViewed, setPreviewExplanationViewed] = useState(false);
-  const [previewStepIndex, setPreviewStepIndex] = useState(0);
-  const [previewBubblePosition, setPreviewBubblePosition] = useState<{ left: number; top: number } | null>(null);
-  const [previewAnchorPosition, setPreviewAnchorPosition] = useState<{ left: number; top: number } | null>(null);
-  const previewScenarioHtmlRef = useRef<HTMLDivElement | null>(null);
+  const [previewQuestion, setPreviewQuestion] = useState<QuizQuestion | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<QuizQuestion | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const editFormRef = useRef<HTMLDivElement | null>(null);
+  const [search, setSearch] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [alwaysFilter, setAlwaysFilter] = useState<AlwaysFilter>("all");
+  const [sortKey, setSortKey] = useState<QuestionSortKey>("orderIndex");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
 
   function setField<K extends keyof QuestionFormState>(key: K, value: QuestionFormState[K]) {
     setForm((current) => ({ ...current, [key]: value }));
-    setPreviewAnswer(null);
-    setPreviewExplanationViewed(false);
-    setPreviewStepIndex(0);
+  }
+
+  // Đóng modal preview / xác nhận xóa bằng phím Esc.
+  useEffect(() => {
+    if (!previewQuestion && !pendingDelete) {
+      return;
+    }
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setPreviewQuestion(null);
+        setPendingDelete(null);
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [previewQuestion, pendingDelete]);
+
+  async function confirmDelete() {
+    if (!pendingDelete) {
+      return;
+    }
+    setDeleting(true);
+    setLoadError("");
+    try {
+      await deleteAdminQuestion(pendingDelete.id);
+      setQuestions((currentQuestions) => currentQuestions.filter((question) => question.id !== pendingDelete.id));
+      if (editingId === pendingDelete.id) {
+        resetForm();
+      }
+      setPendingDelete(null);
+    } catch (error) {
+      setLoadError(error instanceof Error ? error.message : "Không xóa được câu hỏi.");
+      setPendingDelete(null);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } finally {
+      setDeleting(false);
+    }
   }
 
   useEffect(() => {
@@ -146,9 +177,6 @@ export function AdminQuestionsPage() {
   function editQuestion(question: QuizQuestion) {
     setEditingId(question.id);
     setForm(mapQuestionToForm(question));
-    setPreviewAnswer(null);
-    setPreviewExplanationViewed(false);
-    setPreviewStepIndex(0);
     window.requestAnimationFrame(() => {
       editFormRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
@@ -157,95 +185,100 @@ export function AdminQuestionsPage() {
   function resetForm() {
     setEditingId(null);
     setForm(emptyForm);
-    setPreviewAnswer(null);
-    setPreviewExplanationViewed(false);
-    setPreviewStepIndex(0);
   }
 
-  const previewHotspotNotes = useMemo(() => parseHotspotNotes(form.scenarioHtml), [form.scenarioHtml]);
-  const previewExplanationSteps = useMemo<PreviewStep[]>(() => {
-    if (previewHotspotNotes.length > 0) {
-      return previewHotspotNotes.map((note, noteIndex) => ({
-        title: note.spot === "danger" ? "Dấu hiệu phishing" : "Dấu hiệu hợp lệ",
-        body: note.label,
-        spot: note.spot,
-        hotspotIndex: noteIndex,
-      }));
-    }
+  function startNewQuestion() {
+    resetForm();
+    window.requestAnimationFrame(() => {
+      editFormRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }
 
-    const steps: PreviewStep[] = [];
-    if (form.explanation.trim()) {
-      steps.push({ title: "Tổng quan", body: form.explanation.trim() });
+  // ---- lọc + sắp xếp bảng ----
+  const categories = useMemo(
+    () => Array.from(new Set(questions.map((question) => question.category))).sort((a, b) => a.localeCompare(b, "vi")),
+    [questions],
+  );
+  const hasActiveFilters = Boolean(search.trim()) || Boolean(categoryFilter) || statusFilter !== "all" || alwaysFilter !== "all";
+  const visibleQuestions = useMemo(() => {
+    const needle = search.trim().toLowerCase();
+    const filtered = questions.filter((question) => {
+      if (needle && !`${question.title} ${question.category} ${question.scenarioIntro}`.toLowerCase().includes(needle)) {
+        return false;
+      }
+      if (categoryFilter && question.category !== categoryFilter) {
+        return false;
+      }
+      if (statusFilter !== "all" && question.active !== (statusFilter === "active")) {
+        return false;
+      }
+      if (alwaysFilter !== "all" && question.alwaysIncluded !== (alwaysFilter === "yes")) {
+        return false;
+      }
+      return true;
+    });
+    const direction = sortDirection === "asc" ? 1 : -1;
+    return [...filtered].sort((first, second) => {
+      if (sortKey === "orderIndex") {
+        return (first.orderIndex - second.orderIndex) * direction;
+      }
+      if (sortKey === "active") {
+        return (Number(first.active) - Number(second.active)) * direction;
+      }
+      if (sortKey === "createdAt" || sortKey === "updatedAt") {
+        const firstTime = first[sortKey] ? new Date(first[sortKey]).getTime() : 0;
+        const secondTime = second[sortKey] ? new Date(second[sortKey]).getTime() : 0;
+        return (firstTime - secondTime) * direction;
+      }
+      return first[sortKey].localeCompare(second[sortKey], "vi", { sensitivity: "base" }) * direction;
+    });
+  }, [questions, search, categoryFilter, statusFilter, alwaysFilter, sortKey, sortDirection]);
+
+  function changeSort(nextSortKey: QuestionSortKey) {
+    if (nextSortKey === sortKey) {
+      setSortDirection((current) => (current === "asc" ? "desc" : "asc"));
+      return;
     }
-    form.indicators
-      .split(",")
-      .map((value) => value.trim())
-      .filter(Boolean)
-      .forEach((indicator) => steps.push({ title: "Điểm cần ghi nhớ", body: indicator }));
-    return steps;
-  }, [form.explanation, form.indicators, previewHotspotNotes]);
-  const previewCurrentStep = previewExplanationSteps[previewStepIndex] ?? null;
-  const previewHasMoreSteps = previewStepIndex < previewExplanationSteps.length - 1;
+    setSortKey(nextSortKey);
+    setSortDirection(nextSortKey === "createdAt" || nextSortKey === "updatedAt" ? "desc" : "asc");
+  }
+
+  function renderSortHeader(label: string, nextSortKey: QuestionSortKey) {
+    const isActive = sortKey === nextSortKey;
+    return (
+      <button type="button" className="table-sort-button" onClick={() => changeSort(nextSortKey)}>
+        <span>{label}</span>
+        <span className={`sort-indicator ${isActive ? "sort-indicator-active" : ""}`}>
+          {isActive ? (sortDirection === "asc" ? "▲" : "▼") : "↕"}
+        </span>
+      </button>
+    );
+  }
+
+  function clearFilters() {
+    setSearch("");
+    setCategoryFilter("");
+    setStatusFilter("all");
+    setAlwaysFilter("all");
+  }
+
   const alwaysIncludedCount = questions.filter((question) => question.alwaysIncluded && question.active).length;
-  const previewHtmlWithSpotOrder = useMemo(() => {
-    if (!form.scenarioHtml || typeof window === "undefined") {
-      return form.scenarioHtml;
-    }
-
-    const parser = new window.DOMParser();
-    const parsedDocument = parser.parseFromString(form.scenarioHtml, "text/html");
-    Array.from(parsedDocument.querySelectorAll<HTMLElement>("[data-spot][data-label]")).forEach(
-      (element, noteIndex) => {
-        element.dataset.spotOrder = String(noteIndex);
-        element.dataset.activeSpot =
-          previewExplanationViewed && previewCurrentStep?.hotspotIndex === noteIndex ? "true" : "false";
-      },
-    );
-    return parsedDocument.body.innerHTML;
-  }, [form.scenarioHtml, previewCurrentStep?.hotspotIndex, previewExplanationViewed]);
-  const previewCorrect = previewAnswer ? previewAnswer === form.correctAnswer : null;
-
-  useEffect(() => {
-    if (
-      !previewExplanationViewed ||
-      previewCurrentStep?.hotspotIndex === undefined ||
-      !previewScenarioHtmlRef.current
-    ) {
-      setPreviewBubblePosition(null);
-      setPreviewAnchorPosition(null);
-      return;
-    }
-
-    const container = previewScenarioHtmlRef.current;
-    const hotspot = container.querySelector<HTMLElement>(
-      `[data-spot-order="${previewCurrentStep.hotspotIndex}"]`,
-    );
-
-    if (!hotspot) {
-      setPreviewBubblePosition({ left: 12, top: 48 });
-      setPreviewAnchorPosition(null);
-      return;
-    }
-
-    const containerRect = container.getBoundingClientRect();
-    const hotspotRect = hotspot.getBoundingClientRect();
-    const estimatedBubbleWidth = 320;
-    const maxLeft = Math.max(16, container.clientWidth - estimatedBubbleWidth - 12);
-    const hotspotCenter = hotspotRect.left - containerRect.left + hotspotRect.width / 2;
-    const nextLeft = Math.min(Math.max(hotspotCenter - estimatedBubbleWidth / 2, 12), maxLeft);
-    const anchorTop = hotspotRect.bottom - containerRect.top + 8;
-    setPreviewBubblePosition({ left: nextLeft, top: anchorTop + 36 });
-    setPreviewAnchorPosition({ left: hotspotCenter - 4, top: anchorTop });
-  }, [previewCurrentStep, previewExplanationViewed, previewHtmlWithSpotOrder]);
-
-  function handlePreviewNext() {
-    if (previewHasMoreSteps) {
-      setPreviewStepIndex((currentStep) => currentStep + 1);
-      return;
-    }
-    setPreviewExplanationViewed(false);
-    setPreviewStepIndex(0);
-  }
+  const formPreviewQuestion = useMemo(
+    () => ({
+      title: form.title,
+      category: form.category,
+      scenarioIntro: form.scenarioIntro,
+      scenarioContent: form.scenarioContent,
+      scenarioHtml: form.scenarioHtml,
+      correctAnswer: form.correctAnswer,
+      explanation: form.explanation,
+      indicators: form.indicators
+        .split(",")
+        .map((value) => value.trim())
+        .filter(Boolean),
+    }),
+    [form],
+  );
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
@@ -292,19 +325,175 @@ export function AdminQuestionsPage() {
     }
   }
 
+  const activeCount = questions.filter((question) => question.active).length;
+
   return (
     <section className="stack">
-      <div className="content-card" ref={editFormRef}>
-        <p className="eyebrow">Ngân Hàng Câu Hỏi</p>
-        <h2>Quản lý tình huống</h2>
-        <p className="section-text">
-          Đề kiểm tra luôn tối đa 10 câu. Các câu đánh dấu “Luôn có” sẽ được ưu tiên đưa vào đề,
-          phần còn lại được random từ các câu đang bật khác, sau đó toàn bộ đề được trộn lại. Hiện có{" "}
-          {alwaysIncludedCount} câu đang được đánh dấu luôn có.
-        </p>
+      <div className="content-card questions-card">
+        <div className="admin-page-heading">
+          <div>
+            <h2>Ngân hàng câu hỏi</h2>
+            <p className="questions-summary">
+              {questions.length} câu · {activeCount} đang bật · {alwaysIncludedCount} luôn có
+              {hasActiveFilters ? ` · đang hiện ${visibleQuestions.length}` : ""}
+            </p>
+          </div>
+          <button type="button" className="button button-primary button-small add-question-button" onClick={startNewQuestion}>
+            <PlusIcon />
+            Thêm câu hỏi
+          </button>
+        </div>
         {loadError && <div className="notice notice-error">{loadError}</div>}
+        <div className="table-toolbar">
+          <label className="search-field">
+            <SearchIcon />
+            <input
+              type="search"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Tìm theo tiêu đề, loại, mô tả…"
+              aria-label="Tìm câu hỏi"
+            />
+          </label>
+          <select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)} aria-label="Lọc theo loại">
+            <option value="">Tất cả loại</option>
+            {categories.map((category) => (
+              <option key={category} value={category}>
+                {category}
+              </option>
+            ))}
+          </select>
+          <select
+            value={statusFilter}
+            onChange={(event) => setStatusFilter(event.target.value as StatusFilter)}
+            aria-label="Lọc theo trạng thái"
+          >
+            <option value="all">Mọi trạng thái</option>
+            <option value="active">Đang bật</option>
+            <option value="inactive">Đang tắt</option>
+          </select>
+          <select
+            value={alwaysFilter}
+            onChange={(event) => setAlwaysFilter(event.target.value as AlwaysFilter)}
+            aria-label="Lọc theo luôn có"
+          >
+            <option value="all">Luôn có: tất cả</option>
+            <option value="yes">Chỉ luôn có</option>
+            <option value="no">Không luôn có</option>
+          </select>
+          {hasActiveFilters && (
+            <button type="button" className="button button-small" onClick={clearFilters}>
+              Xóa lọc
+            </button>
+          )}
+        </div>
+        <div className="table-scroll">
+          <table className="table questions-table">
+            <thead>
+              <tr>
+                <th className="stt-col">{renderSortHeader("#", "orderIndex")}</th>
+                <th>{renderSortHeader("Tiêu đề", "title")}</th>
+                <th>{renderSortHeader("Loại", "category")}</th>
+                <th>Đáp án</th>
+                <th>{renderSortHeader("Trạng thái", "active")}</th>
+                <th>Luôn có</th>
+                <th>{renderSortHeader("Created", "createdAt")}</th>
+                <th>{renderSortHeader("Last edit", "updatedAt")}</th>
+                <th>Thao tác</th>
+              </tr>
+            </thead>
+            <tbody>
+              {visibleQuestions.map((question) => (
+                <tr key={question.id} className={question.active ? "" : "row-inactive"}>
+                  <td className="stt-col">{question.orderIndex}</td>
+                  <td className="question-title-cell">{question.title}</td>
+                  <td>{question.category}</td>
+                  <td>
+                    <span className={`answer-chip answer-chip-${question.correctAnswer}`}>
+                      {question.correctAnswer === "phishing" ? "Phishing" : "An toàn"}
+                    </span>
+                  </td>
+                  <td>
+                    <span className={`status-chip ${question.active ? "status-on" : "status-off"}`}>
+                      {question.active ? "Đang bật" : "Đang tắt"}
+                    </span>
+                  </td>
+                  <td>
+                    <span className={`status-chip ${question.alwaysIncluded ? "status-on" : "status-off"}`}>
+                      {question.alwaysIncluded ? "Có" : "Không"}
+                    </span>
+                  </td>
+                  <td className="date-cell">{formatDateTime(question.createdAt)}</td>
+                  <td className="date-cell">{formatDateTime(question.updatedAt)}</td>
+                  <td className="table-actions">
+                    <button
+                      type="button"
+                      className="icon-button icon-button-preview"
+                      title="Xem thử như người làm bài"
+                      aria-label={`Xem thử câu hỏi: ${question.title}`}
+                      onClick={() => setPreviewQuestion(question)}
+                    >
+                      <EyeIcon />
+                    </button>
+                    <button
+                      type="button"
+                      className="icon-button"
+                      title="Sửa"
+                      aria-label={`Sửa câu hỏi: ${question.title}`}
+                      onClick={() => editQuestion(question)}
+                    >
+                      <PencilIcon />
+                    </button>
+                    <button
+                      type="button"
+                      className={`icon-button ${question.active ? "icon-button-danger" : "icon-button-success"}`}
+                      title={question.active ? "Tắt câu hỏi" : "Bật câu hỏi"}
+                      aria-label={`${question.active ? "Tắt" : "Bật"} câu hỏi: ${question.title}`}
+                      aria-pressed={question.active}
+                      onClick={() => toggleActive(question.id)}
+                    >
+                      <PowerIcon />
+                    </button>
+                    <button
+                      type="button"
+                      className={`icon-button ${question.alwaysIncluded ? "icon-button-active" : ""}`}
+                      title={question.alwaysIncluded ? "Bỏ đánh dấu luôn có" : "Đánh dấu luôn có"}
+                      aria-label={`${question.alwaysIncluded ? "Bỏ luôn có" : "Luôn có"}: ${question.title}`}
+                      aria-pressed={question.alwaysIncluded}
+                      onClick={() => toggleAlwaysIncluded(question.id)}
+                    >
+                      {question.alwaysIncluded ? <PinOffIcon /> : <PinIcon />}
+                    </button>
+                    <button
+                      type="button"
+                      className="icon-button icon-button-delete"
+                      title="Xóa câu hỏi"
+                      aria-label={`Xóa câu hỏi: ${question.title}`}
+                      onClick={() => setPendingDelete(question)}
+                    >
+                      <TrashIcon />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+              {visibleQuestions.length === 0 && (
+                <tr>
+                  <td colSpan={9} className="table-empty">
+                    {questions.length === 0 ? "Chưa có câu hỏi nào." : "Không có câu hỏi khớp bộ lọc."}
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
-      <div className="content-card">
+      <div className="content-card" ref={editFormRef}>
+        <div className="admin-page-heading">
+          <div>
+            <p className="eyebrow">{editingId ? "Sửa Câu Hỏi" : "Thêm Câu Hỏi"}</p>
+            <h2>{editingId ? form.title || "Câu hỏi" : "Câu hỏi mới"}</h2>
+          </div>
+        </div>
         <form className="stack" onSubmit={onSubmit}>
           <label>
             Tiêu đề
@@ -340,139 +529,7 @@ export function AdminQuestionsPage() {
               placeholder={`<div>\n  <a href="https://example.com" title="https://example.com">Hover me</a>\n</div>`}
             />
           </label>
-          <div className="html-preview-card admin-question-preview">
-            <div className="interactive-label">Preview câu hỏi và giải thích</div>
-            <div className="preview-question-head">
-              <div>
-                <p className="eyebrow">{form.category || "Loại tình huống"}</p>
-                <h3>{form.title || "Tiêu đề câu hỏi"}</h3>
-                <p className="section-text">
-                  {form.scenarioIntro || "Mô tả mở đầu sẽ hiển thị tại đây."}
-                </p>
-              </div>
-              <span className="preview-answer-pill">
-                Đáp án đúng: {form.correctAnswer === "phishing" ? "Phishing" : "An toàn"}
-              </span>
-            </div>
-            <div className="scenario-box">
-              {form.scenarioContent || "Nội dung tình huống sẽ hiển thị tại đây."}
-            </div>
-            <div className="scenario-html-stage">
-              <div
-                ref={previewScenarioHtmlRef}
-                className={`scenario-html-content ${previewExplanationViewed ? "explanation-active explanation-with-bubble" : ""}`}
-                dangerouslySetInnerHTML={{
-                  __html: previewHtmlWithSpotOrder || "<p>Chưa có nội dung HTML.</p>",
-                }}
-              />
-              {previewExplanationViewed && previewCurrentStep?.spot && previewAnchorPosition && (
-                <span
-                  className={`active-explanation-anchor active-explanation-anchor-${previewCurrentStep.spot}`}
-                  style={{ left: previewAnchorPosition.left, top: previewAnchorPosition.top }}
-                />
-              )}
-              {previewExplanationViewed && previewCurrentStep?.spot && previewBubblePosition && (
-                <div
-                  className={`active-explanation-bubble active-explanation-${previewCurrentStep.spot}`}
-                  style={{ left: previewBubblePosition.left, top: previewBubblePosition.top }}
-                >
-                  <strong>{previewCurrentStep.title}</strong>
-                  <p>{previewCurrentStep.body}</p>
-                  <button
-                    type="button"
-                    className="button button-primary explanation-next-button"
-                    onClick={handlePreviewNext}
-                  >
-                    Next
-                  </button>
-                </div>
-              )}
-            </div>
-            <div className="answer-grid preview-answer-grid">
-              <button
-                type="button"
-                className={`answer-button ${previewAnswer === "phishing" ? "selected-phishing" : ""}`}
-                onClick={() => {
-                  setPreviewAnswer("phishing");
-                  setPreviewExplanationViewed(false);
-                  setPreviewStepIndex(0);
-                }}
-              >
-                Phishing
-              </button>
-              <button
-                type="button"
-                className={`answer-button ${previewAnswer === "legitimate" ? "selected-legitimate" : ""}`}
-                onClick={() => {
-                  setPreviewAnswer("legitimate");
-                  setPreviewExplanationViewed(false);
-                  setPreviewStepIndex(0);
-                }}
-              >
-                An toàn
-              </button>
-            </div>
-            {previewAnswer && (
-              <div className={`answer-feedback ${previewCorrect ? "feedback-correct" : "feedback-wrong"}`}>
-                <div className="feedback-icon">{previewCorrect ? "✓" : "!"}</div>
-                <div>
-                  <strong>{previewCorrect ? "Chính xác" : "Chưa chính xác"}</strong>
-                  <p>
-                    {previewCorrect
-                      ? `Preview đang nhận diện đúng đây là ${form.correctAnswer === "phishing" ? "phishing" : "an toàn"}.`
-                      : `Đáp án đúng trong preview là ${form.correctAnswer === "phishing" ? "phishing" : "an toàn"}.`}
-                  </p>
-                </div>
-              </div>
-            )}
-            <div className="quiz-actions quiz-actions-spaced">
-              <button
-                type="button"
-                className="button button-ghost button-explain"
-                disabled={!previewAnswer || previewExplanationSteps.length === 0}
-                onClick={() => {
-                  setPreviewExplanationViewed(true);
-                  setPreviewStepIndex(0);
-                }}
-              >
-                Giải thích
-              </button>
-              <span className="preview-help-text">
-                {previewExplanationSteps.length > 0
-                  ? `Có ${previewExplanationSteps.length} điểm giải thích trong preview.`
-                  : "Thêm data-spot/data-label hoặc nội dung giải thích để preview lời giải."}
-              </span>
-            </div>
-            {previewExplanationViewed && previewCurrentStep && (
-              <>
-                <div className="explanation-legend">
-                  <span className="legend-chip legend-danger">Vị trí nghi ngờ</span>
-                  <span className="legend-chip legend-safe">Dấu hiệu hợp lệ</span>
-                </div>
-                {!previewCurrentStep.spot && (
-                  <div className="inline-explanation-note">
-                    <strong>{previewCurrentStep.title}</strong>
-                    <p>{previewCurrentStep.body}</p>
-                    <button
-                      type="button"
-                      className="button button-primary explanation-next-button"
-                      onClick={handlePreviewNext}
-                    >
-                      Next
-                    </button>
-                  </div>
-                )}
-                <div className="explanation-step-meta">
-                  <span>
-                    Giải thích {previewStepIndex + 1}/{previewExplanationSteps.length}
-                  </span>
-                  <strong>
-                    {previewHasMoreSteps ? "Bấm Next để xem phần tiếp theo" : "Bấm Next để kết thúc preview"}
-                  </strong>
-                </div>
-              </>
-            )}
-          </div>
+          <QuestionPreview question={formPreviewQuestion} />
           <label>
             Đáp án đúng
             <select
@@ -518,56 +575,59 @@ export function AdminQuestionsPage() {
           </div>
         </form>
       </div>
-      <div className="content-card">
-        <table className="table">
-          <thead>
-            <tr>
-              <th>Thứ tự</th>
-              <th>Tiêu đề</th>
-              <th>Loại</th>
-              <th>Đáp án</th>
-              <th>Trạng thái</th>
-              <th>Luôn có</th>
-              <th>Thao tác</th>
-            </tr>
-          </thead>
-          <tbody>
-            {questions.map((question) => (
-              <tr key={question.id}>
-                <td>{question.orderIndex}</td>
-                <td>{question.title}</td>
-                <td>{question.category}</td>
-                <td>{question.correctAnswer}</td>
-                <td>{question.active ? "Đang bật" : "Đang tắt"}</td>
-                <td>{question.alwaysIncluded ? "Có" : "Không"}</td>
-                <td className="table-actions">
-                  <button
-                    type="button"
-                    className="button button-small"
-                    onClick={() => editQuestion(question)}
-                  >
-                    Sửa
-                  </button>
-                  <button
-                    type="button"
-                    className="button button-small"
-                    onClick={() => toggleActive(question.id)}
-                  >
-                    {question.active ? "Tắt" : "Bật"}
-                  </button>
-                  <button
-                    type="button"
-                    className="button button-small"
-                    onClick={() => toggleAlwaysIncluded(question.id)}
-                  >
-                    {question.alwaysIncluded ? "Bỏ luôn có" : "Luôn có"}
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      {pendingDelete && (
+        <div className="modal-backdrop preview-modal-backdrop" onClick={() => !deleting && setPendingDelete(null)}>
+          <div
+            className="modal-card confirm-modal-card"
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="delete-question-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <p className="eyebrow">Xóa Câu Hỏi</p>
+            <h3 id="delete-question-title">Xóa “{pendingDelete.title}”?</h3>
+            <p className="section-text">
+              Câu hỏi sẽ bị xóa vĩnh viễn khỏi ngân hàng và không thể hoàn tác. Câu hỏi đã có trong lịch sử
+              làm bài sẽ không xóa được — hãy tắt thay vì xóa.
+            </p>
+            <div className="hero-actions confirm-modal-actions">
+              <button type="button" className="button button-ghost" onClick={() => setPendingDelete(null)} disabled={deleting}>
+                Hủy
+              </button>
+              <button type="button" className="button button-danger" onClick={confirmDelete} disabled={deleting}>
+                {deleting ? "Đang xóa..." : "Xóa câu hỏi"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {previewQuestion && (
+        <div className="modal-backdrop preview-modal-backdrop" onClick={() => setPreviewQuestion(null)}>
+          <div
+            className="modal-card preview-modal-card"
+            role="dialog"
+            aria-modal="true"
+            aria-label={`Xem thử: ${previewQuestion.title}`}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="preview-modal-head">
+              <div>
+                <p className="eyebrow">Xem thử như người làm bài</p>
+                <h3>{previewQuestion.title}</h3>
+              </div>
+              <button
+                type="button"
+                className="button button-small"
+                onClick={() => setPreviewQuestion(null)}
+                aria-label="Đóng"
+              >
+                Đóng ✕
+              </button>
+            </div>
+            <QuestionPreview question={previewQuestion} label="" />
+          </div>
+        </div>
+      )}
     </section>
   );
 }

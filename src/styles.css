@@ -4334,3 +4334,343 @@ textarea {
   color: var(--muted);
   font-size: 0.9rem;
 }
+
+/* /admin/login: card gọn, căn giữa (page-shell-centered). */
+.auth-card {
+  width: min(520px, 100%);
+}
+
+.auth-card h2 {
+  margin-bottom: 0.6rem;
+  font-size: clamp(1.5rem, 2.4vw, 2.1rem);
+}
+
+.auth-card .section-text {
+  margin: 0 0 0.8rem;
+  font-size: 0.92rem;
+}
+
+.auth-form {
+  gap: 0.85rem;
+}
+
+/* /admin/questions: bảng lên đầu với toolbar lọc/sort, thao tác dạng icon. */
+.questions-summary {
+  margin: 0.25rem 0 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.add-question-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 40px;
+  padding: 0.5rem 1rem;
+}
+
+.table-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  align-items: center;
+  margin: 1rem 0 0.9rem;
+}
+
+.table-toolbar select,
+.table-toolbar input {
+  width: auto;
+  margin-top: 0;
+  padding: 0.55rem 0.8rem;
+  border-radius: 12px;
+  font-size: 0.9rem;
+}
+
+.search-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex: 1 1 260px;
+  min-width: 200px;
+  padding-left: 0.75rem;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--muted);
+}
+
+.search-field input {
+  flex: 1;
+  border: 0;
+  background: transparent;
+  padding-left: 0;
+}
+
+.search-field input:focus {
+  outline: none;
+}
+
+.search-field:focus-within {
+  border-color: rgba(103, 169, 255, 0.6);
+}
+
+.table-scroll {
+  overflow-x: auto;
+}
+
+.questions-table th,
+.questions-table td {
+  padding: 0.65rem 0.6rem;
+  font-size: 0.92rem;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.questions-table .question-title-cell {
+  white-space: normal;
+  min-width: 220px;
+  font-weight: 600;
+}
+
+.questions-table .date-cell {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.85rem;
+}
+
+.questions-table .row-inactive td:not(.table-actions) {
+  opacity: 0.55;
+}
+
+.questions-table .table-empty {
+  text-align: center;
+  color: var(--muted);
+  padding: 1.6rem 0.6rem;
+}
+
+.answer-chip,
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.22rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+/* Quy ước màu: xanh = phishing / đang bật / luôn có; đỏ = an toàn (legitimate); xám = tắt / không. */
+.answer-chip-phishing,
+.status-on {
+  background: rgba(91, 214, 146, 0.16);
+  color: #7fe3ad;
+  border: 1px solid rgba(91, 214, 146, 0.38);
+}
+
+.answer-chip-legitimate {
+  background: rgba(224, 79, 95, 0.14);
+  color: #ff8d9a;
+  border: 1px solid rgba(224, 79, 95, 0.32);
+}
+
+.status-off {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--muted);
+  border: 1px solid var(--border);
+}
+
+:root[data-theme="light"] .answer-chip-phishing,
+:root[data-theme="light"] .status-on {
+  color: #1a7a50;
+  background: rgba(31, 148, 97, 0.12);
+}
+
+:root[data-theme="light"] .answer-chip-legitimate {
+  color: #b42a3d;
+  background: rgba(200, 52, 73, 0.1);
+}
+
+:root[data-theme="light"] .status-off {
+  color: #5b6b80;
+  background: rgba(25, 65, 112, 0.06);
+}
+
+.always-mark {
+  display: inline-grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: rgba(246, 210, 122, 0.18);
+  color: #f6d27a;
+}
+
+:root[data-theme="light"] .always-mark {
+  color: #9a6b00;
+  background: rgba(246, 210, 122, 0.35);
+}
+
+.muted-dash {
+  color: var(--muted);
+  opacity: 0.6;
+}
+
+.table-actions .icon-button {
+  display: inline-grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--ink);
+  transition: transform 140ms ease, background 140ms ease, border-color 140ms ease;
+}
+
+.table-actions .icon-button:hover {
+  transform: translateY(-1px);
+  background: rgba(103, 169, 255, 0.16);
+  border-color: rgba(103, 169, 255, 0.4);
+}
+
+.table-actions .icon-button-danger:hover {
+  background: rgba(224, 79, 95, 0.16);
+  border-color: rgba(224, 79, 95, 0.45);
+  color: #ff8d9a;
+}
+
+.table-actions .icon-button-success {
+  color: #7fe3ad;
+}
+
+.table-actions .icon-button-active {
+  background: rgba(246, 210, 122, 0.16);
+  border-color: rgba(246, 210, 122, 0.4);
+  color: #f6d27a;
+}
+
+:root[data-theme="light"] .table-actions .icon-button {
+  background: rgba(255, 255, 255, 0.85);
+}
+
+:root[data-theme="light"] .table-actions .icon-button-success {
+  color: #1a7a50;
+}
+
+:root[data-theme="light"] .table-actions .icon-button-danger:hover {
+  color: #b42a3d;
+}
+
+:root[data-theme="light"] .table-actions .icon-button-active {
+  color: #9a6b00;
+}
+
+:root[data-theme="light"] .search-field {
+  background: rgba(255, 255, 255, 0.82);
+}
+
+/* /admin/questions: bảng dùng toàn bộ chiều rộng màn hình. */
+.app-shell-wide .page-shell {
+  width: calc(100% - 2rem);
+}
+
+.app-shell-wide .site-header {
+  --header-content-width: 100%;
+}
+
+.table-actions .icon-button-preview {
+  color: #9cc8ff;
+}
+
+:root[data-theme="light"] .table-actions .icon-button-preview {
+  color: #1f5a9c;
+}
+
+/* Modal xem thử câu hỏi như người làm bài. */
+.preview-modal-backdrop {
+  z-index: 120;
+  overflow-y: auto;
+  align-items: start;
+  padding: 1.5rem 1rem;
+  backdrop-filter: blur(6px);
+}
+
+.preview-modal-card {
+  width: min(980px, 100%);
+  max-height: calc(100vh - 3rem);
+  overflow-y: auto;
+  display: grid;
+  gap: 1rem;
+  background: #0b1727;
+}
+
+:root[data-theme="light"] .preview-modal-card {
+  background: #f7fbff;
+  box-shadow: 0 30px 70px rgba(28, 64, 119, 0.28);
+}
+
+.preview-modal-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.preview-modal-head h3 {
+  margin: 0.15rem 0 0;
+  font-size: 1.25rem;
+}
+
+.preview-modal-head .eyebrow {
+  margin: 0;
+}
+
+/* Xóa câu hỏi: nút icon đỏ + modal xác nhận. */
+.table-actions .icon-button-delete:hover {
+  background: rgba(224, 79, 95, 0.16);
+  border-color: rgba(224, 79, 95, 0.45);
+  color: #ff8d9a;
+}
+
+:root[data-theme="light"] .table-actions .icon-button-delete:hover {
+  color: #b42a3d;
+}
+
+.button-danger {
+  background: linear-gradient(135deg, #b42a3d, #e04f5f);
+  color: #fff;
+}
+
+.button-danger:disabled,
+.button-ghost:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.confirm-modal-card {
+  width: min(520px, 100%);
+  display: grid;
+  gap: 0.5rem;
+  background: #0b1727;
+}
+
+:root[data-theme="light"] .confirm-modal-card {
+  background: #f7fbff;
+  box-shadow: 0 30px 70px rgba(28, 64, 119, 0.28);
+}
+
+.confirm-modal-card h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  line-height: 1.3;
+}
+
+.confirm-modal-card .section-text {
+  margin: 0;
+  font-size: 0.92rem;
+}
+
+.confirm-modal-actions {
+  justify-content: flex-end;
+  margin-top: 0.6rem;
+}

@@ -21,6 +21,9 @@ export interface QuizQuestion {
   active: boolean;
   alwaysIncluded: boolean;
   orderIndex: number;
+  /** ISO; không có với dữ liệu seed trong bộ nhớ dev. */
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface AttemptAnswer {

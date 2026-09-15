@@ -54,6 +54,8 @@ function Layout() {
   // Trang chủ, màn nhập thông tin và bảng xếp hạng không hiện site-nav.
   const hideSiteNav = ["/", "/quiz/start", "/leaderboard"].includes(location.pathname);
   const quizTakingView = location.pathname.startsWith("/quiz/questions");
+  // Trang ngân hàng câu hỏi có bảng rộng → dùng toàn bộ chiều rộng màn hình.
+  const wideView = location.pathname.startsWith("/admin/questions");
   const [themeMode, setThemeMode] = useState<ThemeMode>("light");
 
   useEffect(() => {
@@ -61,7 +63,7 @@ function Layout() {
   }, [themeMode]);
 
   return (
-    <div className={`app-shell ${quizTakingView ? "quiz-taking-shell" : ""}`}>
+    <div className={`app-shell ${quizTakingView ? "quiz-taking-shell" : ""} ${wideView ? "app-shell-wide" : ""}`}>
       {!quizTakingView && (
         <header className="site-header">
           <NavLink to="/" className="brand">
@@ -92,7 +94,7 @@ function Layout() {
       )}
       <main
         className={`page-shell ${quizTakingView ? "quiz-taking-page" : ""} ${
-          location.pathname === "/quiz/start" ? "page-shell-centered" : ""
+          ["/quiz/start", "/admin/login"].includes(location.pathname) ? "page-shell-centered" : ""
         }`}
       >
         <Routes>

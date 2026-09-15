@@ -101,6 +101,12 @@ export function patchAdminQuestionState(
   });
 }
 
+export function deleteAdminQuestion(questionId: string) {
+  return requestApi<{ id: string; deleted: boolean }>(`admin/questions/${questionId}`, {
+    method: "DELETE",
+  });
+}
+
 export function startRemoteSession(participantId: string) {
   return requestApi<QuizSessionPayload>("quiz-sessions", {
     method: "POST",

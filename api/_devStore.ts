@@ -195,11 +195,14 @@ export async function devListQuestions(includeInactive = false) {
 
 export async function devCreateQuestion(input: QuestionInput) {
   const state = getState();
+  const now = new Date().toISOString();
   const question: QuizQuestion = {
     id: crypto.randomUUID(),
     ...input,
     active: true,
     orderIndex: state.questions.length + 1,
+    createdAt: now,
+    updatedAt: now,
   };
   state.questions.push(question);
   return question;
@@ -214,6 +217,7 @@ export async function devUpdateQuestion(questionId: string, input: QuestionInput
   state.questions[index] = {
     ...state.questions[index],
     ...input,
+    updatedAt: new Date().toISOString(),
   };
   return state.questions[index];
 }
@@ -236,7 +240,26 @@ export async function devUpdateQuestionState(
       question.active = true;
     }
   }
+  question.updatedAt = new Date().toISOString();
   return question;
+}
+
+export async function devDeleteQuestion(questionId: string) {
+  const state = getState();
+  const index = state.questions.findIndex((question) => question.id === questionId);
+  if (index < 0) {
+    throw new Error("Không tìm thấy câu hỏi.");
+  }
+  const answered =
+    state.attempts.some((attempt) => attempt.answers.some((answer) => answer.questionId === questionId)) ||
+    state.sessions.some((session) => session.answers.some((answer) => answer.questionId === questionId));
+  if (answered) {
+    throw new Error(
+      "Câu hỏi đã xuất hiện trong lịch sử làm bài nên không thể xóa (sẽ làm sai kết quả cũ). Hãy tắt câu hỏi thay vì xóa.",
+    );
+  }
+  state.questions.splice(index, 1);
+  return { id: questionId, deleted: true };
 }
 
 export async function devGetQuizConfig() {

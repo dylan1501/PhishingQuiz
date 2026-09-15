@@ -3,16 +3,21 @@ import { Navigate, useLocation } from "react-router-dom";
 import { getRemoteAttempt, getRemoteQuizConfig } from "../apiClient";
 import type { Attempt } from "../types";
 
+type ResultState = { result?: { attempt: Attempt; passScore: number } } | null;
+
 export function ResultPage() {
   const location = useLocation();
   const params = new URLSearchParams(location.search);
   const requestedAttemptId = params.get("attempt") ?? "";
-  const [attempt, setAttempt] = useState<Attempt | null>(null);
-  const [passScore, setPassScore] = useState<number | null>(null);
-  const [loading, setLoading] = useState(Boolean(requestedAttemptId));
+  // QuizPage chuyển sẵn kết quả qua router state → không cần gọi API; chỉ fetch khi mở link trực tiếp.
+  const preloaded = (location.state as ResultState)?.result;
+  const hasPreloaded = Boolean(preloaded && preloaded.attempt.id === requestedAttemptId);
+  const [attempt, setAttempt] = useState<Attempt | null>(hasPreloaded ? preloaded!.attempt : null);
+  const [passScore, setPassScore] = useState<number | null>(hasPreloaded ? preloaded!.passScore : null);
+  const [loading, setLoading] = useState(Boolean(requestedAttemptId) && !hasPreloaded);
 
   useEffect(() => {
-    if (!requestedAttemptId) {
+    if (!requestedAttemptId || hasPreloaded) {
       setLoading(false);
       return;
     }
@@ -38,7 +43,7 @@ export function ResultPage() {
     return () => {
       active = false;
     };
-  }, [requestedAttemptId]);
+  }, [requestedAttemptId, hasPreloaded]);
 
   if (loading) {
     return (

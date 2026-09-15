@@ -10,6 +10,7 @@ import {
 import {
   devClearAdminCookie,
   devCreateQuestion,
+  devDeleteQuestion,
   devEnsureDefaultQuiz,
   devExpireStaleSessions,
   devFinishQuizSession,
@@ -35,6 +36,7 @@ import {
 } from "./_devStore.js";
 import {
   createQuestion,
+  deleteQuestion,
   ensureDefaultQuiz,
   expireStaleSessions,
   finishQuizSession,
@@ -365,13 +367,30 @@ export default async function handler(request: VercelRequest, response: VercelRe
           );
           return;
         }
+        if (request.method === "DELETE") {
+          sendOk(
+            response,
+            await withDevFallback(
+              () => deleteQuestion(action),
+              () => devDeleteQuestion(action),
+            ),
+          );
+          return;
+        }
       }
 
       sendError(response, 404, "Không tìm thấy API quản trị.");
       return;
     }
 
-    await sweepStaleSessions();
+    // Chỉ quét phiên quá hạn ở các route đọc danh sách / mở phiên mới — không chèn thêm độ trễ
+    // vào đường nóng làm bài (trả lời, hoàn thành, tải phiên).
+    const isListRoute =
+      request.method === "GET" && (resource === "attempts" || resource === "leaderboard" || resource === "participants");
+    const isSessionStart = request.method === "POST" && resource === "quiz-sessions" && !resourceId;
+    if (isListRoute || isSessionStart) {
+      await sweepStaleSessions();
+    }
 
     if (resource === "health") {
       await withDevFallback(

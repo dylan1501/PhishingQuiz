@@ -102,6 +102,8 @@ function serializeQuestion(question: QuestionWithIndicators): QuizQuestion {
     active: question.active,
     alwaysIncluded: question.alwaysIncluded,
     orderIndex: question.orderIndex,
+    createdAt: question.createdAt.toISOString(),
+    updatedAt: question.updatedAt.toISOString(),
   };
 }
 
@@ -298,6 +300,36 @@ export async function updateQuestionState(
   return serializeQuestion(question);
 }
 
+const questionInUseMessage =
+  "Câu hỏi đã xuất hiện trong lịch sử làm bài nên không thể xóa (sẽ làm sai kết quả cũ). Hãy tắt câu hỏi thay vì xóa.";
+
+// Xóa cứng chỉ khi câu hỏi chưa có ai trả lời; FK Restrict trên attempt_answers / quiz_session_answers
+// bảo vệ lịch sử — bắt lỗi P2003 để trả thông báo rõ ràng thay vì lỗi kỹ thuật.
+export async function deleteQuestion(questionId: string) {
+  const prisma = getPrisma();
+  const [attemptAnswerCount, sessionAnswerCount] = await Promise.all([
+    prisma.attemptAnswer.count({ where: { questionId } }),
+    prisma.quizSessionAnswer.count({ where: { questionId } }),
+  ]);
+  if (attemptAnswerCount > 0 || sessionAnswerCount > 0) {
+    throw new Error(questionInUseMessage);
+  }
+  try {
+    await prisma.question.delete({ where: { id: questionId } });
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      if (error.code === "P2003") {
+        throw new Error(questionInUseMessage);
+      }
+      if (error.code === "P2025") {
+        throw new Error("Không tìm thấy câu hỏi.");
+      }
+    }
+    throw error;
+  }
+  return { id: questionId, deleted: true };
+}
+
 export async function getQuizConfig(): Promise<QuizConfig> {
   const prisma = getPrisma();
   const quiz = await ensureDefaultQuiz();
@@ -476,24 +508,26 @@ export async function saveSessionAnswer(input: {
   selectedAnswer: ClientAnswerOption;
 }) {
   const prisma = getPrisma();
-  const session = await prisma.quizSession.findUnique({
-    where: { id: input.sessionId },
-    select: { status: true },
-  });
-  if (!session || session.status !== "IN_PROGRESS") {
-    throw new Error(sessionExpiredMessage);
-  }
-  const question = await prisma.question.findUniqueOrThrow({
-    where: { id: input.questionId },
-  });
-  const isCorrect = fromDbAnswer(question.correctAnswer) === input.selectedAnswer;
   const answeredAt = new Date();
 
-  // Mỗi câu trả lời là một hoạt động → gia hạn phiên thêm 20 phút.
-  await prisma.quizSession.update({
-    where: { id: input.sessionId },
-    data: { expiresAt: nextSessionExpiry(answeredAt.getTime()) },
-  });
+  // Kiểm tra phiên còn hiệu lực + gia hạn 20 phút trong một query; tra đáp án song song.
+  const [sessionUpdate, question] = await Promise.all([
+    prisma.quizSession.updateMany({
+      where: { id: input.sessionId, status: "IN_PROGRESS" },
+      data: { expiresAt: nextSessionExpiry(answeredAt.getTime()) },
+    }),
+    prisma.question.findUnique({
+      where: { id: input.questionId },
+      select: { correctAnswer: true },
+    }),
+  ]);
+  if (sessionUpdate.count === 0) {
+    throw new Error(sessionExpiredMessage);
+  }
+  if (!question) {
+    throw new Error("Không tìm thấy câu hỏi.");
+  }
+  const isCorrect = fromDbAnswer(question.correctAnswer) === input.selectedAnswer;
 
   const answer = await prisma.quizSessionAnswer.upsert({
     where: {
@@ -524,42 +558,33 @@ export async function saveSessionAnswer(input: {
   };
 }
 
-type SessionForFinalize = Prisma.QuizSessionGetPayload<{
-  include: { answers: true; questions: { orderBy: { orderIndex: "asc" } } };
-}>;
-
+// Đọc phiên kèm đáp án đúng của từng câu (qua relation) để chốt kết quả không cần query thêm.
 const sessionFinalizeInclude = {
   answers: true,
-  questions: { orderBy: { orderIndex: "asc" } },
+  questions: {
+    orderBy: { orderIndex: "asc" },
+    include: { question: { select: { correctAnswer: true } } },
+  },
 } satisfies Prisma.QuizSessionInclude;
 
+type SessionForFinalize = Prisma.QuizSessionGetPayload<{ include: typeof sessionFinalizeInclude }>;
+
 // Tạo Attempt từ các câu đã trả lời trong phiên. `completedAt` là lúc chốt (bấm hoàn thành,
-// hoặc hoạt động cuối cùng nếu phiên bị bỏ dở). Idempotent theo quizSessionId.
+// hoặc hoạt động cuối cùng nếu phiên bị bỏ dở). Idempotent theo unique quizSessionId (P2002).
 async function createAttemptFromSession(session: SessionForFinalize, completedAt: Date) {
   const prisma = getPrisma();
   const questionIds = session.questions.map((question) => question.questionId);
   const answeredQuestions = session.answers.filter((answer) => questionIds.includes(answer.questionId));
-  const questionAnswers = await prisma.question.findMany({
-    where: { id: { in: questionIds } },
-    select: { id: true, correctAnswer: true },
-  });
   const correctAnswerByQuestionId = new Map(
-    questionAnswers.map((question) => [question.id, question.correctAnswer] as const),
+    session.questions.map((entry) => [entry.questionId, entry.question.correctAnswer] as const),
   );
   const durationSeconds = Math.max(1, Math.round((completedAt.getTime() - session.startedAt.getTime()) / 1000));
   const score = answeredQuestions.filter((answer) => answer.isCorrect).length;
 
   try {
-    return await prisma.$transaction(async (tx) => {
-      const existingSessionAttempt = await tx.attempt.findUnique({
-        where: { quizSessionId: session.id },
-        include: attemptInclude,
-      });
-      if (existingSessionAttempt) {
-        return existingSessionAttempt;
-      }
-
-      const nextAttempt = await tx.attempt.create({
+    // Batch transaction: 2 lệnh trong 1 giao dịch, không cần vòng kiểm tra trước (unique lo việc đó).
+    const [attempt] = await prisma.$transaction([
+      prisma.attempt.create({
         data: {
           participantId: session.participantId,
           quizId: session.quizId,
@@ -580,16 +605,13 @@ async function createAttemptFromSession(session: SessionForFinalize, completedAt
           },
         },
         include: attemptInclude,
-      });
-      await tx.quizSession.update({
+      }),
+      prisma.quizSession.update({
         where: { id: session.id },
-        data: {
-          status: "COMPLETED",
-          completedAt,
-        },
-      });
-      return nextAttempt;
-    });
+        data: { status: "COMPLETED", completedAt },
+      }),
+    ]);
+    return attempt;
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
       const attempt = await prisma.attempt.findUnique({
@@ -606,20 +628,16 @@ async function createAttemptFromSession(session: SessionForFinalize, completedAt
 
 export async function finishQuizSession(sessionId: string) {
   const prisma = getPrisma();
-  const existingAttempt = await prisma.attempt.findUnique({
-    where: { quizSessionId: sessionId },
-    include: attemptInclude,
-  });
-  if (existingAttempt) {
-    return serializeAttempt(existingAttempt);
-  }
-
+  // Một query: phiên + câu trả lời + đáp án đúng + attempt đã có (nếu bấm hoàn thành 2 lần).
   const session = await prisma.quizSession.findUnique({
     where: { id: sessionId },
-    include: sessionFinalizeInclude,
+    include: { ...sessionFinalizeInclude, attempt: { include: attemptInclude } },
   });
   if (!session) {
     throw new Error(sessionExpiredMessage);
+  }
+  if (session.attempt) {
+    return serializeAttempt(session.attempt);
   }
 
   return serializeAttempt(await createAttemptFromSession(session, new Date()));
