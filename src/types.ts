@@ -42,8 +42,12 @@ export interface Attempt {
 }
 
 export interface QuizSession {
+  id?: string;
+  remote?: boolean;
   participantId: string;
   startedAt: string;
+  /** Hết hạn nếu không có hoạt động; server tự chốt kết quả và xóa phiên sau mốc này. */
+  expiresAt?: string;
   questionIds: string[];
   answers: AttemptAnswer[];
 }

@@ -1,1 +1,0 @@
-Invoice detail simulation for phishing awareness.

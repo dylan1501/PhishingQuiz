@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { getRemoteAttempts, getRemoteParticipants } from "../apiClient";
 import { exportTableToExcel } from "../excelExport";
-import { getAttempts, getParticipants } from "../storage";
 
 type AttemptSortKey = "participantName" | "email" | "score" | "durationSeconds" | "completedAt";
 type SortDirection = "asc" | "desc";
@@ -17,10 +17,28 @@ interface AttemptRow {
 }
 
 export function AdminAttemptsPage() {
-  const attempts = getAttempts();
-  const participants = getParticipants();
+  const [attempts, setAttempts] = useState<Awaited<ReturnType<typeof getRemoteAttempts>>>([]);
+  const [participants, setParticipants] = useState<Awaited<ReturnType<typeof getRemoteParticipants>>>([]);
+  const [loadError, setLoadError] = useState("");
   const [sortKey, setSortKey] = useState<AttemptSortKey>("completedAt");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
+
+  useEffect(() => {
+    let active = true;
+    Promise.all([getRemoteAttempts(), getRemoteParticipants()])
+      .then(([remoteAttempts, remoteParticipants]) => {
+        if (active) {
+          setAttempts(remoteAttempts);
+          setParticipants(remoteParticipants);
+        }
+      })
+      .catch((error) => {
+        setLoadError(error instanceof Error ? error.message : "Không tải được lịch sử làm bài.");
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const attemptRows: AttemptRow[] = attempts.map((attempt) => {
     const participant = participants.find((entry) => entry.id === attempt.participantId);
@@ -103,6 +121,7 @@ export function AdminAttemptsPage() {
           Xuất Excel
         </button>
       </div>
+      {loadError && <div className="notice notice-error">{loadError}</div>}
       <table className="table">
         <thead>
           <tr>

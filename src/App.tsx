@@ -10,24 +10,53 @@ import { LeaderboardPage } from "./pages/LeaderboardPage";
 import { ParticipantPage } from "./pages/ParticipantPage";
 import { QuizPage } from "./pages/QuizPage";
 import { ResultPage } from "./pages/ResultPage";
-import { initializeStorage, isAdminAuthenticated } from "./storage";
+import { getRemoteAdminStatus } from "./apiClient";
+import { AdminNav } from "./components/AdminNav";
 
 type ThemeMode = "dark" | "light";
+
+function useAdminAuthenticated() {
+  const [authenticated, setAuthenticated] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    getRemoteAdminStatus()
+      .then((status) => {
+        if (active) {
+          setAuthenticated(status.authenticated);
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setAuthenticated(false);
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  return authenticated;
+}
+
+function AdminAuthPending() {
+  return (
+    <section className="content-card form-card">
+      <p className="eyebrow">Quản Trị</p>
+      <h2>Đang kiểm tra phiên đăng nhập</h2>
+    </section>
+  );
+}
 
 function Layout() {
   const location = useLocation();
   const adminView = location.pathname.startsWith("/admin");
+  const homeView = location.pathname === "/";
   const quizTakingView = location.pathname.startsWith("/quiz/questions");
-  const [themeMode, setThemeMode] = useState<ThemeMode>(() => {
-    if (typeof window === "undefined") {
-      return "light";
-    }
-    return localStorage.getItem("phishing-quiz-theme") === "dark" ? "dark" : "light";
-  });
+  const [themeMode, setThemeMode] = useState<ThemeMode>("light");
 
   useEffect(() => {
     document.documentElement.dataset.theme = themeMode;
-    localStorage.setItem("phishing-quiz-theme", themeMode);
   }, [themeMode]);
 
   return (
@@ -38,7 +67,7 @@ function Layout() {
             Phishing Quiz
           </NavLink>
           <div className="header-actions">
-            {!adminView && (
+            {!adminView && !homeView && (
               <nav className="site-nav">
                 <NavLink to="/leaderboard">Bảng xếp hạng</NavLink>
                 <NavLink to="/quiz/start">Làm bài quiz</NavLink>
@@ -67,6 +96,7 @@ function Layout() {
           <Route path="/quiz/questions/:index" element={<QuizPage />} />
           <Route path="/quiz/result" element={<ResultPage />} />
           <Route path="/leaderboard" element={<LeaderboardPage />} />
+          <Route path="/admin" element={<AdminIndexRedirect />} />
           <Route path="/admin/login" element={<AdminLoginPage />} />
           <Route path="/admin/dashboard" element={<AdminRoute><AdminDashboardPage /></AdminRoute>} />
           <Route path="/admin/participants" element={<AdminRoute><AdminParticipantsPage /></AdminRoute>} />
@@ -75,26 +105,38 @@ function Layout() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
-      {!quizTakingView && (
-        <footer className="site-footer">
-          Phòng An ninh thông tin - Trung tâm Công nghệ Thông tin
-        </footer>
-      )}
     </div>
   );
 }
 
+// /admin: chưa đăng nhập → /admin/login, đã đăng nhập → /admin/participants.
+function AdminIndexRedirect() {
+  const authenticated = useAdminAuthenticated();
+
+  if (authenticated === null) {
+    return <AdminAuthPending />;
+  }
+  return <Navigate to={authenticated ? "/admin/participants" : "/admin/login"} replace />;
+}
+
 function AdminRoute({ children }: { children: React.ReactElement }) {
-  if (!isAdminAuthenticated()) {
+  const authenticated = useAdminAuthenticated();
+
+  if (authenticated === null) {
+    return <AdminAuthPending />;
+  }
+
+  if (!authenticated) {
     return <Navigate to="/admin/login" replace />;
   }
-  return children;
+  return (
+    <div className="stack admin-stack">
+      <AdminNav />
+      {children}
+    </div>
+  );
 }
 
 export default function App() {
-  useEffect(() => {
-    initializeStorage();
-  }, []);
-
   return <Layout />;
 }

@@ -1,5 +1,7 @@
+import { useEffect, useState } from "react";
 import { Link, Navigate, useLocation } from "react-router-dom";
-import { getAttempt, getAttempts } from "../storage";
+import { getRemoteAttempt } from "../apiClient";
+import type { Attempt } from "../types";
 
 function getRating(score: number, total: number) {
   const ratio = total === 0 ? 0 : score / total;
@@ -15,10 +17,48 @@ function getRating(score: number, total: number) {
 export function ResultPage() {
   const location = useLocation();
   const params = new URLSearchParams(location.search);
-  const requestedAttempt = getAttempt(params.get("attempt") ?? "");
-  const attempts = getAttempts();
-  const latestAttempt = attempts.length ? attempts[attempts.length - 1] : null;
-  const attempt = requestedAttempt ?? latestAttempt;
+  const requestedAttemptId = params.get("attempt") ?? "";
+  const [remoteAttempt, setRemoteAttempt] = useState<Attempt | null>(null);
+  const [loadingRemoteAttempt, setLoadingRemoteAttempt] = useState(Boolean(requestedAttemptId));
+  const attempt = remoteAttempt;
+
+  useEffect(() => {
+    if (!requestedAttemptId) {
+      setLoadingRemoteAttempt(false);
+      return;
+    }
+
+    let active = true;
+    setLoadingRemoteAttempt(true);
+    getRemoteAttempt(requestedAttemptId)
+      .then((attemptData) => {
+        if (active) {
+          setRemoteAttempt(attemptData);
+        }
+      })
+      .catch((error) => {
+        console.warn("Không lấy được kết quả từ DB.", error);
+      })
+      .finally(() => {
+        if (active) {
+          setLoadingRemoteAttempt(false);
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [requestedAttemptId]);
+
+  if (loadingRemoteAttempt) {
+    return (
+      <section className="content-card result-card result-showcase">
+        <p className="eyebrow">Hoàn Thành Bài Quiz</p>
+        <h2>Đang tải kết quả</h2>
+        <p className="section-text">Hệ thống đang lấy kết quả từ cơ sở dữ liệu.</p>
+      </section>
+    );
+  }
 
   if (!attempt) {
     return <Navigate to="/" replace />;

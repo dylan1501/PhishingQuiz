@@ -1,4 +1,4 @@
-import type { QuizQuestion } from "./types";
+import type { QuizQuestion } from "./types.js";
 
 export const seedQuestions: QuizQuestion[] = [
   {
