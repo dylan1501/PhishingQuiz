@@ -4674,3 +4674,165 @@ textarea {
   justify-content: flex-end;
   margin-top: 0.6rem;
 }
+
+/* ---------- Admin: heading gọn hơn trên mọi tab ---------- */
+.admin-stack .content-card h2 {
+  font-size: clamp(1.25rem, 1.7vw, 1.6rem);
+  line-height: 1.2;
+}
+
+.admin-stack .content-card h3 {
+  font-size: 1.05rem;
+}
+
+.admin-stack .eyebrow {
+  margin: 0 0 0.25rem;
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+}
+
+.admin-stack .admin-page-heading {
+  margin-bottom: 0.9rem;
+}
+
+.admin-stack .admin-page-heading h2 {
+  margin-bottom: 0.15rem;
+}
+
+.admin-stack .section-text {
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.admin-stack .admin-dashboard-stack .admin-hero-card h2 {
+  font-size: clamp(1.3rem, 1.8vw, 1.7rem);
+}
+
+.admin-stack .admin-dashboard-stack .admin-hero-illustration {
+  width: min(96px, 14vw);
+}
+
+.admin-stack .quiz-config-card h3 {
+  font-size: 1.1rem;
+  margin: 0.15rem 0 0.4rem;
+}
+
+.admin-stack .quiz-config-form input {
+  font-size: 1rem;
+  padding: 0.7rem 0.85rem;
+}
+
+/* Bảng câu hỏi: dòng "luôn có" ghim đầu bảng, có vạch vàng bên trái. */
+.questions-table .row-pinned td:first-child {
+  box-shadow: inset 3px 0 0 #f6d27a;
+}
+
+.questions-table .row-pinned td {
+  background: rgba(246, 210, 122, 0.05);
+}
+
+/* ---------- Editor câu hỏi: trường nhập bên trái, preview sticky bên phải ---------- */
+.question-editor-heading {
+  align-items: center;
+}
+
+.question-editor-actions {
+  gap: 0.5rem;
+  flex: 0 0 auto;
+}
+
+.question-editor-actions .button-small {
+  min-height: 38px;
+  padding: 0.45rem 1rem;
+}
+
+.question-editor {
+  display: grid;
+  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+  gap: 1.25rem;
+  align-items: start;
+}
+
+.question-editor-fields {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.question-editor-fields label {
+  display: block;
+  color: var(--muted);
+  font-size: 0.84rem;
+  font-weight: 600;
+}
+
+.question-editor-fields input,
+.question-editor-fields textarea,
+.question-editor-fields select {
+  margin-top: 0.3rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: 12px;
+  color: var(--ink);
+  font-size: 0.92rem;
+  font-weight: 400;
+}
+
+.question-editor-fields .textarea-short {
+  min-height: 72px;
+}
+
+.question-editor-fields .html-editor {
+  min-height: 200px;
+  font-size: 0.84rem;
+  line-height: 1.5;
+}
+
+.field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.7rem;
+}
+
+.field-row-answer {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+}
+
+.question-editor-fields .admin-check-row {
+  display: inline-flex;
+  margin: 0;
+  padding: 0.62rem 0.85rem;
+  color: var(--ink);
+  font-size: 0.9rem;
+}
+
+.question-editor-preview {
+  position: sticky;
+  top: 84px;
+  max-height: calc(100vh - 100px);
+  overflow-y: auto;
+  border-radius: 24px;
+}
+
+.question-editor-preview .admin-question-preview {
+  gap: 0.8rem;
+}
+
+@media (max-width: 1100px) {
+  .question-editor {
+    grid-template-columns: 1fr;
+  }
+
+  .question-editor-preview {
+    position: static;
+    max-height: none;
+  }
+
+  .field-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Khi cuộn tới editor (bấm Sửa / Thêm), chừa chỗ cho header ghim. */
+.question-editor-card {
+  scroll-margin-top: 84px;
+}

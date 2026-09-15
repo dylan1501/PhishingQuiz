@@ -218,7 +218,12 @@ export function AdminQuestionsPage() {
       return true;
     });
     const direction = sortDirection === "asc" ? 1 : -1;
+    const isDefaultOrder = sortKey === "orderIndex" && sortDirection === "asc";
     return [...filtered].sort((first, second) => {
+      // Thứ tự mặc định: câu "luôn có" ghim lên đầu, rồi tới thứ tự trong ngân hàng.
+      if (isDefaultOrder && first.alwaysIncluded !== second.alwaysIncluded) {
+        return first.alwaysIncluded ? -1 : 1;
+      }
       if (sortKey === "orderIndex") {
         return (first.orderIndex - second.orderIndex) * direction;
       }
@@ -404,7 +409,10 @@ export function AdminQuestionsPage() {
             </thead>
             <tbody>
               {visibleQuestions.map((question) => (
-                <tr key={question.id} className={question.active ? "" : "row-inactive"}>
+                <tr
+                  key={question.id}
+                  className={`${question.active ? "" : "row-inactive"} ${question.alwaysIncluded ? "row-pinned" : ""}`}
+                >
                   <td className="stt-col">{question.orderIndex}</td>
                   <td className="question-title-cell">{question.title}</td>
                   <td>{question.category}</td>
@@ -487,93 +495,103 @@ export function AdminQuestionsPage() {
           </table>
         </div>
       </div>
-      <div className="content-card" ref={editFormRef}>
-        <div className="admin-page-heading">
+      <div className="content-card question-editor-card" ref={editFormRef}>
+        <div className="admin-page-heading question-editor-heading">
           <div>
             <p className="eyebrow">{editingId ? "Sửa Câu Hỏi" : "Thêm Câu Hỏi"}</p>
             <h2>{editingId ? form.title || "Câu hỏi" : "Câu hỏi mới"}</h2>
           </div>
-        </div>
-        <form className="stack" onSubmit={onSubmit}>
-          <label>
-            Tiêu đề
-            <input value={form.title} onChange={(event) => setField("title", event.target.value)} />
-          </label>
-          <label>
-            Loại tình huống
-            <input
-              value={form.category}
-              onChange={(event) => setField("category", event.target.value)}
-            />
-          </label>
-          <label>
-            Mô tả mở đầu
-            <textarea
-              value={form.scenarioIntro}
-              onChange={(event) => setField("scenarioIntro", event.target.value)}
-            />
-          </label>
-          <label>
-            Nội dung tình huống
-            <textarea
-              value={form.scenarioContent}
-              onChange={(event) => setField("scenarioContent", event.target.value)}
-            />
-          </label>
-          <label>
-            Vùng HTML mô phỏng tương tác
-            <textarea
-              className="html-editor"
-              value={form.scenarioHtml}
-              onChange={(event) => setField("scenarioHtml", event.target.value)}
-              placeholder={`<div>\n  <a href="https://example.com" title="https://example.com">Hover me</a>\n</div>`}
-            />
-          </label>
-          <QuestionPreview question={formPreviewQuestion} />
-          <label>
-            Đáp án đúng
-            <select
-              value={form.correctAnswer}
-              onChange={(event) => setField("correctAnswer", event.target.value as AnswerOption)}
-            >
-              <option value="phishing">Phishing</option>
-              <option value="legitimate">An toàn</option>
-            </select>
-          </label>
-          <label className="admin-check-row">
-            <input
-              type="checkbox"
-              checked={form.alwaysIncluded}
-              onChange={(event) => setField("alwaysIncluded", event.target.checked)}
-            />
-            <span>Luôn có trong đề kiểm tra</span>
-          </label>
-          <label>
-            Giải thích
-            <textarea
-              value={form.explanation}
-              onChange={(event) => setField("explanation", event.target.value)}
-            />
-          </label>
-          <label>
-            Dấu hiệu nhận biết
-            <input
-              value={form.indicators}
-              onChange={(event) => setField("indicators", event.target.value)}
-              placeholder="domain giả, tạo cảm giác gấp, yêu cầu OTP"
-            />
-          </label>
-          <div className="hero-actions">
-            <button className="button button-primary" type="submit" disabled={saving}>
-              {saving ? "Đang lưu..." : editingId ? "Lưu chỉnh sửa" : "Thêm câu hỏi"}
-            </button>
+          <div className="hero-actions question-editor-actions">
             {editingId && (
-              <button type="button" className="button button-ghost" onClick={resetForm}>
+              <button type="button" className="button button-ghost button-small" onClick={resetForm}>
                 Hủy chỉnh sửa
               </button>
             )}
+            <button className="button button-primary button-small" type="submit" form="question-editor-form" disabled={saving}>
+              {saving ? "Đang lưu..." : editingId ? "Lưu chỉnh sửa" : "Thêm câu hỏi"}
+            </button>
           </div>
-        </form>
+        </div>
+        <div className="question-editor">
+          <form id="question-editor-form" className="question-editor-fields" onSubmit={onSubmit}>
+            <div className="field-row">
+              <label>
+                Tiêu đề
+                <input value={form.title} onChange={(event) => setField("title", event.target.value)} />
+              </label>
+              <label>
+                Loại tình huống
+                <input value={form.category} onChange={(event) => setField("category", event.target.value)} />
+              </label>
+            </div>
+            <div className="field-row field-row-answer">
+              <label>
+                Đáp án đúng
+                <select
+                  value={form.correctAnswer}
+                  onChange={(event) => setField("correctAnswer", event.target.value as AnswerOption)}
+                >
+                  <option value="phishing">Phishing</option>
+                  <option value="legitimate">An toàn</option>
+                </select>
+              </label>
+              <label className="admin-check-row">
+                <input
+                  type="checkbox"
+                  checked={form.alwaysIncluded}
+                  onChange={(event) => setField("alwaysIncluded", event.target.checked)}
+                />
+                <span>Luôn có trong đề</span>
+              </label>
+            </div>
+            <label>
+              Mô tả mở đầu
+              <textarea
+                className="textarea-short"
+                value={form.scenarioIntro}
+                onChange={(event) => setField("scenarioIntro", event.target.value)}
+              />
+            </label>
+            <label>
+              Nội dung tình huống
+              <textarea
+                className="textarea-short"
+                value={form.scenarioContent}
+                onChange={(event) => setField("scenarioContent", event.target.value)}
+              />
+            </label>
+            <label>
+              Vùng HTML mô phỏng tương tác
+              <textarea
+                className="html-editor"
+                value={form.scenarioHtml}
+                onChange={(event) => setField("scenarioHtml", event.target.value)}
+                placeholder={`<div>
+  <a href="https://example.com" title="https://example.com">Hover me</a>
+</div>`}
+              />
+            </label>
+            <label>
+              Giải thích
+              <textarea
+                className="textarea-short"
+                value={form.explanation}
+                onChange={(event) => setField("explanation", event.target.value)}
+              />
+            </label>
+            <label>
+              Dấu hiệu nhận biết
+              <input
+                value={form.indicators}
+                onChange={(event) => setField("indicators", event.target.value)}
+                placeholder="domain giả, tạo cảm giác gấp, yêu cầu OTP"
+              />
+            </label>
+          </form>
+          <aside className="question-editor-preview">
+            <QuestionPreview question={formPreviewQuestion} label="Preview — cập nhật theo nội dung đang nhập" />
+          </aside>
+        </div>
       </div>
       {pendingDelete && (
         <div className="modal-backdrop preview-modal-backdrop" onClick={() => !deleting && setPendingDelete(null)}>
