@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import type { AnswerOption, QuizQuestion, QuizSession } from "../src/types.js";
+import type { AnswerOption, QuizSessionPayload } from "../src/types.js";
 import {
   clearAdminCookie,
   getAdminStatus,
@@ -26,6 +26,7 @@ import {
   devSaveQuizConfig,
   devSaveSessionAnswer,
   devSetupAdmin,
+  devStartQuizForParticipant,
   devStartQuizSession,
   devTouchQuizSession,
   devUpdateQuestion,
@@ -46,6 +47,7 @@ import {
   listQuestions,
   saveSessionAnswer,
   saveQuizConfig,
+  startQuizForParticipant,
   startQuizSession,
   touchQuizSession,
   updateQuestion,
@@ -441,16 +443,41 @@ export default async function handler(request: VercelRequest, response: VercelRe
       if (!requireMethod(request, response, "POST")) {
         return;
       }
-      const body = readBody<{ participantId?: string }>(request);
+      const body = readBody<{ participantId?: string; fullName?: string; email?: string; consent?: boolean }>(
+        request,
+      );
+
+      // Đường nhanh: gửi thẳng thông tin người tham gia → 1 request tạo participant + mở phiên.
       if (!body.participantId) {
-        sendError(response, 400, "Thiếu participantId.");
+        if (!body.fullName || body.fullName.trim().length < 2) {
+          sendError(response, 400, "Họ tên phải có ít nhất 2 ký tự.");
+          return;
+        }
+        if (!body.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email)) {
+          sendError(response, 400, "Email không hợp lệ.");
+          return;
+        }
+        const participantInput = {
+          fullName: body.fullName.trim(),
+          email: body.email.trim(),
+          consent: body.consent ?? true,
+        };
+        sendCreated(
+          response,
+          await withDevFallback(
+            () => startQuizForParticipant(participantInput),
+            () => devStartQuizForParticipant(participantInput),
+          ),
+        );
         return;
       }
+
+      const participantId = body.participantId;
       sendCreated(
         response,
         await withDevFallback(
-          () => startQuizSession(body.participantId),
-          () => devStartQuizSession(body.participantId),
+          () => startQuizSession(participantId),
+          () => devStartQuizSession(participantId),
         ),
       );
       return;
@@ -460,7 +487,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
       if (!requireMethod(request, response, "GET")) {
         return;
       }
-      const session = await withDevFallback<{ session: QuizSession; questions: QuizQuestion[] } | null>(
+      const session = await withDevFallback<QuizSessionPayload | null>(
         () => getQuizSession(resourceId),
         () => devGetQuizSession(resourceId),
       );
@@ -585,12 +612,12 @@ export default async function handler(request: VercelRequest, response: VercelRe
       if (!requireMethod(request, response, "PUT")) {
         return;
       }
-      const body = readBody<{ questionCount?: number }>(request);
+      const body = readBody<{ questionCount?: number; passScore?: number }>(request);
       sendOk(
         response,
         await withDevFallback(
-          () => saveQuizConfig(Number(body.questionCount)),
-          () => devSaveQuizConfig(Number(body.questionCount)),
+          () => saveQuizConfig(Number(body.questionCount), Number(body.passScore)),
+          () => devSaveQuizConfig(Number(body.questionCount), Number(body.passScore)),
         ),
       );
       return;

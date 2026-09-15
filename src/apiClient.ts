@@ -1,4 +1,12 @@
-import type { AnswerOption, Attempt, AttemptAnswer, Participant, QuizConfig, QuizQuestion, QuizSession } from "./types";
+import type {
+  AnswerOption,
+  Attempt,
+  AttemptAnswer,
+  Participant,
+  QuizConfig,
+  QuizQuestion,
+  QuizSessionPayload,
+} from "./types";
 
 type ApiEnvelope<T> = {
   data: T;
@@ -94,16 +102,22 @@ export function patchAdminQuestionState(
 }
 
 export function startRemoteSession(participantId: string) {
-  return requestApi<QuizSession>("quiz-sessions", {
+  return requestApi<QuizSessionPayload>("quiz-sessions", {
     method: "POST",
     body: JSON.stringify({ participantId }),
   });
 }
 
+// Tạo/cập nhật người tham gia và mở phiên trong một request; trả về luôn bộ câu hỏi.
+export function startRemoteQuiz(fullName: string, email: string, consent = true) {
+  return requestApi<QuizSessionPayload>("quiz-sessions", {
+    method: "POST",
+    body: JSON.stringify({ fullName, email, consent }),
+  });
+}
+
 export function getRemoteSession(sessionId: string) {
-  return requestApi<{ session: QuizSession; questions: QuizQuestion[] }>(
-    `quiz-sessions/${encodeURIComponent(sessionId)}`,
-  );
+  return requestApi<QuizSessionPayload>(`quiz-sessions/${encodeURIComponent(sessionId)}`);
 }
 
 export function saveRemoteAnswer(sessionId: string, questionId: string, selectedAnswer: AnswerOption) {
@@ -146,10 +160,10 @@ export function getRemoteQuizConfig() {
   return requestApi<QuizConfig>("quiz-config");
 }
 
-export function saveRemoteQuizConfig(questionCount: number) {
+export function saveRemoteQuizConfig(questionCount: number, passScore: number) {
   return requestApi<QuizConfig>("quiz-config", {
     method: "PUT",
-    body: JSON.stringify({ questionCount }),
+    body: JSON.stringify({ questionCount, passScore }),
   });
 }
 

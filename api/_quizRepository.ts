@@ -8,6 +8,7 @@ import type {
   QuizConfig,
   QuizQuestion,
   QuizSession,
+  QuizSessionPayload,
 } from "../src/types.js";
 import { getPrisma } from "./_db.js";
 
@@ -69,6 +70,22 @@ function clampQuestionCount(value: number, maxQuestions: number) {
     return 10;
   }
   return Math.min(Math.max(Math.round(value), 1), Math.max(maxQuestions, 1));
+}
+
+// Số câu cần đúng nằm trong [1, questionCount].
+function clampPassScore(value: number, questionCount: number) {
+  if (!Number.isFinite(value)) {
+    return Math.min(4, questionCount);
+  }
+  return Math.min(Math.max(Math.round(value), 1), questionCount);
+}
+
+function serializeQuizConfig(setting: { questionCount: number; passScore: number; updatedAt: Date }): QuizConfig {
+  return {
+    questionCount: setting.questionCount,
+    passScore: clampPassScore(setting.passScore, setting.questionCount),
+    updatedAt: setting.updatedAt.toISOString(),
+  };
 }
 
 function serializeQuestion(question: QuestionWithIndicators): QuizQuestion {
@@ -287,33 +304,29 @@ export async function getQuizConfig(): Promise<QuizConfig> {
   const setting = await prisma.quizSetting.findUniqueOrThrow({
     where: { quizId: quiz.id },
   });
-  return {
-    questionCount: setting.questionCount,
-    updatedAt: setting.updatedAt.toISOString(),
-  };
+  return serializeQuizConfig(setting);
 }
 
-export async function saveQuizConfig(questionCount: number): Promise<QuizConfig> {
+export async function saveQuizConfig(questionCount: number, passScore: number): Promise<QuizConfig> {
   const prisma = getPrisma();
   const quiz = await ensureDefaultQuiz();
   const activeQuestionCount = await prisma.question.count({
     where: { quizId: quiz.id, active: true },
   });
   const nextQuestionCount = clampQuestionCount(questionCount, activeQuestionCount);
+  const nextPassScore = clampPassScore(passScore, nextQuestionCount);
   const setting = await prisma.quizSetting.upsert({
     where: { quizId: quiz.id },
-    update: { questionCount: nextQuestionCount },
+    update: { questionCount: nextQuestionCount, passScore: nextPassScore },
     create: {
       quizId: quiz.id,
       questionCount: nextQuestionCount,
+      passScore: nextPassScore,
       randomizeQuestions: true,
       requireExplanation: true,
     },
   });
-  return {
-    questionCount: setting.questionCount,
-    updatedAt: setting.updatedAt.toISOString(),
-  };
+  return serializeQuizConfig(setting);
 }
 
 export async function upsertParticipant(input: {
@@ -346,7 +359,8 @@ export async function listParticipants() {
   return participants.map(serializeParticipant);
 }
 
-export async function startQuizSession(participantId: string): Promise<QuizSession> {
+// Trả về cả bộ câu hỏi (kèm indicators) và ngưỡng đạt để client vào bài ngay, không cần gọi thêm API.
+export async function startQuizSession(participantId: string): Promise<QuizSessionPayload> {
   const prisma = getPrisma();
   const quiz = await ensureDefaultQuiz();
   const [setting, activeQuestions] = await Promise.all([
@@ -354,6 +368,7 @@ export async function startQuizSession(participantId: string): Promise<QuizSessi
     prisma.question.findMany({
       where: { quizId: quiz.id, active: true },
       orderBy: { orderIndex: "asc" },
+      include: { indicators: { orderBy: { orderIndex: "asc" } } },
     }),
   ]);
   const questionLimit = clampQuestionCount(setting?.questionCount ?? 10, activeQuestions.length);
@@ -385,22 +400,26 @@ export async function startQuizSession(participantId: string): Promise<QuizSessi
     },
   });
 
+  const questionById = new Map(selectedQuestions.map((question) => [question.id, question] as const));
   return {
-    id: session.id,
-    remote: true,
-    participantId: session.participantId,
-    startedAt: session.startedAt.toISOString(),
-    questionIds: session.questions.map((question) => question.questionId),
-    answers: session.answers.map((answer) => ({
-      questionId: answer.questionId,
-      selectedAnswer: fromDbAnswer(answer.selectedAnswer),
-      isCorrect: answer.isCorrect,
-      answeredAt: answer.answeredAt.toISOString(),
-    })),
+    session: {
+      id: session.id,
+      remote: true,
+      participantId: session.participantId,
+      startedAt: session.startedAt.toISOString(),
+      expiresAt: session.expiresAt?.toISOString(),
+      questionIds: session.questions.map((question) => question.questionId),
+      answers: [],
+    },
+    questions: session.questions
+      .map((entry) => questionById.get(entry.questionId))
+      .filter((question): question is NonNullable<typeof question> => Boolean(question))
+      .map(serializeQuestion),
+    passScore: clampPassScore(setting?.passScore ?? 4, questionLimit),
   };
 }
 
-export async function getQuizSession(sessionId: string) {
+export async function getQuizSession(sessionId: string): Promise<QuizSessionPayload | null> {
   const prisma = getPrisma();
   const session = await prisma.quizSession.findUnique({
     where: { id: sessionId },
@@ -423,12 +442,15 @@ export async function getQuizSession(sessionId: string) {
     return null;
   }
 
+  const setting = await prisma.quizSetting.findUnique({ where: { quizId: session.quizId } });
+
   return {
     session: {
       id: session.id,
       remote: true,
       participantId: session.participantId,
       startedAt: session.startedAt.toISOString(),
+      expiresAt: session.expiresAt?.toISOString(),
       questionIds: session.questions.map((question) => question.questionId),
       answers: session.answers.map((answer) => ({
         questionId: answer.questionId,
@@ -438,7 +460,14 @@ export async function getQuizSession(sessionId: string) {
       })),
     } satisfies QuizSession,
     questions: session.questions.map((entry) => serializeQuestion(entry.question)),
+    passScore: clampPassScore(setting?.passScore ?? 4, session.questions.length),
   };
+}
+
+// Một request duy nhất cho màn nhập thông tin: tạo/cập nhật người tham gia rồi mở phiên ngay.
+export async function startQuizForParticipant(input: { fullName: string; email: string; consent: boolean }) {
+  const participant = await upsertParticipant(input);
+  return startQuizSession(participant.id);
 }
 
 export async function saveSessionAnswer(input: {

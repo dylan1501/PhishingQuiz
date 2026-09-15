@@ -55,8 +55,13 @@ export function AdminDashboardPage() {
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [activeQuestions, setActiveQuestions] = useState<QuizQuestion[]>([]);
-  const [quizConfig, setQuizConfig] = useState<QuizConfig>({ questionCount: 10, updatedAt: new Date(0).toISOString() });
+  const [quizConfig, setQuizConfig] = useState<QuizConfig>({
+    questionCount: 10,
+    passScore: 4,
+    updatedAt: new Date(0).toISOString(),
+  });
   const [questionCountInput, setQuestionCountInput] = useState(String(quizConfig.questionCount));
+  const [passScoreInput, setPassScoreInput] = useState(String(quizConfig.passScore));
   const [configMessage, setConfigMessage] = useState("");
   const [loadError, setLoadError] = useState("");
   const [timeGrouping, setTimeGrouping] = useState<TimeGrouping>("hour");
@@ -117,6 +122,7 @@ export function AdminDashboardPage() {
           setActiveQuestions(remoteQuestions);
           setQuizConfig(remoteQuizConfig);
           setQuestionCountInput(String(remoteQuizConfig.questionCount));
+          setPassScoreInput(String(remoteQuizConfig.passScore));
         }
       })
       .catch((error) => {
@@ -130,11 +136,19 @@ export function AdminDashboardPage() {
   async function saveQuestionCount(event: FormEvent) {
     event.preventDefault();
     const parsedQuestionCount = Number(questionCountInput);
+    const parsedPassScore = Number(passScoreInput);
+    if (parsedPassScore > parsedQuestionCount) {
+      setConfigMessage("Số câu cần đúng không được lớn hơn số câu mỗi lượt thi.");
+      return;
+    }
     try {
-      const nextConfig = await saveRemoteQuizConfig(parsedQuestionCount);
+      const nextConfig = await saveRemoteQuizConfig(parsedQuestionCount, parsedPassScore);
       setQuizConfig(nextConfig);
       setQuestionCountInput(String(nextConfig.questionCount));
-      setConfigMessage(`Đã lưu cấu hình ${nextConfig.questionCount} câu hỏi cho mỗi lượt thi.`);
+      setPassScoreInput(String(nextConfig.passScore));
+      setConfigMessage(
+        `Đã lưu: ${nextConfig.questionCount} câu mỗi lượt, cần đúng ít nhất ${nextConfig.passScore}/${nextConfig.questionCount} câu để hoàn thành.`,
+      );
     } catch (error) {
       setConfigMessage(error instanceof Error ? error.message : "Không lưu được cấu hình bài thi.");
     }
@@ -168,15 +182,15 @@ export function AdminDashboardPage() {
       <div className="content-card quiz-config-card">
         <div>
           <p className="eyebrow">Cấu Hình Bài Thi</p>
-          <h3>Số câu hỏi mỗi lượt thi</h3>
+          <h3>Số câu hỏi và ngưỡng hoàn thành</h3>
           <p className="section-text">
-            Mặc định là 10 câu. Các câu được đánh dấu “Luôn có” vẫn được ưu tiên đưa vào đề,
-            phần còn lại được random từ ngân hàng câu hỏi đang bật.
+            Các câu được đánh dấu “Luôn có” vẫn được ưu tiên đưa vào đề, phần còn lại được random từ
+            ngân hàng câu hỏi đang bật. Lượt thi đạt số câu đúng tối thiểu sẽ được tính là hoàn thành thử thách.
           </p>
         </div>
         <form className="quiz-config-form" onSubmit={saveQuestionCount}>
           <label>
-            Số câu
+            Số câu mỗi lượt
             <input
               type="number"
               min={1}
@@ -188,11 +202,25 @@ export function AdminDashboardPage() {
               }}
             />
           </label>
+          <label>
+            Số câu cần đúng
+            <input
+              type="number"
+              min={1}
+              max={Math.max(Number(questionCountInput) || 1, 1)}
+              value={passScoreInput}
+              onChange={(event) => {
+                setPassScoreInput(event.target.value);
+                setConfigMessage("");
+              }}
+            />
+          </label>
           <button type="submit" className="button button-primary">
             Lưu cấu hình
           </button>
           <span className="quiz-config-hint">
-            Đang bật {activeQuestions.length} câu. Hiện cấu hình: {quizConfig.questionCount} câu/lượt.
+            Đang bật {activeQuestions.length} câu. Hiện cấu hình: {quizConfig.questionCount} câu/lượt, cần đúng{" "}
+            {quizConfig.passScore}/{quizConfig.questionCount}.
           </span>
           {configMessage && <span className="quiz-config-message">{configMessage}</span>}
         </form>

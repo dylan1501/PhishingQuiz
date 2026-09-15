@@ -51,7 +51,8 @@ function AdminAuthPending() {
 function Layout() {
   const location = useLocation();
   const adminView = location.pathname.startsWith("/admin");
-  const homeView = location.pathname === "/";
+  // Trang chủ, màn nhập thông tin và bảng xếp hạng không hiện site-nav.
+  const hideSiteNav = ["/", "/quiz/start", "/leaderboard"].includes(location.pathname);
   const quizTakingView = location.pathname.startsWith("/quiz/questions");
   const [themeMode, setThemeMode] = useState<ThemeMode>("light");
 
@@ -67,7 +68,7 @@ function Layout() {
             Phishing Quiz
           </NavLink>
           <div className="header-actions">
-            {!adminView && !homeView && (
+            {!adminView && !hideSiteNav && (
               <nav className="site-nav">
                 <NavLink to="/leaderboard">Bảng xếp hạng</NavLink>
                 <NavLink to="/quiz/start">Làm bài quiz</NavLink>
@@ -89,7 +90,11 @@ function Layout() {
           </div>
         </header>
       )}
-      <main className={`page-shell ${quizTakingView ? "quiz-taking-page" : ""}`}>
+      <main
+        className={`page-shell ${quizTakingView ? "quiz-taking-page" : ""} ${
+          location.pathname === "/quiz/start" ? "page-shell-centered" : ""
+        }`}
+      >
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/quiz/start" element={<ParticipantPage />} />

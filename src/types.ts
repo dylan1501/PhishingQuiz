@@ -54,5 +54,14 @@ export interface QuizSession {
 
 export interface QuizConfig {
   questionCount: number;
+  /** Số câu đúng tối thiểu để lượt thi được tính là hoàn thành. */
+  passScore: number;
   updatedAt: string;
+}
+
+/** Dữ liệu trả về khi khởi tạo hoặc tải một phiên làm bài. */
+export interface QuizSessionPayload {
+  session: QuizSession;
+  questions: QuizQuestion[];
+  passScore: number;
 }

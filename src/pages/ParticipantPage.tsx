@@ -1,6 +1,6 @@
 import { FormEvent, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { createRemoteParticipant, startRemoteSession } from "../apiClient";
+import { startRemoteQuiz } from "../apiClient";
 
 export function ParticipantPage() {
   const [fullName, setFullName] = useState("");
@@ -22,10 +22,12 @@ export function ParticipantPage() {
     setSubmitting(true);
     setError("");
     try {
-      // Kết quả luôn được lưu để phục vụ bảng xếp hạng và báo cáo.
-      const remoteParticipant = await createRemoteParticipant(fullName.trim(), email.trim(), true);
-      const remoteSession = await startRemoteSession(remoteParticipant.id);
-      navigate(`/quiz/questions/1?session=${encodeURIComponent(remoteSession.id ?? "")}`);
+      // Một request: tạo người tham gia + mở phiên + nhận luôn bộ câu hỏi. Kết quả luôn được lưu
+      // để phục vụ bảng xếp hạng và báo cáo. Payload đi kèm router state để QuizPage không phải tải lại.
+      const quizStart = await startRemoteQuiz(fullName.trim(), email.trim(), true);
+      navigate(`/quiz/questions/1?session=${encodeURIComponent(quizStart.session.id ?? "")}`, {
+        state: { quizStart },
+      });
     } catch (remoteError) {
       setError(remoteError instanceof Error ? remoteError.message : "Không khởi tạo được bài thi.");
     } finally {

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Navigate, useLocation, useNavigate, useParams } from "react-router-dom";
 import { finishRemoteSession, getRemoteSession, saveRemoteAnswer, touchRemoteSessionBeacon } from "../apiClient";
-import type { AnswerOption, QuizQuestion, QuizSession } from "../types";
+import type { AnswerOption, QuizQuestion, QuizSession, QuizSessionPayload } from "../types";
 
 type HotspotNote = {
   id: string;
@@ -256,9 +256,17 @@ export function QuizPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const sessionId = useMemo(() => new URLSearchParams(location.search).get("session") ?? "", [location.search]);
-  const [session, setSession] = useState<QuizSession | null>(null);
-  const [questions, setQuestions] = useState<QuizQuestion[]>([]);
-  const [loadingSession, setLoadingSession] = useState(true);
+  // Payload do màn nhập thông tin chuyển sang qua router state → vào bài ngay, không cần gọi API.
+  const preloaded = useMemo(() => {
+    const state = location.state as { quizStart?: QuizSessionPayload } | null;
+    return state?.quizStart && state.quizStart.session.id === sessionId ? state.quizStart : null;
+  }, [location.state, sessionId]);
+  const [session, setSession] = useState<QuizSession | null>(preloaded?.session ?? null);
+  const [questions, setQuestions] = useState<QuizQuestion[]>(preloaded?.questions ?? []);
+  const [passScore, setPassScore] = useState<number>(preloaded?.passScore ?? 0);
+  const [loadingSession, setLoadingSession] = useState(!preloaded);
+  // Phiên đã có trong state (preload hoặc đã tải) → chuyển câu không gọi lại API.
+  const loadedSessionIdRef = useRef(preloaded?.session.id ?? "");
   const [loadError, setLoadError] = useState("");
   const questionNumber = Number(index ?? 1);
   const question = questions[questionNumber - 1] ?? null;
@@ -285,14 +293,21 @@ export function QuizPage() {
       return;
     }
 
+    if (loadedSessionIdRef.current === sessionId) {
+      setLoadingSession(false);
+      return;
+    }
+
     let active = true;
     setLoadingSession(true);
     setLoadError("");
     getRemoteSession(sessionId)
       .then((payload) => {
         if (active) {
+          loadedSessionIdRef.current = sessionId;
           setSession(payload.session);
           setQuestions(payload.questions);
+          setPassScore(payload.passScore);
         }
       })
       .catch((error) => {
@@ -432,7 +447,10 @@ export function QuizPage() {
     setExplanationViewed(false);
     setBubblePosition(null);
     setAnchorPosition(null);
-    navigate(`/quiz/questions/${questionNumber + 1}?session=${encodeURIComponent(sessionId)}`, { replace: true });
+    navigate(`/quiz/questions/${questionNumber + 1}?session=${encodeURIComponent(sessionId)}`, {
+      replace: true,
+      state: location.state,
+    });
   }
 
   function handleExplanationNext() {
@@ -593,6 +611,11 @@ export function QuizPage() {
 
   return (
     <section className="quiz-layout">
+      {passScore > 0 && (
+        <p className="quiz-pass-requirement">
+          Kết quả đạt chính xác ít nhất <strong>{passScore}/{questions.length}</strong> câu được tính là hoàn thành
+        </p>
+      )}
       <div className="progress-bar">
         <span style={{ width: `${progress}%` }} />
       </div>

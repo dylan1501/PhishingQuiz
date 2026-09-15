@@ -9,6 +9,7 @@ import type {
   QuizConfig,
   QuizQuestion,
   QuizSession,
+  QuizSessionPayload,
 } from "../src/types.js";
 
 type LeaderboardEntry = Attempt & { participant: Participant };
@@ -66,6 +67,7 @@ function getState() {
       attempts: [],
       quizConfig: {
         questionCount: 10,
+        passScore: 4,
         updatedAt: new Date(0).toISOString(),
       },
       admin: null,
@@ -241,11 +243,15 @@ export async function devGetQuizConfig() {
   return getState().quizConfig;
 }
 
-export async function devSaveQuizConfig(questionCount: number) {
+export async function devSaveQuizConfig(questionCount: number, passScore: number) {
   const state = getState();
   const activeQuestionCount = Math.max(state.questions.filter((question) => question.active).length, 1);
+  const nextQuestionCount = clampQuestionCount(questionCount, activeQuestionCount);
   state.quizConfig = {
-    questionCount: clampQuestionCount(questionCount, activeQuestionCount),
+    questionCount: nextQuestionCount,
+    passScore: Number.isFinite(passScore)
+      ? Math.min(Math.max(Math.round(passScore), 1), nextQuestionCount)
+      : Math.min(4, nextQuestionCount),
     updatedAt: new Date().toISOString(),
   };
   return state.quizConfig;
@@ -282,7 +288,7 @@ export async function devListParticipants() {
   );
 }
 
-export async function devStartQuizSession(participantId: string): Promise<QuizSession> {
+export async function devStartQuizSession(participantId: string): Promise<QuizSessionPayload> {
   const state = getState();
   const activeQuestions = state.questions.filter((question) => question.active);
   const questionLimit = clampQuestionCount(state.quizConfig.questionCount, activeQuestions.length);
@@ -304,10 +310,21 @@ export async function devStartQuizSession(participantId: string): Promise<QuizSe
     answers: [],
   };
   state.sessions.push(session);
-  return session;
+  return {
+    session,
+    questions: questionIds
+      .map((questionId) => state.questions.find((question) => question.id === questionId))
+      .filter((question): question is QuizQuestion => Boolean(question)),
+    passScore: Math.min(state.quizConfig.passScore, questionIds.length),
+  };
 }
 
-export async function devGetQuizSession(sessionId: string) {
+export async function devStartQuizForParticipant(input: { fullName: string; email: string; consent: boolean }) {
+  const participant = await devUpsertParticipant(input);
+  return devStartQuizSession(participant.id);
+}
+
+export async function devGetQuizSession(sessionId: string): Promise<QuizSessionPayload | null> {
   const state = getState();
   const session = state.sessions.find((entry) => entry.id === sessionId);
   if (!session) {
@@ -318,6 +335,7 @@ export async function devGetQuizSession(sessionId: string) {
     questions: session.questionIds
       .map((questionId) => state.questions.find((question) => question.id === questionId))
       .filter((question): question is QuizQuestion => Boolean(question)),
+    passScore: Math.min(state.quizConfig.passScore, session.questionIds.length),
   };
 }
 
