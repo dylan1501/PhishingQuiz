@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Navigate, useLocation, useNavigate, useParams } from "react-router-dom";
-import { finishRemoteSession, getRemoteSession, saveRemoteAnswer } from "../apiClient";
+import { finishRemoteSession, getRemoteSession, saveRemoteAnswer, touchRemoteSessionBeacon } from "../apiClient";
 import type { AnswerOption, QuizQuestion, QuizSession } from "../types";
 
 type HotspotNote = {
@@ -311,6 +311,27 @@ export function QuizPage() {
     };
   }, [sessionId]);
 
+  // Rời/ẩn/đóng tab giữa chừng: báo server để phiên được giữ thêm 20 phút kể từ lúc rời đi.
+  // Các câu đã trả lời đã lưu trên server; quá 20 phút server tự chốt kết quả và xóa phiên.
+  const hasLoadedSession = Boolean(session);
+  useEffect(() => {
+    if (!sessionId || !hasLoadedSession) {
+      return;
+    }
+    const notifyServer = () => {
+      if (document.visibilityState === "hidden") {
+        touchRemoteSessionBeacon(sessionId);
+      }
+    };
+    const handlePageHide = () => touchRemoteSessionBeacon(sessionId);
+    document.addEventListener("visibilitychange", notifyServer);
+    window.addEventListener("pagehide", handlePageHide);
+    return () => {
+      document.removeEventListener("visibilitychange", notifyServer);
+      window.removeEventListener("pagehide", handlePageHide);
+    };
+  }, [sessionId, hasLoadedSession]);
+
   useEffect(() => {
     setSelectedAnswer(existingAnswer?.selectedAnswer ?? null);
     setExplanationViewed(false);
@@ -398,7 +419,11 @@ export function QuizPage() {
         navigate(`/quiz/result?attempt=${attempt.id}`, { replace: true });
       } catch (error) {
         console.error("Không hoàn tất được lượt thi trên DB.", error);
-        setFinishError("Không lưu được kết quả lên cơ sở dữ liệu. Vui lòng thử bấm Next lại.");
+        setFinishError(
+          error instanceof Error && error.message
+            ? error.message
+            : "Không lưu được kết quả lên cơ sở dữ liệu. Vui lòng thử bấm Next lại.",
+        );
         setFinishingResult(false);
         finishInProgressRef.current = false;
       }

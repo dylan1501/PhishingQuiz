@@ -1,4 +1,5 @@
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
+import { BarChart, LineChart, type ChartPoint } from "../components/charts";
 import {
   getRemoteAttempts,
   getRemoteLeaderboard,
@@ -10,6 +11,45 @@ import {
 } from "../apiClient";
 import type { Attempt, Participant, QuizConfig, QuizQuestion } from "../types";
 
+type TimeGrouping = "hour" | "weekday";
+
+// Thứ trong tuần theo múi giờ trình duyệt, bắt đầu từ Thứ 2 (JS getDay(): 0 = Chủ nhật).
+const weekdayLabels = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
+const weekdayNames = ["Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy", "Chủ Nhật"];
+
+function groupParticipantsByTime(participants: Participant[], grouping: TimeGrouping): ChartPoint[] {
+  if (grouping === "hour") {
+    const counts = new Array<number>(24).fill(0);
+    participants.forEach((participant) => {
+      counts[new Date(participant.createdAt).getHours()] += 1;
+    });
+    return counts.map((value, hour) => ({
+      label: `${hour}h`,
+      detail: `${String(hour).padStart(2, "0")}:00 – ${String(hour).padStart(2, "0")}:59`,
+      value,
+    }));
+  }
+
+  const counts = new Array<number>(7).fill(0);
+  participants.forEach((participant) => {
+    counts[(new Date(participant.createdAt).getDay() + 6) % 7] += 1;
+  });
+  return counts.map((value, index) => ({ label: weekdayLabels[index], detail: weekdayNames[index], value }));
+}
+
+// Trục điểm 1..N (N = số câu lớn nhất từng thi, tối thiểu 10); thêm cột 0 khi thực sự có lượt 0 điểm.
+function groupAttemptsByScore(attempts: Attempt[]): ChartPoint[] {
+  const maxScore = Math.max(10, ...attempts.map((attempt) => attempt.totalQuestions));
+  const counts = new Array<number>(maxScore + 1).fill(0);
+  attempts.forEach((attempt) => {
+    counts[Math.min(maxScore, Math.max(0, attempt.score))] += 1;
+  });
+  const firstScore = counts[0] > 0 ? 0 : 1;
+  return counts
+    .map((value, score) => ({ label: String(score), detail: `${score} điểm`, value }))
+    .slice(firstScore);
+}
+
 export function AdminDashboardPage() {
   const [attempts, setAttempts] = useState<Attempt[]>([]);
   const [participants, setParticipants] = useState<Participant[]>([]);
@@ -19,6 +59,12 @@ export function AdminDashboardPage() {
   const [questionCountInput, setQuestionCountInput] = useState(String(quizConfig.questionCount));
   const [configMessage, setConfigMessage] = useState("");
   const [loadError, setLoadError] = useState("");
+  const [timeGrouping, setTimeGrouping] = useState<TimeGrouping>("hour");
+  const participantsOverTime = useMemo(
+    () => groupParticipantsByTime(participants, timeGrouping),
+    [participants, timeGrouping],
+  );
+  const scoreDistribution = useMemo(() => groupAttemptsByScore(attempts), [attempts]);
   const fastestAttempt = attempts.length
     ? Math.min(...attempts.map((attempt) => attempt.durationSeconds))
     : 0;
@@ -171,6 +217,56 @@ export function AdminDashboardPage() {
           <span>Người dẫn đầu</span>
           <strong>{leaderboard[0]?.participant?.fullName ?? "Chưa có dữ liệu"}</strong>
           <p>Người có thứ hạng cao nhất theo score, thời gian và thời điểm hoàn thành.</p>
+        </article>
+      </div>
+      <div className="dashboard-charts-grid">
+        <article className="content-card chart-card">
+          <div className="chart-card-heading">
+            <div>
+              <p className="eyebrow">Người Tham Gia</p>
+              <h3>Số người tham gia theo thời gian</h3>
+              <p className="section-text">
+                Đếm theo thời điểm đăng ký tham gia lần đầu, tính theo múi giờ của trình duyệt.
+              </p>
+            </div>
+            <div className="segmented-control" role="group" aria-label="Nhóm theo">
+              <button
+                type="button"
+                aria-pressed={timeGrouping === "hour"}
+                onClick={() => setTimeGrouping("hour")}
+              >
+                Giờ trong ngày
+              </button>
+              <button
+                type="button"
+                aria-pressed={timeGrouping === "weekday"}
+                onClick={() => setTimeGrouping("weekday")}
+              >
+                Ngày trong tuần
+              </button>
+            </div>
+          </div>
+          <LineChart
+            points={participantsOverTime}
+            unit="người"
+            labelHeader={timeGrouping === "hour" ? "Khung giờ" : "Thứ"}
+            ariaLabel={`Biểu đồ đường số người tham gia theo ${timeGrouping === "hour" ? "giờ trong ngày" : "ngày trong tuần"}`}
+          />
+        </article>
+        <article className="content-card chart-card">
+          <div className="chart-card-heading">
+            <div>
+              <p className="eyebrow">Kết Quả</p>
+              <h3>Phân bố kết quả theo điểm</h3>
+              <p className="section-text">Số lượt thi đạt từng mức điểm trên tổng số câu của lượt đó.</p>
+            </div>
+          </div>
+          <BarChart
+            points={scoreDistribution}
+            unit="lượt thi"
+            labelHeader="Điểm"
+            ariaLabel="Biểu đồ cột phân bố số lượt thi theo điểm"
+          />
         </article>
       </div>
       <div className="admin-insight-grid">

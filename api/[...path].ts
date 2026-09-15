@@ -11,6 +11,7 @@ import {
   devClearAdminCookie,
   devCreateQuestion,
   devEnsureDefaultQuiz,
+  devExpireStaleSessions,
   devFinishQuizSession,
   devGetAdminStatus,
   devGetAttemptById,
@@ -26,6 +27,7 @@ import {
   devSaveSessionAnswer,
   devSetupAdmin,
   devStartQuizSession,
+  devTouchQuizSession,
   devUpdateQuestion,
   devUpdateQuestionState,
   devUpsertParticipant,
@@ -33,6 +35,7 @@ import {
 import {
   createQuestion,
   ensureDefaultQuiz,
+  expireStaleSessions,
   finishQuizSession,
   getAttemptById,
   getLeaderboard,
@@ -44,6 +47,7 @@ import {
   saveSessionAnswer,
   saveQuizConfig,
   startQuizSession,
+  touchQuizSession,
   updateQuestion,
   updateQuestionState,
   upsertParticipant,
@@ -177,6 +181,30 @@ async function requireResolvedAdmin(request: VercelRequest) {
 
 function isAdminResource(resource: string | undefined) {
   return resource === "admin";
+}
+
+// Không có worker nền trên Vercel nên quét phiên quá hạn theo kiểu lazy: tối đa 30s/lần trên mỗi
+// instance, chạy trước các request public. Lỗi quét không được làm hỏng request chính.
+const sessionSweepIntervalMs = 30 * 1000;
+const globalForSweep = globalThis as typeof globalThis & { phishingQuizLastSessionSweepAt?: number };
+
+async function sweepStaleSessions() {
+  const now = Date.now();
+  if (now - (globalForSweep.phishingQuizLastSessionSweepAt ?? 0) < sessionSweepIntervalMs) {
+    return;
+  }
+  globalForSweep.phishingQuizLastSessionSweepAt = now;
+  try {
+    const result = await withDevFallback(
+      () => expireStaleSessions(),
+      () => devExpireStaleSessions(),
+    );
+    if (result.scanned > 0) {
+      console.log(`[session-expiry] Chốt ${result.finalized} phiên, xóa ${result.deleted}/${result.scanned} phiên quá hạn.`);
+    }
+  } catch (error) {
+    console.warn("[session-expiry] Không quét được phiên quá hạn:", error instanceof Error ? error.message : error);
+  }
 }
 
 function readQuestionBody(request: VercelRequest) {
@@ -341,6 +369,8 @@ export default async function handler(request: VercelRequest, response: VercelRe
       return;
     }
 
+    await sweepStaleSessions();
+
     if (resource === "health") {
       await withDevFallback(
         () => ensureDefaultQuiz(),
@@ -435,7 +465,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
         () => devGetQuizSession(resourceId),
       );
       if (!session) {
-        sendError(response, 404, "Không tìm thấy phiên làm bài.");
+        sendError(response, 404, "Phiên làm bài không tồn tại hoặc đã hết hạn (quá 20 phút không hoạt động).");
         return;
       }
       sendOk(response, session);
@@ -467,6 +497,20 @@ export default async function handler(request: VercelRequest, response: VercelRe
               questionId: body.questionId,
               selectedAnswer,
             }),
+        ),
+      );
+      return;
+    }
+
+    if (resource === "quiz-sessions" && resourceId && action === "touch") {
+      if (!requireMethod(request, response, "POST")) {
+        return;
+      }
+      sendOk(
+        response,
+        await withDevFallback(
+          () => touchQuizSession(resourceId),
+          () => devTouchQuizSession(resourceId),
         ),
       );
       return;

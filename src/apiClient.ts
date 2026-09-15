@@ -113,6 +113,17 @@ export function saveRemoteAnswer(sessionId: string, questionId: string, selected
   });
 }
 
+// Gọi khi người dùng ẩn/đóng tab giữa chừng: sendBeacon vẫn gửi được sau khi trang unload,
+// giúp server tính mốc "20 phút không hoạt động" từ lúc rời trang.
+export function touchRemoteSessionBeacon(sessionId: string) {
+  const url = createApiUrl(`quiz-sessions/${encodeURIComponent(sessionId)}/touch`);
+  const body = new Blob([JSON.stringify({})], { type: "application/json" });
+  if (typeof navigator.sendBeacon === "function" && navigator.sendBeacon(url, body)) {
+    return;
+  }
+  void fetch(url, { method: "POST", body, credentials: "same-origin", keepalive: true }).catch(() => undefined);
+}
+
 export function finishRemoteSession(sessionId: string) {
   return requestApi<LeaderboardEntry>(`quiz-sessions/${sessionId}/finish`, {
     method: "POST",

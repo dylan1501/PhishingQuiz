@@ -14,7 +14,7 @@ export function HomePage() {
           aria-label="Minh họa các bẫy lừa đảo phishing"
         />
       </div>
-      <h1>Bạn có nhận ra khi mình đang bị lừa đảo?</h1>
+      <h1>Bạn có đủ tỉnh táo để nhận diện lừa đảo?</h1>
       <p className="hero-text">
         Các cuộc tấn công phishing tìm cách lừa người dùng tiết lộ thông tin cá nhân hoặc tài chính,
         thường bằng cách giả mạo nội dung từ những tổ chức quen thuộc, đáng tin cậy.

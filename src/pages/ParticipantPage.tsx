@@ -5,7 +5,6 @@ import { createRemoteParticipant, startRemoteSession } from "../apiClient";
 export function ParticipantPage() {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
-  const [consent, setConsent] = useState(true);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
@@ -23,7 +22,8 @@ export function ParticipantPage() {
     setSubmitting(true);
     setError("");
     try {
-      const remoteParticipant = await createRemoteParticipant(fullName.trim(), email.trim(), consent);
+      // Kết quả luôn được lưu để phục vụ bảng xếp hạng và báo cáo.
+      const remoteParticipant = await createRemoteParticipant(fullName.trim(), email.trim(), true);
       const remoteSession = await startRemoteSession(remoteParticipant.id);
       navigate(`/quiz/questions/1?session=${encodeURIComponent(remoteSession.id ?? "")}`);
     } catch (remoteError) {
@@ -34,33 +34,26 @@ export function ParticipantPage() {
   }
 
   return (
-    <section className="content-card form-card">
-      <p className="eyebrow">Thông Tin Người Tham Gia</p>
-      <h2>Bắt đầu bài đánh giá nhận diện phishing</h2>
-      <p className="section-text">
-        Kết quả của bạn sẽ được lưu để hiển thị trên bảng xếp hạng và báo cáo.
-      </p>
-      <form className="stack" onSubmit={onSubmit}>
-        <label>
-          Họ và tên
-          <input value={fullName} onChange={(event) => setFullName(event.target.value)} />
-        </label>
-        <label>
-          Địa chỉ email
-          <input
-            type="email"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-          />
-        </label>
-        <label className="checkbox">
-          <input
-            type="checkbox"
-            checked={consent}
-            onChange={(event) => setConsent(event.target.checked)}
-          />
-          Tôi đồng ý cho phép lưu kết quả để phục vụ bảng xếp hạng và báo cáo.
-        </label>
+    <section className="content-card form-card participant-card">
+      <h2>Thông tin người tham gia</h2>
+      <form className="stack participant-form" onSubmit={onSubmit}>
+        <input
+          value={fullName}
+          onChange={(event) => setFullName(event.target.value)}
+          placeholder="Họ và tên *"
+          aria-label="Họ và tên (bắt buộc)"
+          autoComplete="name"
+          required
+        />
+        <input
+          type="email"
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+          placeholder="Địa chỉ email *"
+          aria-label="Địa chỉ email (bắt buộc)"
+          autoComplete="email"
+          required
+        />
         {error && <div className="notice notice-error">{error}</div>}
         <button type="submit" className="button button-primary" disabled={submitting}>
           {submitting ? "Đang khởi tạo..." : "Bắt đầu làm bài"}

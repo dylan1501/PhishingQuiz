@@ -51,6 +51,7 @@ function AdminAuthPending() {
 function Layout() {
   const location = useLocation();
   const adminView = location.pathname.startsWith("/admin");
+  const homeView = location.pathname === "/";
   const quizTakingView = location.pathname.startsWith("/quiz/questions");
   const [themeMode, setThemeMode] = useState<ThemeMode>("light");
 
@@ -66,7 +67,7 @@ function Layout() {
             Phishing Quiz
           </NavLink>
           <div className="header-actions">
-            {!adminView && (
+            {!adminView && !homeView && (
               <nav className="site-nav">
                 <NavLink to="/leaderboard">Bảng xếp hạng</NavLink>
                 <NavLink to="/quiz/start">Làm bài quiz</NavLink>
@@ -104,11 +105,6 @@ function Layout() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
-      {!quizTakingView && (
-        <footer className="site-footer">
-          Phòng An ninh thông tin - Trung tâm Công nghệ Thông tin
-        </footer>
-      )}
     </div>
   );
 }

@@ -49,6 +49,13 @@ const cookieName = "phishing_admin_session";
 const sessionTtlSeconds = 8 * 60 * 60;
 const passwordIterations = 120_000;
 const devSecret = "phishing-quiz-dev-api-fallback";
+const sessionIdleTimeoutMs = 20 * 60 * 1000;
+const sessionExpiredMessage =
+  "Phiên làm bài đã hết hạn do quá 20 phút không hoạt động. Các câu đã trả lời vẫn được ghi nhận vào kết quả.";
+
+function nextSessionExpiry(from = Date.now()) {
+  return new Date(from + sessionIdleTimeoutMs).toISOString();
+}
 
 function getState() {
   if (!globalForDevStore.phishingQuizDevStore) {
@@ -292,6 +299,7 @@ export async function devStartQuizSession(participantId: string): Promise<QuizSe
     remote: true,
     participantId,
     startedAt: new Date().toISOString(),
+    expiresAt: nextSessionExpiry(),
     questionIds,
     answers: [],
   };
@@ -321,8 +329,11 @@ export async function devSaveSessionAnswer(input: {
   const state = getState();
   const session = state.sessions.find((entry) => entry.id === input.sessionId);
   const question = state.questions.find((entry) => entry.id === input.questionId);
-  if (!session || !question) {
-    throw new Error("Không tìm thấy phiên hoặc câu hỏi.");
+  if (!session) {
+    throw new Error(sessionExpiredMessage);
+  }
+  if (!question) {
+    throw new Error("Không tìm thấy câu hỏi.");
   }
 
   const answer: AttemptAnswer = {
@@ -332,14 +343,67 @@ export async function devSaveSessionAnswer(input: {
     answeredAt: new Date().toISOString(),
   };
   session.answers = [...session.answers.filter((entry) => entry.questionId !== input.questionId), answer];
+  session.expiresAt = nextSessionExpiry();
   return answer;
+}
+
+export async function devTouchQuizSession(sessionId: string) {
+  const session = getState().sessions.find((entry) => entry.id === sessionId);
+  if (session) {
+    session.expiresAt = nextSessionExpiry();
+  }
+  return { active: Boolean(session) };
+}
+
+function buildAttemptFromSession(session: QuizSession, completedAt: Date): Attempt {
+  return {
+    id: crypto.randomUUID(),
+    participantId: session.participantId,
+    score: session.answers.filter((answer) => answer.isCorrect).length,
+    totalQuestions: session.questionIds.length,
+    durationSeconds: Math.max(
+      1,
+      Math.round((completedAt.getTime() - new Date(session.startedAt).getTime()) / 1000),
+    ),
+    startedAt: session.startedAt,
+    completedAt: completedAt.toISOString(),
+    answers: session.answers,
+  };
+}
+
+// Bản in-memory của expireStaleSessions: chốt phiên quá hạn có câu trả lời, rồi xóa phiên.
+export async function devExpireStaleSessions() {
+  const state = getState();
+  const now = Date.now();
+  const staleSessions = state.sessions.filter((session) => {
+    const deadline = session.expiresAt
+      ? new Date(session.expiresAt).getTime()
+      : new Date(session.startedAt).getTime() + sessionIdleTimeoutMs;
+    return deadline < now;
+  });
+
+  let finalized = 0;
+  for (const session of staleSessions) {
+    if (session.answers.length > 0) {
+      const lastActivityAt = new Date(
+        Math.max(
+          new Date(session.startedAt).getTime(),
+          ...session.answers.map((answer) => new Date(answer.answeredAt).getTime()),
+        ),
+      );
+      state.attempts.push(withParticipant(buildAttemptFromSession(session, lastActivityAt)));
+      finalized += 1;
+    }
+  }
+  state.sessions = state.sessions.filter((session) => !staleSessions.includes(session));
+  return { scanned: staleSessions.length, finalized, deleted: staleSessions.length };
 }
 
 export async function devFinishQuizSession(sessionId: string) {
   const state = getState();
   const session = state.sessions.find((entry) => entry.id === sessionId);
   if (!session) {
-    throw new Error("Không tìm thấy phiên làm bài.");
+    throw new Error(sessionExpiredMessage);
   }
   const existingAttempt = state.attempts.find(
     (attempt) => attempt.participantId === session.participantId && attempt.startedAt === session.startedAt,
@@ -348,21 +412,7 @@ export async function devFinishQuizSession(sessionId: string) {
     return existingAttempt;
   }
 
-  const completedAt = new Date().toISOString();
-  const attempt: Attempt = {
-    id: crypto.randomUUID(),
-    participantId: session.participantId,
-    score: session.answers.filter((answer) => answer.isCorrect).length,
-    totalQuestions: session.questionIds.length,
-    durationSeconds: Math.max(
-      1,
-      Math.round((Date.now() - new Date(session.startedAt).getTime()) / 1000),
-    ),
-    startedAt: session.startedAt,
-    completedAt,
-    answers: session.answers,
-  };
-  const entry = withParticipant(attempt);
+  const entry = withParticipant(buildAttemptFromSession(session, new Date()));
   state.attempts.push(entry);
   return entry;
 }
