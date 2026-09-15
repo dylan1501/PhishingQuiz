@@ -12,6 +12,14 @@ function getTimestamp() {
   return `${timestamp.getFullYear()}${pad(timestamp.getMonth() + 1)}${pad(timestamp.getDate())} - ${pad(timestamp.getHours())}${pad(timestamp.getMinutes())}${pad(timestamp.getSeconds())}`;
 }
 
+// Ô kiểu chuỗi được gắn định dạng Text để Excel không tự đổi "8/10" thành ngày tháng.
+function renderCell(cell: string | number) {
+  if (typeof cell === "number") {
+    return `<td>${cell}</td>`;
+  }
+  return `<td class="text-cell">${escapeHtml(cell)}</td>`;
+}
+
 export function exportTableToExcel(
   filenamePrefix: string,
   headers: string[],
@@ -22,7 +30,7 @@ export function exportTableToExcel(
     .map(
       (row) => `
         <tr>
-          ${row.map((cell) => `<td>${escapeHtml(cell)}</td>`).join("")}
+          ${row.map(renderCell).join("")}
         </tr>
       `,
     )
@@ -35,6 +43,7 @@ export function exportTableToExcel(
           table { border-collapse: collapse; width: 100%; font-family: Arial, sans-serif; }
           th, td { border: 1px solid #9ca3af; padding: 8px 10px; text-align: left; }
           th { background: #dbeafe; font-weight: 700; }
+          td.text-cell { mso-number-format: "\\@"; }
         </style>
       </head>
       <body>

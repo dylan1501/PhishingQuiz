@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getRemoteLeaderboard, type LeaderboardEntry } from "../apiClient";
 
 function maskEmail(email: string) {
@@ -13,6 +13,10 @@ function getInitials(name?: string) {
     .slice(0, 2)
     .map((part) => part[0]?.toUpperCase() ?? "")
     .join("");
+}
+
+function getAvatarUrl(name?: string) {
+  return `https://api.dicebear.com/10.x/bottts/svg?seed=${encodeURIComponent(name ?? "phishing-hunter")}`;
 }
 
 function getBadge(index: number) {
@@ -85,6 +89,7 @@ function getProgress(score: number, totalQuestions: number) {
 export function LeaderboardPage() {
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [loadError, setLoadError] = useState("");
+  const heroRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let active = true;
@@ -102,14 +107,21 @@ export function LeaderboardPage() {
     };
   }, []);
 
+  // Sau khi có dữ liệu, cuộn thẳng tới khu podium để người xem thấy Top 3 ngay.
+  useEffect(() => {
+    if (entries.length > 0) {
+      heroRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [entries]);
+
   const topOne = entries[0];
   const sidePodium = [entries[1], entries[2]].filter(Boolean);
   const sideLabels = ["Hạng 2", "Hạng 3"];
   const sideClasses = ["podium-silver", "podium-bronze"];
 
   return (
-    <section className="stack">
-      <div className="content-card">
+    <section className="stack leaderboard-stack">
+      <div className="content-card leaderboard-intro-card">
         <p className="eyebrow">Bảng Xếp Hạng</p>
         <h2>Hall Of Fame: Phishing Hunters</h2>
         <p className="section-text">
@@ -118,7 +130,7 @@ export function LeaderboardPage() {
         {loadError && <div className="notice notice-error">{loadError}</div>}
       </div>
       {topOne && (
-        <div className="leaderboard-hero">
+        <div className="leaderboard-hero" ref={heroRef}>
           <div className="side-podium-column">
             {sidePodium[0] && (
             <article className={`podium-card ${sideClasses[0]}`}>
@@ -218,8 +230,13 @@ export function LeaderboardPage() {
                 <td>
                   <div className="name-cell">
                     <img src={getRankIcon(index)} alt="" className={`table-rank-icon rank-${index + 1}`} />
-                    <div className="avatar-circle avatar-small">
-                      {getInitials(entry.participant?.fullName)}
+                    <div className="avatar-circle avatar-small" title={getInitials(entry.participant?.fullName)}>
+                      <img
+                        src={getAvatarUrl(entry.participant?.fullName)}
+                        alt={getInitials(entry.participant?.fullName)}
+                        className="avatar-image"
+                        loading="lazy"
+                      />
                     </div>
                     <span>{entry.participant?.fullName}</span>
                   </div>

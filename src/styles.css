@@ -73,7 +73,6 @@ textarea {
   resize: vertical;
 }
 
-.site-header,
 .page-shell,
 .site-footer,
 .hero,
@@ -84,11 +83,25 @@ textarea {
   margin-inline: auto;
 }
 
+/* Header ghim cố định khi cuộn; padding ngang tự canh theo bề rộng nội dung 1160px. */
 .site-header {
+  --header-content-width: 1160px;
+  position: sticky;
+  top: 0;
+  z-index: 60;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1.5rem 0;
+  width: 100%;
+  padding: 1rem max(1rem, calc((100% - var(--header-content-width)) / 2));
+  background: rgba(6, 17, 31, 0.82);
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+:root[data-theme="light"] .site-header {
+  background: rgba(247, 251, 255, 0.86);
 }
 
 .site-nav {
@@ -171,6 +184,7 @@ textarea {
 }
 
 .page-shell {
+  padding-top: 1rem;
   padding-bottom: 0.9rem;
 }
 
@@ -314,6 +328,55 @@ textarea {
   pointer-events: none;
 }
 
+/* Trang chủ: bố cục dọc, canh giữa — video intro, tiêu đề, vài dòng mô tả và một CTA. */
+.hero-intro {
+  grid-template-columns: 1fr;
+  justify-items: center;
+  align-content: center;
+  text-align: center;
+  gap: 0.85rem;
+  padding-top: 1rem;
+}
+
+.hero-video-frame {
+  width: min(100%, 880px);
+  border-radius: 24px;
+  overflow: hidden;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(10, 22, 39, 0.5));
+  border: 1px solid var(--border);
+  box-shadow: 0 24px 50px rgba(0, 0, 0, 0.24);
+}
+
+.hero-video {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.hero.hero-intro h1 {
+  max-width: 22ch;
+  margin-top: 0.6rem;
+  font-size: clamp(2.1rem, 4.4vw, 4rem);
+  line-height: 1.05;
+}
+
+.hero-intro .hero-text {
+  max-width: 64ch;
+  margin: 0;
+  font-size: 1.06rem;
+  line-height: 1.6;
+}
+
+.hero-intro .hero-actions {
+  justify-content: center;
+  margin-top: 0.6rem;
+}
+
+:root[data-theme="light"] .hero-video-frame {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(234, 243, 255, 0.85));
+  box-shadow: 0 20px 44px rgba(28, 64, 119, 0.14);
+}
+
 .stat-card,
 .content-card {
   background: var(--panel);
@@ -409,6 +472,27 @@ textarea {
 .admin-links button:hover {
   transform: translateY(-2px);
   box-shadow: 0 14px 24px rgba(4, 10, 18, 0.24);
+}
+
+.admin-links a.active {
+  background: linear-gradient(135deg, #2c69b0, #67a9ff);
+  border-color: rgba(103, 169, 255, 0.5);
+  color: #fff;
+}
+
+:root[data-theme="light"] .admin-links a.active {
+  background: linear-gradient(135deg, #2c69b0, #67a9ff);
+  border-color: rgba(44, 105, 176, 0.4);
+  color: #fff;
+}
+
+/* Thanh admin-links dùng chung cho mọi tab quản trị. */
+.admin-stack {
+  gap: 0.75rem;
+}
+
+.admin-stack > .admin-links {
+  padding: 0.58rem;
 }
 
 .admin-links .button-small {
@@ -2723,6 +2807,53 @@ textarea {
   height: 38px;
   font-size: 0.95rem;
   box-shadow: none;
+  overflow: hidden;
+  padding: 3px;
+  background: rgba(103, 169, 255, 0.14);
+  border: 1px solid rgba(103, 169, 255, 0.22);
+}
+
+.avatar-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+/* /leaderboard: card gọn hơn, chừa chỗ cho header ghim khi auto-scroll tới podium. */
+.leaderboard-stack {
+  gap: 0.85rem;
+}
+
+.leaderboard-stack .content-card {
+  padding: 1rem 1.2rem;
+  border-radius: 18px;
+}
+
+.leaderboard-intro-card .eyebrow {
+  margin: 0 0 0.3rem;
+}
+
+.leaderboard-intro-card h2 {
+  font-size: clamp(1.4rem, 2.2vw, 2rem);
+  line-height: 1.1;
+}
+
+.leaderboard-intro-card .section-text {
+  margin: 0.4rem 0 0;
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.leaderboard-stack .table th,
+.leaderboard-stack .table td {
+  padding: 0.6rem 0.65rem;
+  font-size: 0.94rem;
+}
+
+.leaderboard-hero {
+  scroll-margin-top: 84px;
 }
 
 .mini-badge {
@@ -3322,7 +3453,6 @@ textarea {
 }
 
 @media (min-width: 901px) and (max-width: 1440px), (min-width: 901px) and (max-height: 850px) {
-  .site-header,
   .page-shell,
   .site-footer,
   .hero,
@@ -3332,7 +3462,8 @@ textarea {
   }
 
   .site-header {
-    padding: 0.85rem 0;
+    --header-content-width: 1120px;
+    padding: 0.7rem max(0.625rem, calc((100% - var(--header-content-width)) / 2));
   }
 
   .site-nav,
@@ -3673,11 +3804,16 @@ textarea {
     grid-template-columns: 1fr;
   }
 
-  .site-header,
   .quiz-meta {
     gap: 1rem;
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .site-header {
+    gap: 0.6rem 1rem;
+    flex-wrap: wrap;
+    padding: 0.7rem 1rem;
   }
 
   .hero {

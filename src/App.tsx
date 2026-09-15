@@ -11,8 +11,42 @@ import { ParticipantPage } from "./pages/ParticipantPage";
 import { QuizPage } from "./pages/QuizPage";
 import { ResultPage } from "./pages/ResultPage";
 import { getRemoteAdminStatus } from "./apiClient";
+import { AdminNav } from "./components/AdminNav";
 
 type ThemeMode = "dark" | "light";
+
+function useAdminAuthenticated() {
+  const [authenticated, setAuthenticated] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    getRemoteAdminStatus()
+      .then((status) => {
+        if (active) {
+          setAuthenticated(status.authenticated);
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setAuthenticated(false);
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  return authenticated;
+}
+
+function AdminAuthPending() {
+  return (
+    <section className="content-card form-card">
+      <p className="eyebrow">Quản Trị</p>
+      <h2>Đang kiểm tra phiên đăng nhập</h2>
+    </section>
+  );
+}
 
 function Layout() {
   const location = useLocation();
@@ -61,6 +95,7 @@ function Layout() {
           <Route path="/quiz/questions/:index" element={<QuizPage />} />
           <Route path="/quiz/result" element={<ResultPage />} />
           <Route path="/leaderboard" element={<LeaderboardPage />} />
+          <Route path="/admin" element={<AdminIndexRedirect />} />
           <Route path="/admin/login" element={<AdminLoginPage />} />
           <Route path="/admin/dashboard" element={<AdminRoute><AdminDashboardPage /></AdminRoute>} />
           <Route path="/admin/participants" element={<AdminRoute><AdminParticipantsPage /></AdminRoute>} />
@@ -78,40 +113,32 @@ function Layout() {
   );
 }
 
-function AdminRoute({ children }: { children: React.ReactElement }) {
-  const [authenticated, setAuthenticated] = useState<boolean | null>(null);
-
-  useEffect(() => {
-    let active = true;
-    getRemoteAdminStatus()
-      .then((status) => {
-        if (active) {
-          setAuthenticated(status.authenticated);
-        }
-      })
-      .catch(() => {
-        if (active) {
-          setAuthenticated(false);
-        }
-      });
-    return () => {
-      active = false;
-    };
-  }, []);
+// /admin: chưa đăng nhập → /admin/login, đã đăng nhập → /admin/participants.
+function AdminIndexRedirect() {
+  const authenticated = useAdminAuthenticated();
 
   if (authenticated === null) {
-    return (
-      <section className="content-card form-card">
-        <p className="eyebrow">Quản Trị</p>
-        <h2>Đang kiểm tra phiên đăng nhập</h2>
-      </section>
-    );
+    return <AdminAuthPending />;
+  }
+  return <Navigate to={authenticated ? "/admin/participants" : "/admin/login"} replace />;
+}
+
+function AdminRoute({ children }: { children: React.ReactElement }) {
+  const authenticated = useAdminAuthenticated();
+
+  if (authenticated === null) {
+    return <AdminAuthPending />;
   }
 
   if (!authenticated) {
     return <Navigate to="/admin/login" replace />;
   }
-  return children;
+  return (
+    <div className="stack admin-stack">
+      <AdminNav />
+      {children}
+    </div>
+  );
 }
 
 export default function App() {

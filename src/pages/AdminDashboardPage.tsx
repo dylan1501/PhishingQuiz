@@ -1,19 +1,16 @@
 import { FormEvent, useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
 import {
   getRemoteAttempts,
   getRemoteLeaderboard,
   getRemoteParticipants,
   getRemoteQuizConfig,
   getRemoteQuestions,
-  logoutRemoteAdmin,
   saveRemoteQuizConfig,
   type LeaderboardEntry,
 } from "../apiClient";
 import type { Attempt, Participant, QuizConfig, QuizQuestion } from "../types";
 
 export function AdminDashboardPage() {
-  const navigate = useNavigate();
   const [attempts, setAttempts] = useState<Attempt[]>([]);
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
@@ -97,31 +94,8 @@ export function AdminDashboardPage() {
     }
   }
 
-  async function signOut() {
-    await logoutRemoteAdmin().catch(() => undefined);
-    navigate("/admin/login", { replace: true });
-  }
-
   return (
     <section className="stack admin-dashboard-stack">
-      <div className="admin-links">
-        <Link to="/admin/participants">
-          <img src="/assets/icons/participants.svg" alt="" className="admin-tab-icon" />
-          Người tham gia
-        </Link>
-        <Link to="/admin/attempts">
-          <img src="/assets/icons/attempts.svg" alt="" className="admin-tab-icon" />
-          Lịch sử làm bài
-        </Link>
-        <Link to="/admin/questions">
-          <img src="/assets/icons/questions.svg" alt="" className="admin-tab-icon" />
-          Câu hỏi
-        </Link>
-        <button type="button" className="button button-small admin-signout-button" onClick={signOut}>
-          <img src="/assets/icons/signout.svg" alt="" className="admin-tab-icon" />
-          Đăng xuất
-        </button>
-      </div>
       <div className="content-card admin-hero-card">
         <div className="fish-school" aria-hidden="true">
           <span className="fish fish-one" />
