@@ -5037,3 +5037,121 @@ textarea {
     animation: none;
   }
 }
+
+/* ---------- Trang chủ: hệ font riêng, hơi hướng terminal ---------- */
+.hero-intro {
+  --font-display: "Barlow Semi Condensed", "Segoe UI", Tahoma, sans-serif;
+  --font-mono: "JetBrains Mono", Consolas, "Courier New", monospace;
+}
+
+.hero-terminal {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: clamp(0.72rem, 1.1vw, 0.86rem);
+  letter-spacing: 0.02em;
+  color: var(--muted);
+}
+
+.hero-prompt {
+  color: #1f9461;
+  font-weight: 600;
+}
+
+:root[data-theme="dark"] .hero-prompt {
+  color: #5bd692;
+}
+
+.hero-caret {
+  display: inline-block;
+  width: 0.55em;
+  height: 1.05em;
+  margin-left: 0.35em;
+  translate: 0 0.18em;
+  background: currentColor;
+  animation: heroCaretBlink 1.1s steps(1) infinite;
+}
+
+@keyframes heroCaretBlink {
+  0%,
+  50% {
+    opacity: 0.85;
+  }
+  51%,
+  100% {
+    opacity: 0;
+  }
+}
+
+/* line-height rộng hơn 1 chút: chữ hoa tiếng Việt có dấu chồng (Ể, Ủ, Ậ) cần chỗ, nếu bó sát
+   như thiết kế Latin thì dấu sẽ chạm dòng trên. */
+.hero.hero-intro h1 {
+  max-width: 20ch;
+  margin-top: 0.5rem;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(2.5rem, 6.2vw, 5.4rem);
+  line-height: 1.08;
+  letter-spacing: -0.005em;
+  text-transform: uppercase;
+  text-wrap: balance;
+}
+
+.hero-intro .hero-text {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: clamp(1rem, 1.5vw, 1.2rem);
+  letter-spacing: 0.005em;
+}
+
+.hero-cta {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: 0.92rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding-inline: 1.6rem;
+}
+
+/* Viền quét nhẹ quanh khung video, gợi cảm giác màn hình giám sát. */
+.hero-intro .hero-video-frame {
+  position: relative;
+}
+
+.hero-intro .hero-video-frame::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: repeating-linear-gradient(
+    180deg,
+    rgba(18, 32, 51, 0.045) 0px,
+    rgba(18, 32, 51, 0.045) 1px,
+    transparent 1px,
+    transparent 4px
+  );
+}
+
+:root[data-theme="dark"] .hero-intro .hero-video-frame::after {
+  background: repeating-linear-gradient(
+    180deg,
+    rgba(103, 169, 255, 0.05) 0px,
+    rgba(103, 169, 255, 0.05) 1px,
+    transparent 1px,
+    transparent 4px
+  );
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-caret {
+    animation: none;
+  }
+}
+
+/* Wordmark dùng chung font display để header và hero không lệch phong cách. */
+.brand {
+  font-family: "Barlow Semi Condensed", "Segoe UI", Tahoma, sans-serif;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.015em;
+}
