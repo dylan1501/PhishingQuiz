@@ -4303,10 +4303,10 @@ textarea {
 
 .result-video {
   display: block;
-  width: min(100%, 360px);
+  width: min(100%, 320px);
   aspect-ratio: 1 / 1;
   height: auto;
-  margin-bottom: 0.6rem;
+  margin-top: 0.4rem;
   border-radius: 20px;
   opacity: 0;
   transform: scale(0.98);
@@ -5334,4 +5334,13 @@ textarea {
   .page-shell {
     padding-top: 0.5rem;
   }
+}
+
+/* Nav trên header dùng chung hệ font với wordmark và màn kết quả. */
+.site-nav a {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.02rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
 }

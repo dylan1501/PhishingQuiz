@@ -72,6 +72,16 @@ export function ResultPage() {
 
   return (
     <section className={`result-verdict ${passed ? "result-pass" : "result-fail"}`}>
+      <h1 className="result-title">{passed ? "CHÚC MỪNG" : "THỬ THÁCH THẤT BẠI"}</h1>
+      <p className="result-message">
+        {passed ? "Bạn đã vượt qua thử thách" : "Rất tiếc, bạn chưa đạt yêu cầu của thử thách"}
+      </p>
+      <p className="result-score">
+        <strong>
+          {attempt.score}/{attempt.totalQuestions}
+        </strong>
+        <span>câu đúng · yêu cầu tối thiểu {requiredScore}/{attempt.totalQuestions}</span>
+      </p>
       <video
         key={passed ? "pass" : "fail"}
         ref={videoRef}
@@ -85,16 +95,6 @@ export function ResultPage() {
         onCanPlay={() => setVideoReady(true)}
         aria-hidden="true"
       />
-      <h1 className="result-title">{passed ? "CHÚC MỪNG" : "THỬ THÁCH THẤT BẠI"}</h1>
-      <p className="result-message">
-        {passed ? "Bạn đã vượt qua thử thách" : "Rất tiếc, bạn chưa đạt yêu cầu của thử thách"}
-      </p>
-      <p className="result-score">
-        <strong>
-          {attempt.score}/{attempt.totalQuestions}
-        </strong>
-        <span>câu đúng · yêu cầu tối thiểu {requiredScore}/{attempt.totalQuestions}</span>
-      </p>
     </section>
   );
 }
