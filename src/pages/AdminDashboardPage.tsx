@@ -7,6 +7,7 @@ import {
   getRemoteQuizConfig,
   getRemoteQuestions,
   saveRemoteQuizConfig,
+  type AnswerBreakdown,
   type LeaderboardEntry,
 } from "../apiClient";
 import type { Attempt, Participant, QuizConfig, QuizQuestion } from "../types";
@@ -58,10 +59,13 @@ export function AdminDashboardPage() {
   const [quizConfig, setQuizConfig] = useState<QuizConfig>({
     questionCount: 10,
     passScore: 4,
+    phishingCount: 5,
     updatedAt: new Date(0).toISOString(),
   });
   const [questionCountInput, setQuestionCountInput] = useState(String(quizConfig.questionCount));
   const [passScoreInput, setPassScoreInput] = useState(String(quizConfig.passScore));
+  const [phishingCountInput, setPhishingCountInput] = useState(String(quizConfig.phishingCount));
+  const [answerBreakdown, setAnswerBreakdown] = useState<AnswerBreakdown | null>(null);
   const [configMessage, setConfigMessage] = useState("");
   const [loadError, setLoadError] = useState("");
   const [timeGrouping, setTimeGrouping] = useState<TimeGrouping>("hour");
@@ -123,6 +127,8 @@ export function AdminDashboardPage() {
           setQuizConfig(remoteQuizConfig);
           setQuestionCountInput(String(remoteQuizConfig.questionCount));
           setPassScoreInput(String(remoteQuizConfig.passScore));
+          setPhishingCountInput(String(remoteQuizConfig.phishingCount));
+          setAnswerBreakdown(remoteQuizConfig.answerBreakdown ?? null);
         }
       })
       .catch((error) => {
@@ -137,17 +143,23 @@ export function AdminDashboardPage() {
     event.preventDefault();
     const parsedQuestionCount = Number(questionCountInput);
     const parsedPassScore = Number(passScoreInput);
+    const parsedPhishingCount = Number(phishingCountInput);
     if (parsedPassScore > parsedQuestionCount) {
       setConfigMessage("Số câu cần đúng không được lớn hơn số câu mỗi lượt thi.");
       return;
     }
+    if (parsedPhishingCount > parsedQuestionCount) {
+      setConfigMessage("Số câu Phishing không được lớn hơn số câu mỗi lượt thi.");
+      return;
+    }
     try {
-      const nextConfig = await saveRemoteQuizConfig(parsedQuestionCount, parsedPassScore);
+      const nextConfig = await saveRemoteQuizConfig(parsedQuestionCount, parsedPassScore, parsedPhishingCount);
       setQuizConfig(nextConfig);
       setQuestionCountInput(String(nextConfig.questionCount));
       setPassScoreInput(String(nextConfig.passScore));
+      setPhishingCountInput(String(nextConfig.phishingCount));
       setConfigMessage(
-        `Đã lưu: ${nextConfig.questionCount} câu mỗi lượt, cần đúng ít nhất ${nextConfig.passScore}/${nextConfig.questionCount} câu để hoàn thành.`,
+        `Đã lưu: ${nextConfig.questionCount} câu mỗi lượt (${nextConfig.phishingCount} Phishing / ${nextConfig.questionCount - nextConfig.phishingCount} An toàn), cần đúng ít nhất ${nextConfig.passScore} câu.`,
       );
     } catch (error) {
       setConfigMessage(error instanceof Error ? error.message : "Không lưu được cấu hình bài thi.");
@@ -215,13 +227,39 @@ export function AdminDashboardPage() {
               }}
             />
           </label>
+          <label>
+            Số câu Phishing
+            <input
+              type="number"
+              min={0}
+              max={Math.max(Number(questionCountInput) || 1, 1)}
+              value={phishingCountInput}
+              onChange={(event) => {
+                setPhishingCountInput(event.target.value);
+                setConfigMessage("");
+              }}
+            />
+          </label>
           <button type="submit" className="button button-primary">
             Lưu cấu hình
           </button>
           <span className="quiz-config-hint">
-            Đang bật {activeQuestions.length} câu. Hiện cấu hình: {quizConfig.questionCount} câu/lượt, cần đúng{" "}
-            {quizConfig.passScore}/{quizConfig.questionCount}.
+            Mỗi đề: {quizConfig.phishingCount} câu Phishing / {quizConfig.questionCount - quizConfig.phishingCount} câu
+            An toàn, cần đúng {quizConfig.passScore}/{quizConfig.questionCount}.
+            {answerBreakdown && (
+              <>
+                {" "}
+                Ngân hàng đang bật: {answerBreakdown.phishing} Phishing, {answerBreakdown.legitimate} An toàn.
+              </>
+            )}
           </span>
+          {answerBreakdown &&
+            (answerBreakdown.phishing < quizConfig.phishingCount ||
+              answerBreakdown.legitimate < quizConfig.questionCount - quizConfig.phishingCount) && (
+              <span className="quiz-config-message quiz-config-warning">
+                Ngân hàng không đủ câu cho tỉ lệ này — phần thiếu sẽ được bù bằng loại câu còn lại.
+              </span>
+            )}
           {configMessage && <span className="quiz-config-message">{configMessage}</span>}
         </form>
       </div>

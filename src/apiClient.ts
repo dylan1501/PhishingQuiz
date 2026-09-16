@@ -162,14 +162,16 @@ export function getRemoteLeaderboard() {
   return requestApi<LeaderboardEntry[]>("leaderboard");
 }
 
+export type AnswerBreakdown = { phishing: number; legitimate: number };
+
 export function getRemoteQuizConfig() {
-  return requestApi<QuizConfig>("quiz-config");
+  return requestApi<QuizConfig & { answerBreakdown?: AnswerBreakdown }>("quiz-config");
 }
 
-export function saveRemoteQuizConfig(questionCount: number, passScore: number) {
+export function saveRemoteQuizConfig(questionCount: number, passScore: number, phishingCount: number) {
   return requestApi<QuizConfig>("quiz-config", {
     method: "PUT",
-    body: JSON.stringify({ questionCount, passScore }),
+    body: JSON.stringify({ questionCount, passScore, phishingCount }),
   });
 }
 

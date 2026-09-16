@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { getRemoteAttempts, getRemoteParticipants } from "../apiClient";
 import { exportTableToExcel } from "../excelExport";
+import { PAGE_SIZE_OPTIONS, TablePagination } from "../components/TablePagination";
 
 type ParticipantSortKey = "fullName" | "email" | "totalAttempts" | "createdAt";
 type SortDirection = "asc" | "desc";
@@ -19,6 +20,8 @@ export function AdminParticipantsPage() {
   const [loadError, setLoadError] = useState("");
   const [sortKey, setSortKey] = useState<ParticipantSortKey>("createdAt");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<number>(PAGE_SIZE_OPTIONS[0]);
 
   useEffect(() => {
     let active = true;
@@ -45,21 +48,27 @@ export function AdminParticipantsPage() {
     createdAt: participant.createdAt,
   }));
 
-  const sortedRows = [...participantRows].sort((firstRow, secondRow) => {
+  const sortedRows = useMemo(() => {
     const direction = sortDirection === "asc" ? 1 : -1;
+    return [...participantRows].sort((firstRow, secondRow) => {
+      if (sortKey === "totalAttempts") {
+        return (firstRow.totalAttempts - secondRow.totalAttempts) * direction;
+      }
 
-    if (sortKey === "totalAttempts") {
-      return (firstRow.totalAttempts - secondRow.totalAttempts) * direction;
-    }
+      if (sortKey === "createdAt") {
+        return (new Date(firstRow.createdAt).getTime() - new Date(secondRow.createdAt).getTime()) * direction;
+      }
 
-    if (sortKey === "createdAt") {
-      return (new Date(firstRow.createdAt).getTime() - new Date(secondRow.createdAt).getTime()) * direction;
-    }
+      return firstRow[sortKey].localeCompare(secondRow[sortKey], "vi", { sensitivity: "base" }) * direction;
+    });
+  }, [participantRows, sortKey, sortDirection]);
 
-    return firstRow[sortKey].localeCompare(secondRow[sortKey], "vi", { sensitivity: "base" }) * direction;
-  });
+  const totalPages = Math.max(1, Math.ceil(sortedRows.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const pageRows = sortedRows.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   function changeSort(nextSortKey: ParticipantSortKey) {
+    setPage(1);
     if (nextSortKey === sortKey) {
       setSortDirection((currentDirection) => (currentDirection === "asc" ? "desc" : "asc"));
       return;
@@ -116,17 +125,35 @@ export function AdminParticipantsPage() {
           </tr>
         </thead>
         <tbody>
-          {sortedRows.map((participant, index) => (
+          {pageRows.map((participant, index) => (
             <tr key={participant.id}>
-              <td className="stt-col">{index + 1}</td>
+              <td className="stt-col">{(currentPage - 1) * pageSize + index + 1}</td>
               <td>{participant.fullName}</td>
               <td>{participant.email}</td>
               <td>{participant.totalAttempts}</td>
               <td>{new Date(participant.createdAt).toLocaleString()}</td>
             </tr>
           ))}
+          {pageRows.length === 0 && (
+            <tr>
+              <td colSpan={5} className="table-empty">
+                Chưa có người tham gia nào.
+              </td>
+            </tr>
+          )}
         </tbody>
       </table>
+      <TablePagination
+        totalItems={sortedRows.length}
+        page={currentPage}
+        pageSize={pageSize}
+        onPageChange={setPage}
+        onPageSizeChange={(nextPageSize) => {
+          setPageSize(nextPageSize);
+          setPage(1);
+        }}
+        itemLabel="người tham gia"
+      />
     </section>
   );
 }

@@ -68,6 +68,7 @@ function getState() {
       quizConfig: {
         questionCount: 10,
         passScore: 4,
+        phishingCount: 5,
         updatedAt: new Date(0).toISOString(),
       },
       admin: null,
@@ -266,7 +267,7 @@ export async function devGetQuizConfig() {
   return getState().quizConfig;
 }
 
-export async function devSaveQuizConfig(questionCount: number, passScore: number) {
+export async function devSaveQuizConfig(questionCount: number, passScore: number, phishingCount: number) {
   const state = getState();
   const activeQuestionCount = Math.max(state.questions.filter((question) => question.active).length, 1);
   const nextQuestionCount = clampQuestionCount(questionCount, activeQuestionCount);
@@ -275,9 +276,20 @@ export async function devSaveQuizConfig(questionCount: number, passScore: number
     passScore: Number.isFinite(passScore)
       ? Math.min(Math.max(Math.round(passScore), 1), nextQuestionCount)
       : Math.min(4, nextQuestionCount),
+    phishingCount: Number.isFinite(phishingCount)
+      ? Math.min(Math.max(Math.round(phishingCount), 0), nextQuestionCount)
+      : Math.min(Math.round(nextQuestionCount / 2), nextQuestionCount),
     updatedAt: new Date().toISOString(),
   };
   return state.quizConfig;
+}
+
+export async function devGetActiveAnswerBreakdown() {
+  const active = getState().questions.filter((question) => question.active);
+  return {
+    phishing: active.filter((question) => question.correctAnswer === "phishing").length,
+    legitimate: active.filter((question) => question.correctAnswer === "legitimate").length,
+  };
 }
 
 export async function devUpsertParticipant(input: {
@@ -318,11 +330,26 @@ export async function devStartQuizSession(participantId: string): Promise<QuizSe
   const requiredQuestions = activeQuestions
     .filter((question) => question.alwaysIncluded)
     .slice(0, questionLimit);
-  const randomQuestions = shuffle(activeQuestions.filter((question) => !question.alwaysIncluded)).slice(
+  const targetPhishing = Math.min(Math.max(state.quizConfig.phishingCount, 0), questionLimit);
+  const requiredPhishingCount = requiredQuestions.filter((question) => question.correctAnswer === "phishing").length;
+  const neededPhishing = Math.max(0, targetPhishing - requiredPhishingCount);
+  const neededLegitimate = Math.max(
     0,
-    Math.max(0, questionLimit - requiredQuestions.length),
+    questionLimit - targetPhishing - (requiredQuestions.length - requiredPhishingCount),
   );
-  const questionIds = shuffle([...requiredQuestions, ...randomQuestions]).map((question) => question.id);
+  const optional = activeQuestions.filter((question) => !question.alwaysIncluded);
+  const phishingPool = shuffle(optional.filter((question) => question.correctAnswer === "phishing"));
+  const legitimatePool = shuffle(optional.filter((question) => question.correctAnswer !== "phishing"));
+  const picked = [
+    ...requiredQuestions,
+    ...phishingPool.slice(0, neededPhishing),
+    ...legitimatePool.slice(0, neededLegitimate),
+  ];
+  if (picked.length < questionLimit) {
+    const leftovers = shuffle([...phishingPool.slice(neededPhishing), ...legitimatePool.slice(neededLegitimate)]);
+    picked.push(...leftovers.slice(0, questionLimit - picked.length));
+  }
+  const questionIds = shuffle(picked).slice(0, questionLimit).map((question) => question.id);
   const session: QuizSession = {
     id: crypto.randomUUID(),
     remote: true,

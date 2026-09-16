@@ -59,6 +59,8 @@ export interface QuizConfig {
   questionCount: number;
   /** Số câu đúng tối thiểu để lượt thi được tính là hoàn thành. */
   passScore: number;
+  /** Số câu có đáp án "Phishing" trong mỗi đề; phần còn lại là "An toàn". */
+  phishingCount: number;
   updatedAt: string;
 }
 

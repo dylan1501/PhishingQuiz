@@ -80,10 +80,24 @@ function clampPassScore(value: number, questionCount: number) {
   return Math.min(Math.max(Math.round(value), 1), questionCount);
 }
 
-function serializeQuizConfig(setting: { questionCount: number; passScore: number; updatedAt: Date }): QuizConfig {
+// Số câu Phishing nằm trong [0, questionCount].
+function clampPhishingCount(value: number, questionCount: number) {
+  if (!Number.isFinite(value)) {
+    return Math.min(Math.round(questionCount / 2), questionCount);
+  }
+  return Math.min(Math.max(Math.round(value), 0), questionCount);
+}
+
+function serializeQuizConfig(setting: {
+  questionCount: number;
+  passScore: number;
+  phishingCount: number;
+  updatedAt: Date;
+}): QuizConfig {
   return {
     questionCount: setting.questionCount,
     passScore: clampPassScore(setting.passScore, setting.questionCount),
+    phishingCount: clampPhishingCount(setting.phishingCount, setting.questionCount),
     updatedAt: setting.updatedAt.toISOString(),
   };
 }
@@ -339,7 +353,11 @@ export async function getQuizConfig(): Promise<QuizConfig> {
   return serializeQuizConfig(setting);
 }
 
-export async function saveQuizConfig(questionCount: number, passScore: number): Promise<QuizConfig> {
+export async function saveQuizConfig(
+  questionCount: number,
+  passScore: number,
+  phishingCount: number,
+): Promise<QuizConfig> {
   const prisma = getPrisma();
   const quiz = await ensureDefaultQuiz();
   const activeQuestionCount = await prisma.question.count({
@@ -347,18 +365,35 @@ export async function saveQuizConfig(questionCount: number, passScore: number): 
   });
   const nextQuestionCount = clampQuestionCount(questionCount, activeQuestionCount);
   const nextPassScore = clampPassScore(passScore, nextQuestionCount);
+  const nextPhishingCount = clampPhishingCount(phishingCount, nextQuestionCount);
   const setting = await prisma.quizSetting.upsert({
     where: { quizId: quiz.id },
-    update: { questionCount: nextQuestionCount, passScore: nextPassScore },
+    update: {
+      questionCount: nextQuestionCount,
+      passScore: nextPassScore,
+      phishingCount: nextPhishingCount,
+    },
     create: {
       quizId: quiz.id,
       questionCount: nextQuestionCount,
       passScore: nextPassScore,
+      phishingCount: nextPhishingCount,
       randomizeQuestions: true,
       requireExplanation: true,
     },
   });
   return serializeQuizConfig(setting);
+}
+
+/** Bao nhiêu câu Phishing / An toàn trong ngân hàng đang bật — dùng để cảnh báo trên dashboard. */
+export async function getActiveAnswerBreakdown() {
+  const prisma = getPrisma();
+  const quiz = await ensureDefaultQuiz();
+  const [phishing, legitimate] = await Promise.all([
+    prisma.question.count({ where: { quizId: quiz.id, active: true, correctAnswer: DbAnswerOption.PHISHING } }),
+    prisma.question.count({ where: { quizId: quiz.id, active: true, correctAnswer: DbAnswerOption.LEGITIMATE } }),
+  ]);
+  return { phishing, legitimate };
 }
 
 export async function upsertParticipant(input: {
@@ -407,12 +442,34 @@ export async function startQuizSession(participantId: string): Promise<QuizSessi
   const requiredQuestions = activeQuestions
     .filter((question) => question.alwaysIncluded)
     .slice(0, questionLimit);
-  const remainingSlots = Math.max(0, questionLimit - requiredQuestions.length);
-  const randomQuestions = shuffle(activeQuestions.filter((question) => !question.alwaysIncluded)).slice(
-    0,
-    remainingSlots,
-  );
-  const selectedQuestions = shuffle([...requiredQuestions, ...randomQuestions]);
+
+  // Đề được trộn theo tỉ lệ cấu hình: đúng `phishingCount` câu đáp án Phishing, còn lại An toàn.
+  // Câu "luôn có" được tính vào hạn ngạch của loại tương ứng; nếu ngân hàng không đủ một loại thì
+  // bù bằng loại còn lại để đề vẫn đủ số câu.
+  const isPhishing = (question: { correctAnswer: DbAnswerOption }) =>
+    question.correctAnswer === DbAnswerOption.PHISHING;
+  const targetPhishing = clampPhishingCount(setting?.phishingCount ?? Math.round(questionLimit / 2), questionLimit);
+  const requiredPhishingCount = requiredQuestions.filter(isPhishing).length;
+  const requiredLegitimateCount = requiredQuestions.length - requiredPhishingCount;
+  const neededPhishing = Math.max(0, targetPhishing - requiredPhishingCount);
+  const neededLegitimate = Math.max(0, questionLimit - targetPhishing - requiredLegitimateCount);
+
+  const optionalQuestions = activeQuestions.filter((question) => !question.alwaysIncluded);
+  const phishingPool = shuffle(optionalQuestions.filter(isPhishing));
+  const legitimatePool = shuffle(optionalQuestions.filter((question) => !isPhishing(question)));
+  const picked = [
+    ...requiredQuestions,
+    ...phishingPool.slice(0, neededPhishing),
+    ...legitimatePool.slice(0, neededLegitimate),
+  ];
+  if (picked.length < questionLimit) {
+    const leftovers = shuffle([
+      ...phishingPool.slice(neededPhishing),
+      ...legitimatePool.slice(neededLegitimate),
+    ]);
+    picked.push(...leftovers.slice(0, questionLimit - picked.length));
+  }
+  const selectedQuestions = shuffle(picked).slice(0, questionLimit);
   const session = await prisma.quizSession.create({
     data: {
       participantId,

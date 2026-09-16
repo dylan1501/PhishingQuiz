@@ -1,4 +1,6 @@
 :root {
+  --font-display: "Barlow Semi Condensed", "Segoe UI", Tahoma, sans-serif;
+  --font-mono: "JetBrains Mono", Consolas, "Courier New", monospace;
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
   color-scheme: dark;
   color: #e7eef7;
@@ -4477,15 +4479,15 @@ textarea {
   letter-spacing: 0.02em;
 }
 
-/* Quy ước màu: xanh = phishing / đang bật / luôn có; đỏ = an toàn (legitimate); xám = tắt / không. */
-.answer-chip-phishing,
+/* Quy ước màu: đỏ = Phishing (nguy hiểm); xanh = An toàn / đang bật / luôn có; xám = tắt / không. */
+.answer-chip-legitimate,
 .status-on {
   background: rgba(91, 214, 146, 0.16);
   color: #7fe3ad;
   border: 1px solid rgba(91, 214, 146, 0.38);
 }
 
-.answer-chip-legitimate {
+.answer-chip-phishing {
   background: rgba(224, 79, 95, 0.14);
   color: #ff8d9a;
   border: 1px solid rgba(224, 79, 95, 0.32);
@@ -4497,13 +4499,13 @@ textarea {
   border: 1px solid var(--border);
 }
 
-:root[data-theme="light"] .answer-chip-phishing,
+:root[data-theme="light"] .answer-chip-legitimate,
 :root[data-theme="light"] .status-on {
   color: #1a7a50;
   background: rgba(31, 148, 97, 0.12);
 }
 
-:root[data-theme="light"] .answer-chip-legitimate {
+:root[data-theme="light"] .answer-chip-phishing {
   color: #b42a3d;
   background: rgba(200, 52, 73, 0.1);
 }
@@ -5039,10 +5041,7 @@ textarea {
 }
 
 /* ---------- Trang chủ: hệ font riêng, hơi hướng terminal ---------- */
-.hero-intro {
-  --font-display: "Barlow Semi Condensed", "Segoe UI", Tahoma, sans-serif;
-  --font-mono: "JetBrains Mono", Consolas, "Courier New", monospace;
-}
+
 
 .hero-terminal {
   margin: 0;
@@ -5089,8 +5088,8 @@ textarea {
   margin-top: 0.5rem;
   font-family: var(--font-display);
   font-weight: 700;
-  font-size: clamp(2.5rem, 6.2vw, 5.4rem);
-  line-height: 1.08;
+  font-size: clamp(2rem, 4.4vw, 3.8rem);
+  line-height: 1.1;
   letter-spacing: -0.005em;
   text-transform: uppercase;
   text-wrap: balance;
@@ -5154,4 +5153,185 @@ textarea {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.015em;
+}
+
+/* ---------- Áp hệ font trang chủ cho các màn tập trung: nhập thông tin, kết quả, đăng nhập ---------- */
+.participant-card h2,
+.auth-card h2,
+.result-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  line-height: 1.12;
+}
+
+.participant-card h2,
+.auth-card h2 {
+  font-size: clamp(1.45rem, 2.2vw, 2rem);
+}
+
+.participant-form input,
+.auth-form input,
+.participant-form .button,
+.auth-form .button {
+  font-family: var(--font-display);
+  font-size: 1.02rem;
+}
+
+.participant-form .button,
+.auth-form .button {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: 0.88rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.result-message {
+  font-family: var(--font-display);
+  font-weight: 500;
+}
+
+.result-score strong {
+  font-family: var(--font-display);
+  font-weight: 700;
+}
+
+.result-score span {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  letter-spacing: 0.02em;
+}
+
+/* Phân trang bảng admin. */
+.table-pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-top: 0.9rem;
+  color: var(--muted);
+  font-size: 0.87rem;
+}
+
+.table-pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  flex-wrap: wrap;
+}
+
+.page-size-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--muted);
+  font-size: 0.87rem;
+}
+
+.page-size-field select {
+  width: auto;
+  margin-top: 0;
+  padding: 0.35rem 0.6rem;
+  border-radius: 10px;
+  font-size: 0.87rem;
+}
+
+.page-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.page-nav .button-small {
+  padding: 0.35rem 0.7rem;
+}
+
+.page-nav .button-small:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.page-indicator {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.table-empty {
+  text-align: center;
+  color: var(--muted);
+  padding: 1.4rem 0.6rem;
+}
+
+/* Gợi ý thứ tự mặc định ở /admin/attempts. */
+.sort-hint {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  margin: 0.2rem 0 0.9rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.sort-hint .sort-hint-active {
+  background: linear-gradient(135deg, #2c69b0, #67a9ff);
+  color: #fff;
+  border-color: rgba(103, 169, 255, 0.5);
+}
+
+.quiz-config-warning {
+  color: #f6d27a;
+}
+
+:root[data-theme="light"] .quiz-config-warning {
+  color: #9a6b00;
+}
+
+/* Màn hình thấp (laptop 14" ~1280x720, 1536x864): thu gọn hero để trang chủ vừa một màn. */
+@media (max-height: 820px) {
+  .hero-intro {
+    gap: 0.55rem;
+    padding-top: 0.5rem;
+  }
+
+  .hero-intro .hero-video-frame {
+    width: min(100%, 600px);
+  }
+
+  .hero.hero-intro h1 {
+    margin-top: 0.25rem;
+    font-size: clamp(1.75rem, 3.2vw, 2.6rem);
+  }
+
+  .hero-intro .hero-text {
+    font-size: 0.95rem;
+    line-height: 1.45;
+  }
+
+  .hero-intro .hero-actions {
+    margin-top: 0.3rem;
+  }
+}
+
+/* Laptop 14" cao 720–780px: thu thêm một nấc để không phải cuộn. */
+@media (max-height: 790px) {
+  .hero-intro .hero-video-frame {
+    width: min(100%, 520px);
+  }
+
+  .hero.hero-intro h1 {
+    font-size: clamp(1.6rem, 2.9vw, 2.3rem);
+  }
+
+  .hero-intro .hero-text {
+    font-size: 0.9rem;
+  }
+
+  .page-shell {
+    padding-top: 0.5rem;
+  }
 }

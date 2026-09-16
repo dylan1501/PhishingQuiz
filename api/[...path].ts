@@ -14,6 +14,7 @@ import {
   devEnsureDefaultQuiz,
   devExpireStaleSessions,
   devFinishQuizSession,
+  devGetActiveAnswerBreakdown,
   devGetAdminStatus,
   devGetAttemptById,
   devGetLeaderboard,
@@ -40,6 +41,7 @@ import {
   ensureDefaultQuiz,
   expireStaleSessions,
   finishQuizSession,
+  getActiveAnswerBreakdown,
   getAttemptById,
   getLeaderboard,
   getQuizConfig,
@@ -619,24 +621,28 @@ export default async function handler(request: VercelRequest, response: VercelRe
 
     if (resource === "quiz-config") {
       if (request.method === "GET") {
-        sendOk(
-          response,
-          await withDevFallback(
+        const [config, answerBreakdown] = await Promise.all([
+          withDevFallback(
             () => getQuizConfig(),
             () => devGetQuizConfig(),
           ),
-        );
+          withDevFallback(
+            () => getActiveAnswerBreakdown(),
+            () => devGetActiveAnswerBreakdown(),
+          ),
+        ]);
+        sendOk(response, { ...config, answerBreakdown });
         return;
       }
       if (!requireMethod(request, response, "PUT")) {
         return;
       }
-      const body = readBody<{ questionCount?: number; passScore?: number }>(request);
+      const body = readBody<{ questionCount?: number; passScore?: number; phishingCount?: number }>(request);
       sendOk(
         response,
         await withDevFallback(
-          () => saveQuizConfig(Number(body.questionCount), Number(body.passScore)),
-          () => devSaveQuizConfig(Number(body.questionCount), Number(body.passScore)),
+          () => saveQuizConfig(Number(body.questionCount), Number(body.passScore), Number(body.phishingCount)),
+          () => devSaveQuizConfig(Number(body.questionCount), Number(body.passScore), Number(body.phishingCount)),
         ),
       );
       return;
