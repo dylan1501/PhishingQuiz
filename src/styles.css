@@ -4266,26 +4266,29 @@ textarea {
   border-color: rgba(44, 105, 176, 0.18);
 }
 
-/* Màn kết quả: video ở giữa, tiêu đề xanh (đạt) / đỏ (không đạt). */
+/* Màn kết quả: nội dung hiển thị thẳng ra trang, không bọc card, canh giữa màn hình. */
 .result-verdict {
   --verdict: var(--ink);
   display: grid;
   justify-items: center;
+  align-content: center;
   text-align: center;
   gap: 0.5rem;
   width: min(640px, 100%);
-  margin-block: 1rem;
-  padding: 2rem 1.5rem 2.2rem;
+  margin-inline: auto;
+  padding: 1rem 0 2rem;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  backdrop-filter: none;
 }
 
 .result-verdict.result-pass {
   --verdict: #1f9461;
-  border-color: rgba(31, 148, 97, 0.35);
 }
 
 .result-verdict.result-fail {
   --verdict: #c83449;
-  border-color: rgba(200, 52, 73, 0.35);
 }
 
 :root[data-theme="dark"] .result-verdict.result-pass {
@@ -4299,9 +4302,24 @@ textarea {
 .result-video {
   display: block;
   width: min(100%, 360px);
+  aspect-ratio: 1 / 1;
   height: auto;
   margin-bottom: 0.6rem;
   border-radius: 20px;
+  opacity: 0;
+  transform: scale(0.98);
+  transition: opacity 260ms ease, transform 260ms ease;
+}
+
+.result-video-ready {
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .result-video {
+    transition: none;
+  }
 }
 
 .result-title {
@@ -4835,4 +4853,187 @@ textarea {
 /* Khi cuộn tới editor (bấm Sửa / Thêm), chừa chỗ cho header ghim. */
 .question-editor-card {
   scroll-margin-top: 84px;
+}
+
+/* Bong bóng giải thích trượt sang vị trí mới thay vì nhảy khi bấm Next. */
+.active-explanation-bubble,
+.active-explanation-anchor {
+  transition:
+    left 260ms cubic-bezier(0.22, 0.61, 0.36, 1),
+    top 260ms cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.active-explanation-bubble {
+  animation: explanationBubbleIn 180ms ease-out;
+}
+
+@keyframes explanationBubbleIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .active-explanation-bubble,
+  .active-explanation-anchor {
+    transition: none;
+    animation: none;
+  }
+}
+
+/* Trang chủ: cụm từ nhấn mạnh màu đỏ. */
+.hero-accent {
+  color: #c83449;
+}
+
+:root[data-theme="dark"] .hero-accent {
+  color: #ff7b8a;
+}
+
+/* /leaderboard: cập nhật liên tục + hiệu ứng đổi hạng. */
+.leaderboard-intro-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.live-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex: 0 0 auto;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  background: rgba(91, 214, 146, 0.12);
+  border: 1px solid rgba(91, 214, 146, 0.3);
+  color: #7fe3ad;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.live-pill em {
+  font-style: normal;
+  opacity: 0.75;
+  font-variant-numeric: tabular-nums;
+}
+
+.live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: livePulse 2s ease-in-out infinite;
+}
+
+.live-pill-active .live-dot {
+  animation-duration: 700ms;
+}
+
+@keyframes livePulse {
+  0%, 100% {
+    opacity: 1;
+    box-shadow: 0 0 0 0 rgba(91, 214, 146, 0.4);
+  }
+  50% {
+    opacity: 0.55;
+    box-shadow: 0 0 0 5px rgba(91, 214, 146, 0);
+  }
+}
+
+:root[data-theme="light"] .live-pill {
+  color: #1a7a50;
+  background: rgba(31, 148, 97, 0.1);
+}
+
+.rank-change {
+  display: inline-block;
+  margin-left: 0.4rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  vertical-align: middle;
+  animation: rankChangeIn 320ms ease-out;
+}
+
+.rank-change-up {
+  background: rgba(91, 214, 146, 0.18);
+  color: #7fe3ad;
+}
+
+.rank-change-down {
+  background: rgba(224, 79, 95, 0.16);
+  color: #ff8d9a;
+}
+
+.rank-change-new {
+  background: rgba(246, 210, 122, 0.2);
+  color: #f6d27a;
+}
+
+:root[data-theme="light"] .rank-change-up {
+  color: #1a7a50;
+}
+
+:root[data-theme="light"] .rank-change-down {
+  color: #b42a3d;
+}
+
+:root[data-theme="light"] .rank-change-new {
+  color: #9a6b00;
+}
+
+@keyframes rankChangeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.leaderboard-stack .table tbody tr.row-moved td {
+  animation: rowFlash 1.6s ease-out;
+}
+
+.leaderboard-stack .table tbody tr.row-entered td {
+  animation: rowEnter 1.6s ease-out;
+}
+
+@keyframes rowFlash {
+  from {
+    background: rgba(103, 169, 255, 0.16);
+  }
+  to {
+    background: transparent;
+  }
+}
+
+@keyframes rowEnter {
+  from {
+    background: rgba(246, 210, 122, 0.18);
+  }
+  to {
+    background: transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .live-dot,
+  .rank-change,
+  .leaderboard-stack .table tbody tr.row-moved td,
+  .leaderboard-stack .table tbody tr.row-entered td {
+    animation: none;
+  }
 }

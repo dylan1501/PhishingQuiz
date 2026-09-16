@@ -94,7 +94,9 @@ function Layout() {
       )}
       <main
         className={`page-shell ${quizTakingView ? "quiz-taking-page" : ""} ${
-          ["/quiz/start", "/admin/login"].includes(location.pathname) ? "page-shell-centered" : ""
+          ["/quiz/start", "/admin/login", "/quiz/result"].includes(location.pathname)
+            ? "page-shell-centered"
+            : ""
         }`}
       >
         <Routes>

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { AnswerOption } from "../types";
 
 /** Các trường tối thiểu để dựng lại trải nghiệm làm bài của một câu hỏi. */
@@ -102,7 +102,7 @@ export function QuestionPreview({ question, label = "Preview câu hỏi và gi�
   }, [question.scenarioHtml, currentStep?.hotspotIndex, explanationViewed]);
   const correct = answer ? answer === question.correctAnswer : null;
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!explanationViewed || currentStep?.hotspotIndex === undefined || !scenarioHtmlRef.current) {
       setBubblePosition(null);
       setAnchorPosition(null);

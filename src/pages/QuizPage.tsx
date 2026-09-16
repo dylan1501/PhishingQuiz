@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Navigate, useLocation, useNavigate, useParams } from "react-router-dom";
 import { finishRemoteSession, getRemoteSession, saveRemoteAnswer, touchRemoteSessionBeacon } from "../apiClient";
 import type { AnswerOption, QuizQuestion, QuizSession, QuizSessionPayload } from "../types";
@@ -326,6 +326,23 @@ export function QuizPage() {
     };
   }, [sessionId]);
 
+  // Tới câu cuối: nạp sẵn video kết quả vào cache để màn kết quả hiện ngay, không phải chờ tải.
+  const onFinalQuestion = questions.length > 0 && questionNumber === questions.length;
+  useEffect(() => {
+    if (!onFinalQuestion) {
+      return;
+    }
+    const links = ["/assets/videos/result-pass.webm", "/assets/videos/result-fail.webm"].map((href) => {
+      const link = document.createElement("link");
+      link.rel = "prefetch";
+      link.as = "video";
+      link.href = href;
+      document.head.appendChild(link);
+      return link;
+    });
+    return () => links.forEach((link) => link.remove());
+  }, [onFinalQuestion]);
+
   // Rời/ẩn/đóng tab giữa chừng: báo server để phiên được giữ thêm 20 phút kể từ lúc rời đi.
   // Các câu đã trả lời đã lưu trên server; quá 20 phút server tự chốt kết quả và xóa phiên.
   const hasLoadedSession = Boolean(session);
@@ -347,7 +364,14 @@ export function QuizPage() {
     };
   }, [sessionId, hasLoadedSession]);
 
+  // Reset trạng thái đúng một lần khi chuyển sang câu hỏi khác. Không phụ thuộc vào existingAnswer:
+  // response lưu đáp án về muộn sẽ làm effect chạy lại và đóng mất phần giải thích đang xem.
+  const initializedQuestionIdRef = useRef<string | null>(null);
   useEffect(() => {
+    if (!question || initializedQuestionIdRef.current === question.id) {
+      return;
+    }
+    initializedQuestionIdRef.current = question.id;
     setSelectedAnswer(existingAnswer?.selectedAnswer ?? null);
     setExplanationViewed(false);
     setExplanationStepIndex(0);
@@ -356,7 +380,7 @@ export function QuizPage() {
     setFinishError("");
     setFinishingResult(false);
     finishInProgressRef.current = false;
-  }, [existingAnswer?.selectedAnswer, question?.id]);
+  }, [question, existingAnswer?.selectedAnswer]);
 
   useEffect(() => {
     correctAudioRef.current = new Audio(QUIZ_SOUNDS.correct);
@@ -548,7 +572,7 @@ export function QuizPage() {
   const hasMoreExplanationSteps = explanationStepIndex < explanationSteps.length - 1;
   const finalExplanationStep = questionNumber === questions.length && !hasMoreExplanationSteps;
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (
       !explanationViewed ||
       currentExplanationStep?.hotspotIndex === undefined ||

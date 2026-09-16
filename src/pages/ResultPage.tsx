@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { getRemoteAttempt, getRemoteQuizConfig } from "../apiClient";
 import type { Attempt } from "../types";
@@ -15,6 +15,15 @@ export function ResultPage() {
   const [attempt, setAttempt] = useState<Attempt | null>(hasPreloaded ? preloaded!.attempt : null);
   const [passScore, setPassScore] = useState<number | null>(hasPreloaded ? preloaded!.passScore : null);
   const [loading, setLoading] = useState(Boolean(requestedAttemptId) && !hasPreloaded);
+  const [videoReady, setVideoReady] = useState(false);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+
+  // Video đã nằm sẵn trong cache (prefetch từ câu cuối) có thể "canplay" trước khi effect gắn handler.
+  useEffect(() => {
+    if (videoRef.current && videoRef.current.readyState >= 3) {
+      setVideoReady(true);
+    }
+  });
 
   useEffect(() => {
     if (!requestedAttemptId || hasPreloaded) {
@@ -47,8 +56,8 @@ export function ResultPage() {
 
   if (loading) {
     return (
-      <section className="content-card result-card result-verdict">
-        <h2>Đang tải kết quả…</h2>
+      <section className="result-verdict">
+        <h2 className="result-message">Đang tải kết quả…</h2>
       </section>
     );
   }
@@ -62,15 +71,18 @@ export function ResultPage() {
   const passed = attempt.score >= requiredScore;
 
   return (
-    <section className={`content-card result-card result-verdict ${passed ? "result-pass" : "result-fail"}`}>
+    <section className={`result-verdict ${passed ? "result-pass" : "result-fail"}`}>
       <video
         key={passed ? "pass" : "fail"}
-        className="result-video"
+        ref={videoRef}
+        className={`result-video ${videoReady ? "result-video-ready" : ""}`}
         src={passed ? "/assets/videos/result-pass.webm" : "/assets/videos/result-fail.webm"}
         autoPlay
         muted
         loop
         playsInline
+        preload="auto"
+        onCanPlay={() => setVideoReady(true)}
         aria-hidden="true"
       />
       <h1 className="result-title">{passed ? "CHÚC MỪNG" : "THỬ THÁCH THẤT BẠI"}</h1>
