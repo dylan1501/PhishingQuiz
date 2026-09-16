@@ -4276,7 +4276,7 @@ textarea {
   align-content: center;
   text-align: center;
   gap: 0.5rem;
-  width: min(640px, 100%);
+  width: min(760px, 100%);
   margin-inline: auto;
   padding: 1rem 0 2rem;
   background: transparent;
@@ -4327,15 +4327,16 @@ textarea {
 .result-title {
   margin: 0;
   color: var(--verdict);
-  font-size: clamp(1.8rem, 4.2vw, 2.8rem);
-  letter-spacing: 0.04em;
-  line-height: 1.1;
+  font-size: clamp(2.6rem, 6.4vw, 4.6rem);
+  letter-spacing: 0.02em;
+  line-height: 1.08;
+  text-shadow: 0 10px 30px color-mix(in srgb, var(--verdict) 24%, transparent);
 }
 
 .result-message {
-  margin: 0;
+  margin: 0.15rem 0 0;
   color: var(--muted);
-  font-size: 1.08rem;
+  font-size: clamp(1.1rem, 1.7vw, 1.4rem);
 }
 
 .result-score {
@@ -4346,13 +4347,13 @@ textarea {
 
 .result-score strong {
   color: var(--verdict);
-  font-size: clamp(2.6rem, 7vw, 4.2rem);
+  font-size: clamp(3.2rem, 8.4vw, 5.4rem);
   line-height: 1;
 }
 
 .result-score span {
   color: var(--muted);
-  font-size: 0.9rem;
+  font-size: 0.95rem;
 }
 
 /* /admin/login: card gọn, căn giữa (page-shell-centered). */
@@ -5343,4 +5344,19 @@ textarea {
   font-size: 1.02rem;
   text-transform: uppercase;
   letter-spacing: 0.03em;
+}
+
+/* Màn hình thấp: giữ khối kết quả gọn trong một màn. */
+@media (max-height: 790px) {
+  .result-title {
+    font-size: clamp(2.2rem, 5vw, 3.4rem);
+  }
+
+  .result-score strong {
+    font-size: clamp(2.6rem, 6.4vw, 4rem);
+  }
+
+  .result-video {
+    width: min(100%, 240px);
+  }
 }

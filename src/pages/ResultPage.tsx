@@ -72,7 +72,7 @@ export function ResultPage() {
 
   return (
     <section className={`result-verdict ${passed ? "result-pass" : "result-fail"}`}>
-      <h1 className="result-title">{passed ? "CHÚC MỪNG" : "THỬ THÁCH THẤT BẠI"}</h1>
+      <h1 className="result-title">{passed ? "XIN CHÚC MỪNG" : "THỬ THÁCH THẤT BẠI"}</h1>
       <p className="result-message">
         {passed ? "Bạn đã vượt qua thử thách" : "Rất tiếc, bạn chưa đạt yêu cầu của thử thách"}
       </p>
