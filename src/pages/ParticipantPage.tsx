@@ -38,6 +38,9 @@ export function ParticipantPage() {
   return (
     <section className="content-card form-card participant-card">
       <h2>Thông tin người tham gia</h2>
+      <p className="participant-note">
+        Sử dụng tên và email để giúp bài kiểm tra giống thực tế (bạn không nhất thiết phải dùng tên và email thật).
+      </p>
       <form className="stack participant-form" onSubmit={onSubmit}>
         <input
           value={fullName}
