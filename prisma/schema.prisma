@@ -88,16 +88,17 @@ model Quiz {
 }
 
 model QuizSetting {
-  id                 String   @id @default(uuid()) @db.Uuid
-  quizId             String   @unique @map("quiz_id") @db.Uuid
-  questionCount      Int      @default(10) @map("question_count")
-  passScore          Int      @default(4) @map("pass_score")
-  phishingCount      Int      @default(5) @map("phishing_count")
-  randomizeQuestions Boolean  @default(true) @map("randomize_questions")
-  randomizeAnswers   Boolean  @default(false) @map("randomize_answers")
-  requireExplanation Boolean  @default(true) @map("require_explanation")
-  createdAt          DateTime @default(now()) @map("created_at")
-  updatedAt          DateTime @updatedAt @map("updated_at")
+  id                    String   @id @default(uuid()) @db.Uuid
+  quizId                String   @unique @map("quiz_id") @db.Uuid
+  questionCount         Int      @default(10) @map("question_count")
+  passScore             Int      @default(4) @map("pass_score")
+  phishingCount         Int      @default(5) @map("phishing_count")
+  singleAttemptPerEmail Boolean  @default(false) @map("single_attempt_per_email")
+  randomizeQuestions    Boolean  @default(true) @map("randomize_questions")
+  randomizeAnswers      Boolean  @default(false) @map("randomize_answers")
+  requireExplanation    Boolean  @default(true) @map("require_explanation")
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
 
   quiz Quiz @relation(fields: [quizId], references: [id], onDelete: Cascade)
 

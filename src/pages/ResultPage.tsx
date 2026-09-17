@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { getRemoteAttempt, getRemoteQuizConfig } from "../apiClient";
+import { LoadingScreen } from "../components/LoadingScreen";
 import type { Attempt } from "../types";
 
 type ResultState = { result?: { attempt: Attempt; passScore: number } } | null;
@@ -55,11 +56,7 @@ export function ResultPage() {
   }, [requestedAttemptId, hasPreloaded]);
 
   if (loading) {
-    return (
-      <section className="result-verdict">
-        <h2 className="result-message">Đang tải kết quả…</h2>
-      </section>
-    );
+    return <LoadingScreen label="Đang tải kết quả" />;
   }
 
   if (!attempt) {

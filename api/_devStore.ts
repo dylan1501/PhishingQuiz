@@ -69,6 +69,7 @@ function getState() {
         questionCount: 10,
         passScore: 4,
         phishingCount: 5,
+        singleAttemptPerEmail: false,
         updatedAt: new Date(0).toISOString(),
       },
       admin: null,
@@ -267,7 +268,12 @@ export async function devGetQuizConfig() {
   return getState().quizConfig;
 }
 
-export async function devSaveQuizConfig(questionCount: number, passScore: number, phishingCount: number) {
+export async function devSaveQuizConfig(
+  questionCount: number,
+  passScore: number,
+  phishingCount: number,
+  singleAttemptPerEmail: boolean,
+) {
   const state = getState();
   const activeQuestionCount = Math.max(state.questions.filter((question) => question.active).length, 1);
   const nextQuestionCount = clampQuestionCount(questionCount, activeQuestionCount);
@@ -279,6 +285,7 @@ export async function devSaveQuizConfig(questionCount: number, passScore: number
     phishingCount: Number.isFinite(phishingCount)
       ? Math.min(Math.max(Math.round(phishingCount), 0), nextQuestionCount)
       : Math.min(Math.round(nextQuestionCount / 2), nextQuestionCount),
+    singleAttemptPerEmail,
     updatedAt: new Date().toISOString(),
   };
   return state.quizConfig;
@@ -317,6 +324,23 @@ export async function devUpsertParticipant(input: {
   return participant;
 }
 
+export async function devDeleteParticipants(participantIds: string[]) {
+  const state = getState();
+  const idSet = new Set(participantIds);
+  const before = state.participants.length;
+  state.participants = state.participants.filter((participant) => !idSet.has(participant.id));
+  state.attempts = state.attempts.filter((attempt) => !idSet.has(attempt.participantId));
+  state.sessions = state.sessions.filter((session) => !idSet.has(session.participantId));
+  return { deleted: before - state.participants.length };
+}
+
+export async function devDeleteAllAttempts() {
+  const state = getState();
+  const deleted = state.attempts.length;
+  state.attempts = [];
+  return { deleted };
+}
+
 export async function devListParticipants() {
   return [...getState().participants].sort(
     (first, second) => new Date(second.createdAt).getTime() - new Date(first.createdAt).getTime(),
@@ -325,6 +349,12 @@ export async function devListParticipants() {
 
 export async function devStartQuizSession(participantId: string): Promise<QuizSessionPayload> {
   const state = getState();
+  if (
+    state.quizConfig.singleAttemptPerEmail &&
+    state.attempts.some((attempt) => attempt.participantId === participantId)
+  ) {
+    throw new Error("Email này đã tham gia bài đánh giá. Mỗi email chỉ được làm bài một lần.");
+  }
   const activeQuestions = state.questions.filter((question) => question.active);
   const questionLimit = clampQuestionCount(state.quizConfig.questionCount, activeQuestions.length);
   const requiredQuestions = activeQuestions

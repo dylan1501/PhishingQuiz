@@ -10,6 +10,8 @@ import {
 import {
   devClearAdminCookie,
   devCreateQuestion,
+  devDeleteAllAttempts,
+  devDeleteParticipants,
   devDeleteQuestion,
   devEnsureDefaultQuiz,
   devExpireStaleSessions,
@@ -37,6 +39,8 @@ import {
 } from "./_devStore.js";
 import {
   createQuestion,
+  deleteAllAttempts,
+  deleteParticipants,
   deleteQuestion,
   ensureDefaultQuiz,
   expireStaleSessions,
@@ -381,6 +385,34 @@ export default async function handler(request: VercelRequest, response: VercelRe
         }
       }
 
+      if (resourceId === "participants" && request.method === "DELETE") {
+        const body = readBody<{ ids?: unknown }>(request);
+        const ids = Array.isArray(body.ids) ? body.ids.map(String).filter(Boolean) : [];
+        if (ids.length === 0) {
+          sendError(response, 400, "Chưa chọn người tham gia nào để xóa.");
+          return;
+        }
+        sendOk(
+          response,
+          await withDevFallback(
+            () => deleteParticipants(ids),
+            () => devDeleteParticipants(ids),
+          ),
+        );
+        return;
+      }
+
+      if (resourceId === "attempts" && request.method === "DELETE") {
+        sendOk(
+          response,
+          await withDevFallback(
+            () => deleteAllAttempts(),
+            () => devDeleteAllAttempts(),
+          ),
+        );
+        return;
+      }
+
       sendError(response, 404, "Không tìm thấy API quản trị.");
       return;
     }
@@ -637,12 +669,30 @@ export default async function handler(request: VercelRequest, response: VercelRe
       if (!requireMethod(request, response, "PUT")) {
         return;
       }
-      const body = readBody<{ questionCount?: number; passScore?: number; phishingCount?: number }>(request);
+      const body = readBody<{
+        questionCount?: number;
+        passScore?: number;
+        phishingCount?: number;
+        singleAttemptPerEmail?: boolean;
+      }>(request);
+      const singleAttemptPerEmail = Boolean(body.singleAttemptPerEmail);
       sendOk(
         response,
         await withDevFallback(
-          () => saveQuizConfig(Number(body.questionCount), Number(body.passScore), Number(body.phishingCount)),
-          () => devSaveQuizConfig(Number(body.questionCount), Number(body.passScore), Number(body.phishingCount)),
+          () =>
+            saveQuizConfig(
+              Number(body.questionCount),
+              Number(body.passScore),
+              Number(body.phishingCount),
+              singleAttemptPerEmail,
+            ),
+          () =>
+            devSaveQuizConfig(
+              Number(body.questionCount),
+              Number(body.passScore),
+              Number(body.phishingCount),
+              singleAttemptPerEmail,
+            ),
         ),
       );
       return;

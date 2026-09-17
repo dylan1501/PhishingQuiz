@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Navigate, useLocation, useNavigate, useParams } from "react-router-dom";
 import { finishRemoteSession, getRemoteSession, saveRemoteAnswer, touchRemoteSessionBeacon } from "../apiClient";
 import type { AnswerOption, QuizQuestion, QuizSession, QuizSessionPayload } from "../types";
+import { LoadingScreen } from "../components/LoadingScreen";
 
 type HotspotNote = {
   id: string;
@@ -615,12 +616,7 @@ export function QuizPage() {
   }
 
   if (loadingSession) {
-    return (
-      <section className="content-card quiz-card">
-        <p className="eyebrow">Đang tải bài thi</p>
-        <h3>Hệ thống đang lấy phiên làm bài từ cơ sở dữ liệu</h3>
-      </section>
-    );
+    return <LoadingScreen label="Đang tải bài thi" />;
   }
 
   if (loadError) {
@@ -654,7 +650,6 @@ export function QuizPage() {
         <span className="question-category-pill">Loại: {question.category}</span>
       </div>
       <article className="content-card quiz-card">
-        <h3>{question.title}</h3>
         <p className="section-text">{question.scenarioIntro}</p>
         <div className="scenario-box">{question.scenarioContent}</div>
         {question.scenarioHtml && (

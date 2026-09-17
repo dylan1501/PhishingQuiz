@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import { getRemoteAttempts, getRemoteParticipants } from "../apiClient";
+import { deleteAllAdminAttempts, getRemoteAttempts, getRemoteParticipants } from "../apiClient";
 import { exportTableToExcel } from "../excelExport";
 import { PAGE_SIZE_OPTIONS, TablePagination } from "../components/TablePagination";
+import { TrashIcon } from "../components/icons";
 
 // "ranking" là thứ tự mặc định: điểm cao hơn → thời gian ít hơn → hoàn thành sớm hơn.
 type AttemptSortKey = "ranking" | "participantName" | "email" | "score" | "durationSeconds" | "completedAt";
@@ -26,6 +27,9 @@ export function AdminAttemptsPage() {
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<number>(PAGE_SIZE_OPTIONS[0]);
+  const [confirmClear, setConfirmClear] = useState(false);
+  const [clearing, setClearing] = useState(false);
+  const [notice, setNotice] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -92,6 +96,22 @@ export function AdminAttemptsPage() {
   const currentPage = Math.min(page, totalPages);
   const pageRows = sortedRows.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
+  async function clearHistory() {
+    setClearing(true);
+    setLoadError("");
+    try {
+      const result = await deleteAllAdminAttempts();
+      setAttempts([]);
+      setNotice(`Đã xóa ${result.deleted} lượt thi khỏi lịch sử.`);
+      setConfirmClear(false);
+    } catch (error) {
+      setLoadError(error instanceof Error ? error.message : "Không xóa được lịch sử làm bài.");
+      setConfirmClear(false);
+    } finally {
+      setClearing(false);
+    }
+  }
+
   function changeSort(nextSortKey: AttemptSortKey) {
     setPage(1);
     if (nextSortKey === sortKey) {
@@ -140,15 +160,24 @@ export function AdminAttemptsPage() {
     <section className="content-card">
       <p className="eyebrow">Lịch Sử Làm Bài</p>
       <div className="admin-page-heading">
-        <div>
-          <h2>Chi tiết các lượt thi</h2>
-          <p className="section-text">Xuất dữ liệu phục vụ báo cáo đào tạo nhận thức an toàn thông tin.</p>
+        <h2>Chi tiết các lượt thi</h2>
+        <div className="admin-page-actions">
+          <button
+            type="button"
+            className="button button-small button-danger"
+            disabled={attempts.length === 0}
+            onClick={() => setConfirmClear(true)}
+          >
+            <TrashIcon />
+            Xóa toàn bộ lịch sử
+          </button>
+          <button type="button" className="button button-small export-button" onClick={exportExcel}>
+            Xuất Excel
+          </button>
         </div>
-        <button type="button" className="button button-small export-button" onClick={exportExcel}>
-          Xuất Excel
-        </button>
       </div>
       {loadError && <div className="notice notice-error">{loadError}</div>}
+      {notice && <div className="notice notice-success">{notice}</div>}
       <div className="sort-hint">
         <button
           type="button"
@@ -203,6 +232,36 @@ export function AdminAttemptsPage() {
         }}
         itemLabel="lượt thi"
       />
+      {confirmClear && (
+        <div className="modal-backdrop preview-modal-backdrop" onClick={() => !clearing && setConfirmClear(false)}>
+          <div
+            className="modal-card confirm-modal-card"
+            role="alertdialog"
+            aria-modal="true"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <p className="eyebrow">Xóa Lịch Sử</p>
+            <h3>Xóa toàn bộ {attempts.length} lượt thi?</h3>
+            <p className="section-text">
+              Bảng xếp hạng và thống kê trên dashboard sẽ trống. Người tham gia và ngân hàng câu hỏi được giữ nguyên.
+              Thao tác không thể hoàn tác.
+            </p>
+            <div className="hero-actions confirm-modal-actions">
+              <button
+                type="button"
+                className="button button-ghost"
+                onClick={() => setConfirmClear(false)}
+                disabled={clearing}
+              >
+                Hủy
+              </button>
+              <button type="button" className="button button-danger" onClick={clearHistory} disabled={clearing}>
+                {clearing ? "Đang xóa..." : "Xóa toàn bộ"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

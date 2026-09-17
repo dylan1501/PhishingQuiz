@@ -12,6 +12,7 @@ import { QuizPage } from "./pages/QuizPage";
 import { ResultPage } from "./pages/ResultPage";
 import { getRemoteAdminStatus } from "./apiClient";
 import { AdminNav } from "./components/AdminNav";
+import { LoadingScreen } from "./components/LoadingScreen";
 
 type ThemeMode = "dark" | "light";
 
@@ -40,12 +41,7 @@ function useAdminAuthenticated() {
 }
 
 function AdminAuthPending() {
-  return (
-    <section className="content-card form-card">
-      <p className="eyebrow">Quản Trị</p>
-      <h2>Đang kiểm tra phiên đăng nhập</h2>
-    </section>
-  );
+  return <LoadingScreen label="Đang kiểm tra phiên đăng nhập" />;
 }
 
 function Layout() {

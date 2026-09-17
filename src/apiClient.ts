@@ -168,10 +168,28 @@ export function getRemoteQuizConfig() {
   return requestApi<QuizConfig & { answerBreakdown?: AnswerBreakdown }>("quiz-config");
 }
 
-export function saveRemoteQuizConfig(questionCount: number, passScore: number, phishingCount: number) {
+export function saveRemoteQuizConfig(
+  questionCount: number,
+  passScore: number,
+  phishingCount: number,
+  singleAttemptPerEmail: boolean,
+) {
   return requestApi<QuizConfig>("quiz-config", {
     method: "PUT",
-    body: JSON.stringify({ questionCount, passScore, phishingCount }),
+    body: JSON.stringify({ questionCount, passScore, phishingCount, singleAttemptPerEmail }),
+  });
+}
+
+export function deleteAdminParticipants(ids: string[]) {
+  return requestApi<{ deleted: number }>("admin/participants", {
+    method: "DELETE",
+    body: JSON.stringify({ ids }),
+  });
+}
+
+export function deleteAllAdminAttempts() {
+  return requestApi<{ deleted: number }>("admin/attempts", {
+    method: "DELETE",
   });
 }
 

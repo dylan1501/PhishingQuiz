@@ -92,15 +92,20 @@ function serializeQuizConfig(setting: {
   questionCount: number;
   passScore: number;
   phishingCount: number;
+  singleAttemptPerEmail: boolean;
   updatedAt: Date;
 }): QuizConfig {
   return {
     questionCount: setting.questionCount,
     passScore: clampPassScore(setting.passScore, setting.questionCount),
     phishingCount: clampPhishingCount(setting.phishingCount, setting.questionCount),
+    singleAttemptPerEmail: setting.singleAttemptPerEmail,
     updatedAt: setting.updatedAt.toISOString(),
   };
 }
+
+export const singleAttemptMessage =
+  "Email này đã tham gia bài đánh giá. Mỗi email chỉ được làm bài một lần.";
 
 function serializeQuestion(question: QuestionWithIndicators): QuizQuestion {
   return {
@@ -357,6 +362,7 @@ export async function saveQuizConfig(
   questionCount: number,
   passScore: number,
   phishingCount: number,
+  singleAttemptPerEmail: boolean,
 ): Promise<QuizConfig> {
   const prisma = getPrisma();
   const quiz = await ensureDefaultQuiz();
@@ -372,12 +378,14 @@ export async function saveQuizConfig(
       questionCount: nextQuestionCount,
       passScore: nextPassScore,
       phishingCount: nextPhishingCount,
+      singleAttemptPerEmail,
     },
     create: {
       quizId: quiz.id,
       questionCount: nextQuestionCount,
       passScore: nextPassScore,
       phishingCount: nextPhishingCount,
+      singleAttemptPerEmail,
       randomizeQuestions: true,
       requireExplanation: true,
     },
@@ -418,12 +426,45 @@ export async function upsertParticipant(input: {
   return serializeParticipant(participant);
 }
 
+// Xóa người tham gia kéo theo lượt thi và phiên của họ (quan hệ Cascade trong schema).
+export async function deleteParticipants(participantIds: string[]) {
+  if (participantIds.length === 0) {
+    return { deleted: 0 };
+  }
+  const result = await getPrisma().participant.deleteMany({ where: { id: { in: participantIds } } });
+  return { deleted: result.count };
+}
+
+// Xóa toàn bộ lịch sử làm bài; giữ nguyên người tham gia và ngân hàng câu hỏi.
+export async function deleteAllAttempts() {
+  const prisma = getPrisma();
+  const result = await prisma.attempt.deleteMany({});
+  await prisma.quizSession.deleteMany({ where: { status: { in: ["COMPLETED", "EXPIRED", "ABANDONED"] } } });
+  return { deleted: result.count };
+}
+
 export async function listParticipants() {
   const prisma = getPrisma();
   const participants = await prisma.participant.findMany({
     orderBy: { createdAt: "desc" },
   });
   return participants.map(serializeParticipant);
+}
+
+// Bật "mỗi email một lần" thì người đã có lượt thi hoàn thành sẽ không mở được phiên mới.
+async function assertCanStartQuiz(participantId: string, quizId: string) {
+  const prisma = getPrisma();
+  const setting = await prisma.quizSetting.findUnique({
+    where: { quizId },
+    select: { singleAttemptPerEmail: true },
+  });
+  if (!setting?.singleAttemptPerEmail) {
+    return;
+  }
+  const attemptCount = await prisma.attempt.count({ where: { participantId } });
+  if (attemptCount > 0) {
+    throw new Error(singleAttemptMessage);
+  }
 }
 
 // Trả về cả bộ câu hỏi (kèm indicators) và ngưỡng đạt để client vào bài ngay, không cần gọi thêm API.
@@ -438,6 +479,7 @@ export async function startQuizSession(participantId: string): Promise<QuizSessi
       include: { indicators: { orderBy: { orderIndex: "asc" } } },
     }),
   ]);
+  await assertCanStartQuiz(participantId, quiz.id);
   const questionLimit = clampQuestionCount(setting?.questionCount ?? 10, activeQuestions.length);
   const requiredQuestions = activeQuestions
     .filter((question) => question.alwaysIncluded)

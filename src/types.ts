@@ -61,6 +61,8 @@ export interface QuizConfig {
   passScore: number;
   /** Số câu có đáp án "Phishing" trong mỗi đề; phần còn lại là "An toàn". */
   phishingCount: number;
+  /** Bật thì mỗi email chỉ được làm bài một lần. */
+  singleAttemptPerEmail: boolean;
   updatedAt: string;
 }
 
