@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { getRemoteLeaderboard, getRemoteQuizConfig, type LeaderboardEntry } from "../apiClient";
 
 const REFRESH_INTERVAL_MS = 10_000;
+const ANTHEM_URL = "/assets/sounds/Glory%20Glory%20Man%20United.mp3";
 
 interface TeamStanding {
   team: string;
@@ -108,6 +109,59 @@ export function LeaderboardPage() {
   const previousRanksRef = useRef<Map<string, number> | null>(null);
   const rowRefs = useRef(new Map<string, HTMLTableRowElement>());
   const rowPositionsRef = useRef(new Map<string, number>());
+  const anthemRef = useRef<HTMLAudioElement | null>(null);
+  const [anthemBlocked, setAnthemBlocked] = useState(false);
+
+  // Nhạc nền phát lặp liên tục. Trình duyệt chặn autoplay CÓ TIẾNG khi trang mở mà chưa có
+  // tương tác, nhưng cho phép autoplay CÂM — nên phát câm trước để nhạc chạy sẵn, rồi bật tiếng
+  // ngay ở tương tác đầu tiên (click/phím/chạm/cuộn). Nếu vẫn chưa được thì hiện nút bật.
+  useEffect(() => {
+    const anthem = new Audio(ANTHEM_URL);
+    anthem.loop = true;
+    anthem.volume = 0.35;
+    anthem.preload = "auto";
+    anthemRef.current = anthem;
+    const interactionEvents = ["pointerdown", "keydown", "touchstart", "wheel"] as const;
+
+    const enableSound = () => {
+      anthem.muted = false;
+      void anthem
+        .play()
+        .then(() => setAnthemBlocked(false))
+        .catch(() => setAnthemBlocked(true));
+    };
+
+    void anthem
+      .play()
+      .then(() => setAnthemBlocked(false))
+      .catch(() => {
+        anthem.muted = true;
+        void anthem.play().catch(() => undefined);
+        setAnthemBlocked(true);
+        interactionEvents.forEach((eventName) =>
+          document.addEventListener(eventName, enableSound, { once: true, passive: true }),
+        );
+      });
+
+    return () => {
+      interactionEvents.forEach((eventName) => document.removeEventListener(eventName, enableSound));
+      anthem.pause();
+      anthem.currentTime = 0;
+      anthemRef.current = null;
+    };
+  }, []);
+
+  function playAnthem() {
+    const anthem = anthemRef.current;
+    if (!anthem) {
+      return;
+    }
+    anthem.muted = false;
+    void anthem
+      .play()
+      .then(() => setAnthemBlocked(false))
+      .catch(() => setAnthemBlocked(true));
+  }
 
   // Bảng tự làm mới liên tục để chiếu lên màn hình lớn; tạm dừng khi tab bị ẩn.
   useEffect(() => {
@@ -247,11 +301,13 @@ export function LeaderboardPage() {
         <div className="leaderboard-intro-head">
           <div>
             <p className="eyebrow">Bảng Xếp Hạng Đội</p>
-            <h2>Hall Of Fame: Phishing Hunters</h2>
-            <p className="section-text">
-              Xếp theo số người hoàn thành nhiều hơn, tổng thời gian thi ít hơn, rồi người cuối cùng vượt qua sớm hơn.
-            </p>
+            <h2 className="leaderboard-title">Hall Of Fame: Phishing Hunters</h2>
           </div>
+          {anthemBlocked && (
+            <button type="button" className="button button-small anthem-button" onClick={playAnthem}>
+              🔊 Bật nhạc nền
+            </button>
+          )}
           <span className={`live-pill ${refreshing ? "live-pill-active" : ""}`}>
             <span className="live-dot" aria-hidden="true" />
             Cập nhật liên tục

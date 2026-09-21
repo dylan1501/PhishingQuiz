@@ -332,6 +332,8 @@ export function QuizPage() {
   // Đồng hồ chỉ chạy khi đang cân nhắc đáp án: dừng ngay khi chọn xong hoặc hết giờ,
   // nên thời gian xem giải thích không bị tính.
   const countdownRunning = Boolean(question) && !selectedAnswer && !timedOut && !loadingSession;
+  const timerTotal = question?.timeLimitSeconds ?? 30;
+  const timerFraction = timedOut ? 0 : Math.max(0, Math.min(1, secondsLeft / Math.max(timerTotal, 1)));
   useEffect(() => {
     if (!countdownRunning) {
       return;
@@ -650,17 +652,6 @@ export function QuizPage() {
 
   return (
     <section className="quiz-layout">
-      <div className="quiz-timer-row">
-        <span
-          className={`quiz-timer ${timedOut ? "quiz-timer-out" : secondsLeft <= 10 ? "quiz-timer-warning" : ""}`}
-          role="timer"
-        >
-          {timedOut
-            ? "HẾT GIỜ"
-            : `${String(Math.floor(secondsLeft / 60)).padStart(2, "0")}:${String(secondsLeft % 60).padStart(2, "0")}`}
-        </span>
-        {!selectedAnswer && !timedOut && <span className="quiz-timer-note">Thời gian cho câu này</span>}
-      </div>
       {passScore > 0 && (
         <p className="quiz-pass-requirement">
           Kết quả đạt chính xác ít nhất <strong>{passScore}/{questions.length}</strong> câu được tính là hoàn thành
@@ -669,11 +660,42 @@ export function QuizPage() {
       <div className="progress-bar">
         <span style={{ width: `${progress}%` }} />
       </div>
-      <div className="quiz-meta">
-        <span className="question-count-pill">
-          Câu {questionNumber}/{questions.length}
-        </span>
-        <span className="question-category-pill">Loại: {question.category}</span>
+      {/* Thanh dính ngay dưới header: người làm bài luôn thấy đồng hồ khi cuộn đọc tình huống. */}
+      <div
+        className={`quiz-sticky-bar ${timedOut ? "is-out" : ""} ${
+          !timedOut && secondsLeft <= 10 ? "is-warning" : ""
+        }`}
+      >
+        <div className="quiz-meta">
+          <span className="question-count-pill">
+            Câu {questionNumber}/{questions.length}
+          </span>
+          <span className="question-category-pill">Loại: {question.category}</span>
+        </div>
+        <div className="quiz-timer-block">
+          <span className="quiz-timer-note">{timedOut ? "Đã hết thời gian" : "Thời gian còn lại"}</span>
+          <div className="quiz-timer-dial">
+            <svg viewBox="0 0 100 100" aria-hidden="true">
+              <circle className="quiz-timer-track" cx="50" cy="50" r="44" />
+              <circle
+                className="quiz-timer-progress"
+                cx="50"
+                cy="50"
+                r="44"
+                strokeDasharray={2 * Math.PI * 44}
+                strokeDashoffset={2 * Math.PI * 44 * (1 - timerFraction)}
+              />
+            </svg>
+            <span
+              className={`quiz-timer ${timedOut ? "quiz-timer-out" : secondsLeft <= 10 ? "quiz-timer-warning" : ""}`}
+              role="timer"
+            >
+              {timedOut
+                ? "HẾT"
+                : `${String(Math.floor(secondsLeft / 60)).padStart(2, "0")}:${String(secondsLeft % 60).padStart(2, "0")}`}
+            </span>
+          </div>
+        </div>
       </div>
       <article className="content-card quiz-card">
         <p className="section-text">{question.scenarioIntro}</p>
@@ -761,7 +783,7 @@ export function QuizPage() {
                 <strong>{timedOut ? "Hết giờ" : correct ? "Chính xác" : "Chưa chính xác"}</strong>
                 <p>
                   {timedOut
-                    ? `Bạn không kịp trả lời. Đáp án đúng là ${question.correctAnswer === "phishing" ? "phishing" : "an toàn"}.`
+                    ? `Câu này chưa hoàn thành nên tính là sai. Đáp án đúng là ${question.correctAnswer === "phishing" ? "phishing" : "an toàn"}. Xem giải thích để sang câu tiếp theo.`
                     : correct
                       ? `Bạn đã nhận diện đúng đây là ${question.correctAnswer === "phishing" ? "phishing" : "an toàn"}.`
                       : `Đáp án đúng là ${question.correctAnswer === "phishing" ? "phishing" : "an toàn"}.`}
