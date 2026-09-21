@@ -135,6 +135,11 @@ function canUseDevFallback(error: unknown) {
     "ENOTFOUND",
     "getaddrinfo",
     "connect ECONNREFUSED",
+    // pg pool báo hết giờ kết nối bằng thông điệp riêng, vẫn là 'không với tới được DB'
+    "timeout exceeded when trying to connect",
+    "Connection terminated due to connection timeout",
+    "Connection terminated unexpectedly",
+    "ETIMEDOUT",
   ].some((pattern) => message.includes(pattern));
 }
 

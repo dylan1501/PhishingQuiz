@@ -150,6 +150,12 @@ function normalizeSmsTemplate(document: Document, container: HTMLElement) {
   senderCaption.textContent = "Người gửi SMS";
   senderInfo.append(senderName, senderCaption);
   header.append(avatar, senderInfo);
+  // Dòng người gửi chỉ còn lại phần chữ, nên chuyển điểm giải thích của nó lên khối tiêu đề
+  // để bong bóng vẫn neo được đúng vị trí đầu số/tên thương hiệu.
+  if (senderNode?.getAttribute("data-spot")) {
+    header.dataset.spot = senderNode.getAttribute("data-spot") ?? "";
+    header.dataset.label = senderNode.getAttribute("data-label") ?? "";
+  }
 
   const thread = document.createElement("div");
   thread.className = "sms-thread";
@@ -283,6 +289,7 @@ export function QuizPage() {
   const [finishingResult, setFinishingResult] = useState(false);
   const finishInProgressRef = useRef(false);
   const scenarioHtmlRef = useRef<HTMLDivElement | null>(null);
+  const feedbackRef = useRef<HTMLDivElement | null>(null);
   const scenarioStageRef = useRef<HTMLDivElement | null>(null);
   const correctAudioRef = useRef<HTMLAudioElement | null>(null);
   const wrongAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -328,6 +335,18 @@ export function QuizPage() {
       active = false;
     };
   }, [sessionId]);
+
+  // Trả lời xong (hoặc hết giờ) thì đưa luôn khối phản hồi + nút "Xem giải thích" vào tầm mắt,
+  // người chơi không phải tự cuộn tìm.
+  useEffect(() => {
+    if (!selectedAnswer && !timedOut) {
+      return;
+    }
+    const frame = window.requestAnimationFrame(() => {
+      feedbackRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [selectedAnswer, timedOut, question?.id]);
 
   // Đồng hồ chỉ chạy khi đang cân nhắc đáp án: dừng ngay khi chọn xong hoặc hết giờ,
   // nên thời gian xem giải thích không bị tính.
@@ -673,7 +692,6 @@ export function QuizPage() {
           <span className="question-category-pill">Loại: {question.category}</span>
         </div>
         <div className="quiz-timer-block">
-          <span className="quiz-timer-note">{timedOut ? "Đã hết thời gian" : "Thời gian còn lại"}</span>
           <div className="quiz-timer-dial">
             <svg viewBox="0 0 100 100" aria-hidden="true">
               <circle className="quiz-timer-track" cx="50" cy="50" r="44" />
@@ -777,7 +795,10 @@ export function QuizPage() {
 
         {(selectedAnswer || timedOut) && (
           <> 
-            <div className={`answer-feedback ${correct ? "feedback-correct" : "feedback-wrong"}`}>
+            <div
+              ref={feedbackRef}
+              className={`answer-feedback ${correct ? "feedback-correct" : "feedback-wrong"}`}
+            >
               <div className="feedback-icon">{correct ? "✓" : "!"}</div>
               <div>
                 <strong>{timedOut ? "Hết giờ" : correct ? "Chính xác" : "Chưa chính xác"}</strong>
