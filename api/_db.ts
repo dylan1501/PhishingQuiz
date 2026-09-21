@@ -18,6 +18,11 @@ export function getPrisma() {
   if (!globalForPrisma.prismaAdapter) {
     globalForPrisma.prismaAdapter = new PrismaPg({
       connectionString: getDatabaseUrl(),
+      // Mỗi instance serverless giữ pool nhỏ để nhiều người chơi cùng lúc không làm
+      // cạn max_connections của PostgreSQL; kết nối rảnh được trả lại nhanh.
+      max: Number(process.env.DB_POOL_MAX ?? 6),
+      idleTimeoutMillis: 10_000,
+      connectionTimeoutMillis: 10_000,
     });
   }
 

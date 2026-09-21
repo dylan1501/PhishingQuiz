@@ -3,6 +3,8 @@ export type AnswerOption = "phishing" | "legitimate";
 export interface Participant {
   id: string;
   fullName: string;
+  /** Đội liên minh người chơi chọn ở màn bắt đầu. */
+  team?: string | null;
   email: string;
   consent: boolean;
   createdAt: string;
@@ -21,6 +23,8 @@ export interface QuizQuestion {
   active: boolean;
   alwaysIncluded: boolean;
   orderIndex: number;
+  /** Thời gian tối đa cho câu hỏi (giây), chỉ tính tới lúc chọn đáp án. */
+  timeLimitSeconds: number;
   /** ISO; không có với dữ liệu seed trong bộ nhớ dev. */
   createdAt?: string;
   updatedAt?: string;

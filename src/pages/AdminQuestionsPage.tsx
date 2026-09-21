@@ -10,7 +10,7 @@ import {
 import type { AnswerOption, QuizQuestion } from "../types";
 import { EyeIcon, PencilIcon, PinIcon, PinOffIcon, PlusIcon, PowerIcon, SearchIcon, TrashIcon } from "../components/icons";
 
-type QuestionSortKey = "orderIndex" | "title" | "category" | "active" | "createdAt" | "updatedAt";
+type QuestionSortKey = "orderIndex" | "title" | "category" | "active" | "timeLimitSeconds" | "createdAt" | "updatedAt";
 type SortDirection = "asc" | "desc";
 type StatusFilter = "all" | "active" | "inactive";
 type AlwaysFilter = "all" | "yes" | "no";
@@ -38,6 +38,7 @@ interface QuestionFormState {
   explanation: string;
   indicators: string;
   alwaysIncluded: boolean;
+  timeLimitSeconds: number;
 }
 
 const emptyForm: QuestionFormState = {
@@ -50,6 +51,7 @@ const emptyForm: QuestionFormState = {
   explanation: "",
   indicators: "",
   alwaysIncluded: false,
+  timeLimitSeconds: 30,
 };
 
 function mapQuestionToForm(question: QuizQuestion): QuestionFormState {
@@ -63,6 +65,7 @@ function mapQuestionToForm(question: QuizQuestion): QuestionFormState {
     explanation: question.explanation,
     indicators: question.indicators.join(", "),
     alwaysIncluded: question.alwaysIncluded,
+    timeLimitSeconds: question.timeLimitSeconds ?? 30,
   };
 }
 
@@ -230,6 +233,9 @@ export function AdminQuestionsPage() {
       if (sortKey === "active") {
         return (Number(first.active) - Number(second.active)) * direction;
       }
+      if (sortKey === "timeLimitSeconds") {
+        return ((first.timeLimitSeconds ?? 0) - (second.timeLimitSeconds ?? 0)) * direction;
+      }
       if (sortKey === "createdAt" || sortKey === "updatedAt") {
         const firstTime = first[sortKey] ? new Date(first[sortKey]).getTime() : 0;
         const secondTime = second[sortKey] ? new Date(second[sortKey]).getTime() : 0;
@@ -300,6 +306,7 @@ export function AdminQuestionsPage() {
         .map((value) => value.trim())
         .filter(Boolean),
       alwaysIncluded: form.alwaysIncluded,
+      timeLimitSeconds: form.timeLimitSeconds,
     };
 
     setSaving(true);
@@ -402,6 +409,7 @@ export function AdminQuestionsPage() {
                 <th>Đáp án</th>
                 <th>{renderSortHeader("Trạng thái", "active")}</th>
                 <th>Luôn có</th>
+                <th>{renderSortHeader("Thời gian", "timeLimitSeconds")}</th>
                 <th>{renderSortHeader("Created", "createdAt")}</th>
                 <th>{renderSortHeader("Last edit", "updatedAt")}</th>
                 <th>Thao tác</th>
@@ -431,6 +439,7 @@ export function AdminQuestionsPage() {
                       {question.alwaysIncluded ? "Có" : "Không"}
                     </span>
                   </td>
+                  <td className="time-limit-cell">{question.timeLimitSeconds ?? 30}s</td>
                   <td className="date-cell">{formatDateTime(question.createdAt)}</td>
                   <td className="date-cell">{formatDateTime(question.updatedAt)}</td>
                   <td className="table-actions">
@@ -486,7 +495,7 @@ export function AdminQuestionsPage() {
               ))}
               {visibleQuestions.length === 0 && (
                 <tr>
-                  <td colSpan={9} className="table-empty">
+                  <td colSpan={10} className="table-empty">
                     {questions.length === 0 ? "Chưa có câu hỏi nào." : "Không có câu hỏi khớp bộ lọc."}
                   </td>
                 </tr>
@@ -524,7 +533,7 @@ export function AdminQuestionsPage() {
                 <input value={form.category} onChange={(event) => setField("category", event.target.value)} />
               </label>
             </div>
-            <div className="field-row field-row-answer">
+            <div className="field-row field-row-answer field-row-three">
               <label>
                 Đáp án đúng
                 <select
@@ -534,6 +543,16 @@ export function AdminQuestionsPage() {
                   <option value="phishing">Phishing</option>
                   <option value="legitimate">An toàn</option>
                 </select>
+              </label>
+              <label>
+                Thời gian (giây)
+                <input
+                  type="number"
+                  min={5}
+                  max={600}
+                  value={form.timeLimitSeconds}
+                  onChange={(event) => setField("timeLimitSeconds", Number(event.target.value))}
+                />
               </label>
               <label className="admin-check-row">
                 <input

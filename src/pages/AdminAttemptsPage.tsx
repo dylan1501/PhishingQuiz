@@ -5,13 +5,13 @@ import { PAGE_SIZE_OPTIONS, TablePagination } from "../components/TablePaginatio
 import { TrashIcon } from "../components/icons";
 
 // "ranking" là thứ tự mặc định: điểm cao hơn → thời gian ít hơn → hoàn thành sớm hơn.
-type AttemptSortKey = "ranking" | "participantName" | "email" | "score" | "durationSeconds" | "completedAt";
+type AttemptSortKey = "ranking" | "participantName" | "team" | "score" | "durationSeconds" | "completedAt";
 type SortDirection = "asc" | "desc";
 
 interface AttemptRow {
   id: string;
   participantName: string;
-  email: string;
+  team: string;
   score: number;
   totalQuestions: number;
   durationSeconds: number;
@@ -53,7 +53,7 @@ export function AdminAttemptsPage() {
     return {
       id: attempt.id,
       participantName: participant?.fullName ?? "Không xác định",
-      email: participant?.email ?? "",
+      team: participant?.team ?? "—",
       score: attempt.score,
       totalQuestions: attempt.totalQuestions,
       durationSeconds: attempt.durationSeconds,
@@ -143,7 +143,7 @@ export function AdminAttemptsPage() {
     const rows = sortedRows.map((attempt, index) => [
       index + 1,
       attempt.participantName,
-      attempt.email,
+      attempt.team,
       `${attempt.score}/${attempt.totalQuestions}`,
       `${attempt.durationSeconds}s`,
       new Date(attempt.startedAt).toLocaleString("vi-VN"),
@@ -151,7 +151,7 @@ export function AdminAttemptsPage() {
     ]);
     exportTableToExcel(
       "Lịch sử làm bài",
-      ["STT", "Người tham gia", "Email", "Điểm", "Thời gian", "Bắt đầu lúc", "Hoàn thành lúc"],
+      ["STT", "Người chơi", "Đội", "Điểm", "Thời gian", "Bắt đầu lúc", "Hoàn thành lúc"],
       rows,
     );
   }
@@ -192,8 +192,8 @@ export function AdminAttemptsPage() {
         <thead>
           <tr>
             <th className="stt-col">{renderSortHeader("#", "ranking")}</th>
-            <th>{renderSortHeader("Người tham gia", "participantName")}</th>
-            <th>{renderSortHeader("Email", "email")}</th>
+            <th>{renderSortHeader("Người chơi", "participantName")}</th>
+            <th>{renderSortHeader("Đội", "team")}</th>
             <th>{renderSortHeader("Điểm", "score")}</th>
             <th>{renderSortHeader("Thời gian", "durationSeconds")}</th>
             <th>{renderSortHeader("Hoàn thành lúc", "completedAt")}</th>
@@ -204,7 +204,9 @@ export function AdminAttemptsPage() {
             <tr key={attempt.id}>
               <td className="stt-col">{(currentPage - 1) * pageSize + index + 1}</td>
               <td>{attempt.participantName}</td>
-              <td>{attempt.email}</td>
+              <td>
+                <span className="team-chip">{attempt.team}</span>
+              </td>
               <td>
                 {attempt.score}/{attempt.totalQuestions}
               </td>

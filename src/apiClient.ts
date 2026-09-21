@@ -91,6 +91,13 @@ export function updateAdminQuestion(
   });
 }
 
+export function patchAdminQuestionTimeLimit(questionId: string, timeLimitSeconds: number) {
+  return requestApi<QuizQuestion>(`admin/questions/${questionId}`, {
+    method: "PATCH",
+    body: JSON.stringify({ timeLimitSeconds }),
+  });
+}
+
 export function patchAdminQuestionState(
   questionId: string,
   state: Partial<Pick<QuizQuestion, "active" | "alwaysIncluded">>,
@@ -111,6 +118,16 @@ export function startRemoteSession(participantId: string) {
   return requestApi<QuizSessionPayload>("quiz-sessions", {
     method: "POST",
     body: JSON.stringify({ participantId }),
+  });
+}
+
+export const TEAM_OPTIONS = Array.from({ length: 9 }, (_, index) => `TEAM ${index + 1}`);
+
+// Người chơi chọn đội; server tự tạo "Người chơi N" và mở phiên trong một request.
+export function startRemoteQuizForTeam(team: string) {
+  return requestApi<QuizSessionPayload>("quiz-sessions", {
+    method: "POST",
+    body: JSON.stringify({ team }),
   });
 }
 

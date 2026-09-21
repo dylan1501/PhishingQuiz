@@ -1,6 +1,9 @@
 import type { QuizQuestion } from "./types.js";
 
-export const seedQuestions: QuizQuestion[] = [
+// Thời gian mỗi câu của bộ câu hỏi mẫu: random 40/45/50/55/60 giây (câu tạo mới mặc định 30s).
+const seedTimeLimits = [40, 45, 50, 55, 60];
+
+const baseSeedQuestions: Array<Omit<QuizQuestion, "timeLimitSeconds">> = [
   {
     id: "q1",
     title: "Thông báo đổi mật khẩu từ bộ phận IT",
@@ -1308,3 +1311,7 @@ export const seedQuestions: QuizQuestion[] = [
   },
 ];
 
+export const seedQuestions: QuizQuestion[] = baseSeedQuestions.map((question, index) => ({
+  ...question,
+  timeLimitSeconds: seedTimeLimits[index % seedTimeLimits.length],
+}));

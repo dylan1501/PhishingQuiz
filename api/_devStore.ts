@@ -14,6 +14,16 @@ import type {
 
 type LeaderboardEntry = Attempt & { participant: Participant };
 
+const teamPlayerEmailPattern = /^nguoi-choi-(\d+)@/;
+
+function clampTimeLimit(value: unknown) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    return 30;
+  }
+  return Math.min(Math.max(Math.round(parsed), 5), 600);
+}
+
 type QuestionInput = {
   title: string;
   category: string;
@@ -24,6 +34,7 @@ type QuestionInput = {
   explanation: string;
   indicators: string[];
   alwaysIncluded: boolean;
+  timeLimitSeconds: number;
 };
 
 type DevAdmin = {
@@ -201,6 +212,7 @@ export async function devCreateQuestion(input: QuestionInput) {
   const question: QuizQuestion = {
     id: crypto.randomUUID(),
     ...input,
+    timeLimitSeconds: clampTimeLimit(input.timeLimitSeconds),
     active: true,
     orderIndex: state.questions.length + 1,
     createdAt: now,
@@ -219,9 +231,20 @@ export async function devUpdateQuestion(questionId: string, input: QuestionInput
   state.questions[index] = {
     ...state.questions[index],
     ...input,
+    timeLimitSeconds: clampTimeLimit(input.timeLimitSeconds),
     updatedAt: new Date().toISOString(),
   };
   return state.questions[index];
+}
+
+export async function devUpdateQuestionTimeLimit(questionId: string, timeLimitSeconds: number) {
+  const question = getState().questions.find((entry) => entry.id === questionId);
+  if (!question) {
+    throw new Error("Không tìm thấy câu hỏi.");
+  }
+  question.timeLimitSeconds = clampTimeLimit(timeLimitSeconds);
+  question.updatedAt = new Date().toISOString();
+  return question;
 }
 
 export async function devUpdateQuestionState(
@@ -322,6 +345,30 @@ export async function devUpsertParticipant(input: {
   };
   state.participants.push(participant);
   return participant;
+}
+
+export async function devCreateTeamParticipant(team: string) {
+  const state = getState();
+  const nextIndex =
+    state.participants.reduce((max, participant) => {
+      const matched = teamPlayerEmailPattern.exec(participant.email);
+      return matched ? Math.max(max, Number(matched[1])) : max;
+    }, 0) + 1;
+  const participant: Participant = {
+    id: crypto.randomUUID(),
+    fullName: `Người chơi ${nextIndex}`,
+    team,
+    email: `nguoi-choi-${nextIndex}@phishingquiz.local`,
+    consent: true,
+    createdAt: new Date().toISOString(),
+  };
+  state.participants.push(participant);
+  return participant;
+}
+
+export async function devStartQuizForTeam(team: string) {
+  const participant = await devCreateTeamParticipant(team);
+  return devStartQuizSession(participant.id);
 }
 
 export async function devDeleteParticipants(participantIds: string[]) {

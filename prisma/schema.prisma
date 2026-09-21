@@ -41,6 +41,7 @@ enum QuizSessionStatus {
 model Participant {
   id        String   @id @default(uuid()) @db.Uuid
   fullName  String   @map("full_name") @db.VarChar(160)
+  team      String?  @db.VarChar(80)
   email     String   @unique @db.VarChar(254)
   consent   Boolean  @default(false)
   createdAt DateTime @default(now()) @map("created_at")
@@ -106,20 +107,21 @@ model QuizSetting {
 }
 
 model Question {
-  id              String       @id @db.VarChar(80)
-  quizId          String       @map("quiz_id") @db.Uuid
-  title           String       @db.VarChar(220)
-  category        String       @db.VarChar(80)
-  scenarioIntro   String       @map("scenario_intro") @db.Text
-  scenarioContent String       @map("scenario_content") @db.Text
-  scenarioHtml    String       @map("scenario_html") @db.Text
-  correctAnswer   AnswerOption @map("correct_answer")
-  explanation     String       @db.Text
-  active          Boolean      @default(true)
-  alwaysIncluded  Boolean      @default(false) @map("always_included")
-  orderIndex      Int          @map("order_index")
-  createdAt       DateTime     @default(now()) @map("created_at")
-  updatedAt       DateTime     @updatedAt @map("updated_at")
+  id               String       @id @db.VarChar(80)
+  quizId           String       @map("quiz_id") @db.Uuid
+  title            String       @db.VarChar(220)
+  category         String       @db.VarChar(80)
+  scenarioIntro    String       @map("scenario_intro") @db.Text
+  scenarioContent  String       @map("scenario_content") @db.Text
+  scenarioHtml     String       @map("scenario_html") @db.Text
+  correctAnswer    AnswerOption @map("correct_answer")
+  explanation      String       @db.Text
+  active           Boolean      @default(true)
+  alwaysIncluded   Boolean      @default(false) @map("always_included")
+  timeLimitSeconds Int          @default(30) @map("time_limit_seconds")
+  orderIndex       Int          @map("order_index")
+  createdAt        DateTime     @default(now()) @map("created_at")
+  updatedAt        DateTime     @updatedAt @map("updated_at")
 
   answers        AttemptAnswer[]
   hotspots       QuestionHotspot[]

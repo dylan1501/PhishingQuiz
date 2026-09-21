@@ -2,6 +2,11 @@ import { useEffect, useRef, useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { getRemoteAttempt, getRemoteQuizConfig } from "../apiClient";
 import { LoadingScreen } from "../components/LoadingScreen";
+
+const RESULT_SOUNDS = {
+  win: "/assets/sounds/result-win.mp3",
+  lose: "/assets/sounds/result-lose.mp3",
+} as const;
 import type { Attempt } from "../types";
 
 type ResultState = { result?: { attempt: Attempt; passScore: number } } | null;
@@ -18,6 +23,8 @@ export function ResultPage() {
   const [loading, setLoading] = useState(Boolean(requestedAttemptId) && !hasPreloaded);
   const [videoReady, setVideoReady] = useState(false);
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const resultAudioRef = useRef<HTMLAudioElement | null>(null);
+  const playedForAttemptRef = useRef<string>("");
 
   // Video đã nằm sẵn trong cache (prefetch từ câu cuối) có thể "canplay" trước khi effect gắn handler.
   useEffect(() => {
@@ -54,6 +61,24 @@ export function ResultPage() {
       active = false;
     };
   }, [requestedAttemptId, hasPreloaded]);
+
+  useEffect(() => {
+    if (!attempt || passScore === null || playedForAttemptRef.current === attempt.id) {
+      return;
+    }
+    playedForAttemptRef.current = attempt.id;
+    const requiredScore = Math.min(passScore, attempt.totalQuestions);
+    const audio = new Audio(attempt.score >= requiredScore ? RESULT_SOUNDS.win : RESULT_SOUNDS.lose);
+    audio.volume = 0.65;
+    resultAudioRef.current = audio;
+    void audio.play().catch(() => {
+      // Trình duyệt có thể chặn audio nếu người dùng chưa tương tác.
+    });
+    return () => {
+      audio.pause();
+      audio.currentTime = 0;
+    };
+  }, [attempt, passScore]);
 
   if (loading) {
     return <LoadingScreen label="Đang tải kết quả" />;

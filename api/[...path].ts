@@ -31,10 +31,12 @@ import {
   devSaveSessionAnswer,
   devSetupAdmin,
   devStartQuizForParticipant,
+  devStartQuizForTeam,
   devStartQuizSession,
   devTouchQuizSession,
   devUpdateQuestion,
   devUpdateQuestionState,
+  devUpdateQuestionTimeLimit,
   devUpsertParticipant,
 } from "./_devStore.js";
 import {
@@ -56,10 +58,13 @@ import {
   saveSessionAnswer,
   saveQuizConfig,
   startQuizForParticipant,
+  startQuizForTeam,
+  TEAM_OPTIONS,
   startQuizSession,
   touchQuizSession,
   updateQuestion,
   updateQuestionState,
+  updateQuestionTimeLimit,
   upsertParticipant,
 } from "./_quizRepository.js";
 
@@ -228,6 +233,7 @@ function readQuestionBody(request: VercelRequest) {
     explanation?: string;
     indicators?: unknown;
     alwaysIncluded?: boolean;
+    timeLimitSeconds?: number;
   }>(request);
 
   if (!body.title?.trim() || !body.category?.trim() || !isAnswerOption(body.correctAnswer)) {
@@ -246,6 +252,7 @@ function readQuestionBody(request: VercelRequest) {
       ? body.indicators.map(String).map((value) => value.trim()).filter(Boolean)
       : [],
     alwaysIncluded: Boolean(body.alwaysIncluded),
+    timeLimitSeconds: Number(body.timeLimitSeconds ?? 30),
   };
 }
 
@@ -363,7 +370,18 @@ export default async function handler(request: VercelRequest, response: VercelRe
           return;
         }
         if (request.method === "PATCH") {
-          const body = readBody<{ active?: boolean; alwaysIncluded?: boolean }>(request);
+          const body = readBody<{ active?: boolean; alwaysIncluded?: boolean; timeLimitSeconds?: number }>(request);
+          if (typeof body.timeLimitSeconds === "number") {
+            const timeLimitSeconds = body.timeLimitSeconds;
+            sendOk(
+              response,
+              await withDevFallback(
+                () => updateQuestionTimeLimit(action, timeLimitSeconds),
+                () => devUpdateQuestionTimeLimit(action, timeLimitSeconds),
+              ),
+            );
+            return;
+          }
           sendOk(
             response,
             await withDevFallback(
@@ -421,8 +439,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
     // vào đường nóng làm bài (trả lời, hoàn thành, tải phiên).
     const isListRoute =
       request.method === "GET" && (resource === "attempts" || resource === "leaderboard" || resource === "participants");
-    const isSessionStart = request.method === "POST" && resource === "quiz-sessions" && !resourceId;
-    if (isListRoute || isSessionStart) {
+    if (isListRoute) {
       await sweepStaleSessions();
     }
 
@@ -496,9 +513,30 @@ export default async function handler(request: VercelRequest, response: VercelRe
       if (!requireMethod(request, response, "POST")) {
         return;
       }
-      const body = readBody<{ participantId?: string; fullName?: string; email?: string; consent?: boolean }>(
-        request,
-      );
+      const body = readBody<{
+        participantId?: string;
+        team?: string;
+        fullName?: string;
+        email?: string;
+        consent?: boolean;
+      }>(request);
+
+      // Luồng mới: người chơi chỉ chọn đội, hệ thống tự tạo "Người chơi N".
+      if (typeof body.team === "string" && body.team.trim()) {
+        const team = body.team.trim();
+        if (!TEAM_OPTIONS.includes(team)) {
+          sendError(response, 400, "Đội liên minh không hợp lệ.");
+          return;
+        }
+        sendCreated(
+          response,
+          await withDevFallback(
+            () => startQuizForTeam(team),
+            () => devStartQuizForTeam(team),
+          ),
+        );
+        return;
+      }
 
       // Đường nhanh: gửi thẳng thông tin người tham gia → 1 request tạo participant + mở phiên.
       if (!body.participantId) {

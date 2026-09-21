@@ -4,15 +4,24 @@ import { exportTableToExcel } from "../excelExport";
 import { PAGE_SIZE_OPTIONS, TablePagination } from "../components/TablePagination";
 import { PencilIcon, TrashIcon } from "../components/icons";
 
-type ParticipantSortKey = "fullName" | "email" | "totalAttempts" | "createdAt";
+type ParticipantSortKey = "fullName" | "team" | "totalAttempts" | "createdAt";
 type SortDirection = "asc" | "desc";
 
 interface ParticipantRow {
   id: string;
   fullName: string;
-  email: string;
+  team: string;
   totalAttempts: number;
   createdAt: string;
+  /** Tóm tắt từng lượt thi để xuất Excel đầy đủ. */
+  attemptSummary: string;
+  playerIndex: number;
+}
+
+// "Người chơi 12" → 12, để sắp xếp theo số thứ tự tăng dần thay vì theo chuỗi.
+function getPlayerIndex(fullName: string) {
+  const matched = /^Người chơi (\d+)$/.exec(fullName.trim());
+  return matched ? Number(matched[1]) : Number.MAX_SAFE_INTEGER;
 }
 
 export function AdminParticipantsPage() {
@@ -46,13 +55,27 @@ export function AdminParticipantsPage() {
     };
   }, []);
 
-  const participantRows: ParticipantRow[] = participants.map((participant) => ({
-    id: participant.id,
-    fullName: participant.fullName,
-    email: participant.email,
-    totalAttempts: attempts.filter((attempt) => attempt.participantId === participant.id).length,
-    createdAt: participant.createdAt,
-  }));
+  const participantRows: ParticipantRow[] = participants.map((participant) => {
+    const ownAttempts = attempts
+      .filter((attempt) => attempt.participantId === participant.id)
+      .sort((first, second) => new Date(first.completedAt).getTime() - new Date(second.completedAt).getTime());
+    return {
+      id: participant.id,
+      fullName: participant.fullName,
+      team: participant.team ?? "—",
+      totalAttempts: ownAttempts.length,
+      createdAt: participant.createdAt,
+      attemptSummary: ownAttempts
+        .map(
+          (attempt, index) =>
+            `Lần ${index + 1}: ${attempt.score}/${attempt.totalQuestions} - ${attempt.durationSeconds}s - ${new Date(
+              attempt.completedAt,
+            ).toLocaleString("vi-VN")}`,
+        )
+        .join(" | "),
+      playerIndex: getPlayerIndex(participant.fullName),
+    };
+  });
 
   const sortedRows = useMemo(() => {
     const direction = sortDirection === "asc" ? 1 : -1;
@@ -63,6 +86,11 @@ export function AdminParticipantsPage() {
 
       if (sortKey === "createdAt") {
         return (new Date(firstRow.createdAt).getTime() - new Date(secondRow.createdAt).getTime()) * direction;
+      }
+
+      if (sortKey === "fullName") {
+        // Sắp theo số thứ tự người chơi (Người chơi 2 đứng trước Người chơi 10).
+        return (firstRow.playerIndex - secondRow.playerIndex) * direction;
       }
 
       return firstRow[sortKey].localeCompare(secondRow[sortKey], "vi", { sensitivity: "base" }) * direction;
@@ -139,14 +167,22 @@ export function AdminParticipantsPage() {
   }
 
   function exportExcel() {
-    const rows = sortedRows.map((participant, index) => [
-      index + 1,
-      participant.fullName,
-      participant.email,
-      participant.totalAttempts,
-      new Date(participant.createdAt).toLocaleString("vi-VN"),
-    ]);
-    exportTableToExcel("Danh sách tham dự", ["STT", "Họ tên", "Email", "Số lần thi", "Ngày tham gia"], rows);
+    // Xuất theo số thứ tự người chơi tăng dần, kèm chi tiết từng lượt thi.
+    const rows = [...sortedRows]
+      .sort((first, second) => first.playerIndex - second.playerIndex)
+      .map((participant, index) => [
+        index + 1,
+        participant.fullName,
+        participant.team,
+        participant.totalAttempts,
+        participant.attemptSummary || "Chưa làm bài",
+        new Date(participant.createdAt).toLocaleString("vi-VN"),
+      ]);
+    exportTableToExcel(
+      "Danh sách tham dự",
+      ["STT", "Người chơi", "Đội", "Số lần thi", "Chi tiết các lượt thi", "Ngày tham gia"],
+      rows,
+    );
   }
 
   return (
@@ -197,8 +233,8 @@ export function AdminParticipantsPage() {
               </th>
             )}
             <th className="stt-col">STT</th>
-            <th>{renderSortHeader("Họ tên", "fullName")}</th>
-            <th>{renderSortHeader("Email", "email")}</th>
+            <th>{renderSortHeader("Người chơi", "fullName")}</th>
+            <th>{renderSortHeader("Đội", "team")}</th>
             <th>{renderSortHeader("Số lần thi", "totalAttempts")}</th>
             <th>{renderSortHeader("Ngày tham gia", "createdAt")}</th>
           </tr>
@@ -218,7 +254,9 @@ export function AdminParticipantsPage() {
               )}
               <td className="stt-col">{(currentPage - 1) * pageSize + index + 1}</td>
               <td>{participant.fullName}</td>
-              <td>{participant.email}</td>
+              <td>
+                <span className="team-chip">{participant.team}</span>
+              </td>
               <td>{participant.totalAttempts}</td>
               <td>{new Date(participant.createdAt).toLocaleString()}</td>
             </tr>

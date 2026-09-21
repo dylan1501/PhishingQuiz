@@ -21,7 +21,7 @@ type ExplanationStep = {
 const QUIZ_SOUNDS = {
   correct: "/assets/sounds/mixkit-correct-answer-reward-952.wav",
   wrong: "/assets/sounds/mixkit-wrong-answer-fail-notification-946.wav",
-  thinking: "/assets/sounds/mixkit-retro-game-emergency-alarm-1000.wav",
+  background: "/assets/sounds/background.mp3",
 } as const;
 
 function stopAudio(audio: HTMLAudioElement | null) {
@@ -275,6 +275,8 @@ export function QuizPage() {
   const [selectedAnswer, setSelectedAnswer] = useState<AnswerOption | null>(
     existingAnswer?.selectedAnswer ?? null,
   );
+  const [timedOut, setTimedOut] = useState(false);
+  const [secondsLeft, setSecondsLeft] = useState(0);
   const [explanationViewed, setExplanationViewed] = useState(false);
   const [explanationStepIndex, setExplanationStepIndex] = useState(0);
   const [finishError, setFinishError] = useState("");
@@ -284,7 +286,7 @@ export function QuizPage() {
   const scenarioStageRef = useRef<HTMLDivElement | null>(null);
   const correctAudioRef = useRef<HTMLAudioElement | null>(null);
   const wrongAudioRef = useRef<HTMLAudioElement | null>(null);
-  const thinkingAudioRef = useRef<HTMLAudioElement | null>(null);
+  const backgroundAudioRef = useRef<HTMLAudioElement | null>(null);
   const [bubblePosition, setBubblePosition] = useState<{ left: number; top: number } | null>(null);
   const [anchorPosition, setAnchorPosition] = useState<{ left: number; top: number } | null>(null);
 
@@ -326,6 +328,26 @@ export function QuizPage() {
       active = false;
     };
   }, [sessionId]);
+
+  // Đồng hồ chỉ chạy khi đang cân nhắc đáp án: dừng ngay khi chọn xong hoặc hết giờ,
+  // nên thời gian xem giải thích không bị tính.
+  const countdownRunning = Boolean(question) && !selectedAnswer && !timedOut && !loadingSession;
+  useEffect(() => {
+    if (!countdownRunning) {
+      return;
+    }
+    const timer = window.setInterval(() => {
+      setSecondsLeft((current) => {
+        if (current <= 1) {
+          window.clearInterval(timer);
+          setTimedOut(true);
+          return 0;
+        }
+        return current - 1;
+      });
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [countdownRunning, question?.id]);
 
   // Tới câu cuối: nạp sẵn video kết quả vào cache để màn kết quả hiện ngay, không phải chờ tải.
   const onFinalQuestion = questions.length > 0 && questionNumber === questions.length;
@@ -374,6 +396,8 @@ export function QuizPage() {
     }
     initializedQuestionIdRef.current = question.id;
     setSelectedAnswer(existingAnswer?.selectedAnswer ?? null);
+    setTimedOut(false);
+    setSecondsLeft(question.timeLimitSeconds ?? 30);
     setExplanationViewed(false);
     setExplanationStepIndex(0);
     setBubblePosition(null);
@@ -386,44 +410,35 @@ export function QuizPage() {
   useEffect(() => {
     correctAudioRef.current = new Audio(QUIZ_SOUNDS.correct);
     wrongAudioRef.current = new Audio(QUIZ_SOUNDS.wrong);
-    thinkingAudioRef.current = new Audio(QUIZ_SOUNDS.thinking);
-    thinkingAudioRef.current.loop = true;
-    thinkingAudioRef.current.volume = 0.18;
+    backgroundAudioRef.current = new Audio(QUIZ_SOUNDS.background);
+    backgroundAudioRef.current.loop = true;
+    backgroundAudioRef.current.volume = 0.22;
     correctAudioRef.current.volume = 0.8;
     wrongAudioRef.current.volume = 0.8;
 
     return () => {
       stopAudio(correctAudioRef.current);
       stopAudio(wrongAudioRef.current);
-      stopAudio(thinkingAudioRef.current);
+      stopAudio(backgroundAudioRef.current);
     };
   }, []);
 
+  // Nhạc nền chạy liên tục suốt lượt thi (không reset theo từng câu như trước).
   useEffect(() => {
-    const thinkingAudio = thinkingAudioRef.current;
-    if (!thinkingAudio) {
+    const backgroundAudio = backgroundAudioRef.current;
+    if (!backgroundAudio || !question) {
       return;
     }
-
-    if (selectedAnswer) {
-      stopAudio(thinkingAudio);
-      return;
-    }
-
-    thinkingAudio.currentTime = 0;
-    void thinkingAudio.play().catch(() => {
-      // Browsers may block audio until the first user interaction.
+    void backgroundAudio.play().catch(() => {
+      // Trình duyệt chặn audio cho tới khi người dùng tương tác lần đầu.
     });
-
-    return () => stopAudio(thinkingAudio);
-  }, [question?.id, selectedAnswer]);
+  }, [question?.id]);
 
   async function answerQuestion(answer: AnswerOption) {
-    if (!session || !question || selectedAnswer) {
+    if (!session || !question || selectedAnswer || timedOut) {
       return;
     }
     setSelectedAnswer(answer);
-    stopAudio(thinkingAudioRef.current);
     playAudio(answer === question.correctAnswer ? correctAudioRef.current : wrongAudioRef.current);
     try {
       const savedAnswer = await saveRemoteAnswer(sessionId, question.id, answer);
@@ -635,6 +650,17 @@ export function QuizPage() {
 
   return (
     <section className="quiz-layout">
+      <div className="quiz-timer-row">
+        <span
+          className={`quiz-timer ${timedOut ? "quiz-timer-out" : secondsLeft <= 10 ? "quiz-timer-warning" : ""}`}
+          role="timer"
+        >
+          {timedOut
+            ? "HẾT GIỜ"
+            : `${String(Math.floor(secondsLeft / 60)).padStart(2, "0")}:${String(secondsLeft % 60).padStart(2, "0")}`}
+        </span>
+        {!selectedAnswer && !timedOut && <span className="quiz-timer-note">Thời gian cho câu này</span>}
+      </div>
       {passScore > 0 && (
         <p className="quiz-pass-requirement">
           Kết quả đạt chính xác ít nhất <strong>{passScore}/{questions.length}</strong> câu được tính là hoàn thành
@@ -712,7 +738,7 @@ export function QuizPage() {
           <button
             type="button"
             className={`answer-button ${selectedAnswer === "phishing" ? "selected-phishing" : ""}`}
-            disabled={Boolean(selectedAnswer) || finishingResult}
+            disabled={Boolean(selectedAnswer) || timedOut || finishingResult}
             onClick={() => answerQuestion("phishing")}
           >
             Phishing
@@ -720,23 +746,25 @@ export function QuizPage() {
           <button
             type="button"
             className={`answer-button ${selectedAnswer === "legitimate" ? "selected-legitimate" : ""}`}
-            disabled={Boolean(selectedAnswer) || finishingResult}
+            disabled={Boolean(selectedAnswer) || timedOut || finishingResult}
             onClick={() => answerQuestion("legitimate")}
           >
             An toàn
           </button>
         </div>
 
-        {selectedAnswer && (
+        {(selectedAnswer || timedOut) && (
           <> 
             <div className={`answer-feedback ${correct ? "feedback-correct" : "feedback-wrong"}`}>
               <div className="feedback-icon">{correct ? "✓" : "!"}</div>
               <div>
-                <strong>{correct ? "Chính xác" : "Chưa chính xác"}</strong>
+                <strong>{timedOut ? "Hết giờ" : correct ? "Chính xác" : "Chưa chính xác"}</strong>
                 <p>
-                  {correct
-                    ? `Bạn đã nhận diện đúng đây là ${question.correctAnswer === "phishing" ? "phishing" : "an toàn"}.`
-                    : `Đáp án đúng là ${question.correctAnswer === "phishing" ? "phishing" : "an toàn"}.`}
+                  {timedOut
+                    ? `Bạn không kịp trả lời. Đáp án đúng là ${question.correctAnswer === "phishing" ? "phishing" : "an toàn"}.`
+                    : correct
+                      ? `Bạn đã nhận diện đúng đây là ${question.correctAnswer === "phishing" ? "phishing" : "an toàn"}.`
+                      : `Đáp án đúng là ${question.correctAnswer === "phishing" ? "phishing" : "an toàn"}.`}
                 </p>
               </div>
               {!explanationViewed && (

@@ -36,6 +36,17 @@ type AttemptWithRelations = Prisma.AttemptGetPayload<{
   include: typeof attemptInclude;
 }>;
 
+export const TEAM_OPTIONS = Array.from({ length: 9 }, (_, index) => `TEAM ${index + 1}`);
+
+// Giới hạn thời gian mỗi câu: 5–600 giây.
+export function clampTimeLimit(value: unknown) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    return 30;
+  }
+  return Math.min(Math.max(Math.round(parsed), 5), 600);
+}
+
 type QuestionInput = {
   title: string;
   category: string;
@@ -46,6 +57,7 @@ type QuestionInput = {
   explanation: string;
   indicators: string[];
   alwaysIncluded: boolean;
+  timeLimitSeconds: number;
 };
 
 function toDbAnswer(answer: ClientAnswerOption) {
@@ -121,6 +133,7 @@ function serializeQuestion(question: QuestionWithIndicators): QuizQuestion {
     active: question.active,
     alwaysIncluded: question.alwaysIncluded,
     orderIndex: question.orderIndex,
+    timeLimitSeconds: question.timeLimitSeconds,
     createdAt: question.createdAt.toISOString(),
     updatedAt: question.updatedAt.toISOString(),
   };
@@ -129,6 +142,7 @@ function serializeQuestion(question: QuestionWithIndicators): QuizQuestion {
 function serializeParticipant(participant: {
   id: string;
   fullName: string;
+  team: string | null;
   email: string;
   consent: boolean;
   createdAt: Date;
@@ -136,6 +150,7 @@ function serializeParticipant(participant: {
   return {
     id: participant.id,
     fullName: participant.fullName,
+    team: participant.team,
     email: participant.email,
     consent: participant.consent,
     createdAt: participant.createdAt.toISOString(),
@@ -206,6 +221,7 @@ export async function ensureDefaultQuiz() {
           explanation: question.explanation,
           active: question.active,
           alwaysIncluded: question.alwaysIncluded,
+          timeLimitSeconds: clampTimeLimit(question.timeLimitSeconds),
           orderIndex: question.orderIndex ?? index + 1,
           indicators: {
             create: question.indicators.map((indicator, indicatorIndex) => ({
@@ -255,6 +271,7 @@ export async function createQuestion(input: QuestionInput) {
       explanation: input.explanation,
       active: true,
       alwaysIncluded: input.alwaysIncluded,
+      timeLimitSeconds: clampTimeLimit(input.timeLimitSeconds),
       orderIndex: (lastQuestion?.orderIndex ?? 0) + 1,
       indicators: {
         create: input.indicators.map((indicator, index) => ({
@@ -266,6 +283,15 @@ export async function createQuestion(input: QuestionInput) {
     include: {
       indicators: { orderBy: { orderIndex: "asc" } },
     },
+  });
+  return serializeQuestion(question);
+}
+
+export async function updateQuestionTimeLimit(questionId: string, timeLimitSeconds: number) {
+  const question = await getPrisma().question.update({
+    where: { id: questionId },
+    data: { timeLimitSeconds: clampTimeLimit(timeLimitSeconds) },
+    include: { indicators: { orderBy: { orderIndex: "asc" } } },
   });
   return serializeQuestion(question);
 }
@@ -285,6 +311,7 @@ export async function updateQuestion(questionId: string, input: QuestionInput) {
         correctAnswer: toDbAnswer(input.correctAnswer),
         explanation: input.explanation,
         alwaysIncluded: input.alwaysIncluded,
+        timeLimitSeconds: clampTimeLimit(input.timeLimitSeconds),
         indicators: {
           create: input.indicators.map((indicator, index) => ({
             label: indicator,
@@ -601,6 +628,85 @@ export async function startQuizForParticipant(input: { fullName: string; email: 
   return startQuizSession(participant.id);
 }
 
+type RawParticipant = {
+  id: string;
+  full_name: string;
+  team: string | null;
+  email: string;
+  consent: boolean;
+  created_at: Date;
+};
+
+// Người chơi chỉ chọn đội; hệ thống tự đánh số "Người chơi N" tăng dần.
+// Số thứ tự và INSERT nằm trong CÙNG một câu lệnh nên không có khoảng hở giữa đọc và ghi;
+// nếu hai người vẫn trúng cùng số (READ COMMITTED) thì unique email chặn lại và ta thử lại,
+// mỗi lần thử đều tính lại số lớn nhất.
+export async function createTeamParticipant(team: string): Promise<Participant> {
+  const prisma = getPrisma();
+  for (let attempt = 0; attempt < 25; attempt += 1) {
+    try {
+      const rows = await prisma.$queryRaw<RawParticipant[]>`
+        INSERT INTO participants (id, full_name, team, email, consent, created_at, updated_at)
+        SELECT
+          gen_random_uuid(),
+          'Người chơi ' || next_index,
+          ${team},
+          'nguoi-choi-' || next_index || '@phishingquiz.local',
+          true,
+          NOW(),
+          NOW()
+        FROM (
+          SELECT COALESCE(
+            MAX(CAST(SUBSTRING(email FROM '^nguoi-choi-([0-9]+)@') AS INTEGER)), 0
+          ) + 1 AS next_index
+          FROM participants
+          WHERE email ~ '^nguoi-choi-[0-9]+@'
+        ) AS numbering
+        RETURNING id, full_name, team, email, consent, created_at
+      `;
+      const created = rows[0];
+      if (created) {
+        return {
+          id: created.id,
+          fullName: created.full_name,
+          team: created.team,
+          email: created.email,
+          consent: created.consent,
+          createdAt: new Date(created.created_at).toISOString(),
+        };
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "";
+      const isUniqueConflict =
+        (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") ||
+        message.includes("participants_email_key") ||
+        message.includes("duplicate key");
+      if (!isUniqueConflict) {
+        throw error;
+      }
+      // Giãn ngẫu nhiên vài mili giây để các request đồng thời không va nhau liên tục.
+      await new Promise((resolve) => setTimeout(resolve, 10 + Math.floor(Math.random() * 40)));
+    }
+  }
+
+  // Rất hiếm: quá nhiều va chạm liên tiếp → dùng hậu tố ngẫu nhiên để người chơi vẫn vào được bài.
+  const suffix = randomUUID().slice(0, 8);
+  const fallback = await prisma.participant.create({
+    data: {
+      fullName: `Người chơi ${suffix}`,
+      team,
+      email: `nguoi-choi-${suffix}@phishingquiz.local`,
+      consent: true,
+    },
+  });
+  return serializeParticipant(fallback);
+}
+
+export async function startQuizForTeam(team: string) {
+  const participant = await createTeamParticipant(team);
+  return startQuizSession(participant.id);
+}
+
 export async function saveSessionAnswer(input: {
   sessionId: string;
   questionId: string;
@@ -680,36 +786,52 @@ async function createAttemptFromSession(session: SessionForFinalize, completedAt
   const durationSeconds = Math.max(1, Math.round((completedAt.getTime() - session.startedAt.getTime()) / 1000));
   const score = answeredQuestions.filter((answer) => answer.isCorrect).length;
 
-  try {
-    // Batch transaction: 2 lệnh trong 1 giao dịch, không cần vòng kiểm tra trước (unique lo việc đó).
-    const [attempt] = await prisma.$transaction([
-      prisma.attempt.create({
-        data: {
-          participantId: session.participantId,
-          quizId: session.quizId,
-          quizSessionId: session.id,
-          score,
-          totalQuestions: questionIds.length,
-          durationSeconds,
-          startedAt: session.startedAt,
-          completedAt,
-          answers: {
-            create: answeredQuestions.map((answer) => ({
-              questionId: answer.questionId,
-              selectedAnswer: answer.selectedAnswer,
-              correctAnswer: correctAnswerByQuestionId.get(answer.questionId) ?? answer.selectedAnswer,
-              isCorrect: answer.isCorrect,
-              answeredAt: answer.answeredAt,
-            })),
+  // Khi nhiều người nộp bài cùng lúc, giao dịch phải chờ kết nối rảnh trong pool;
+  // maxWait mặc định 2s là quá ngắn nên nới rộng và thử lại một lần nếu vẫn hết giờ.
+  const runFinalize = () =>
+    prisma.$transaction(
+      [
+        prisma.attempt.create({
+          data: {
+            participantId: session.participantId,
+            quizId: session.quizId,
+            quizSessionId: session.id,
+            score,
+            totalQuestions: questionIds.length,
+            durationSeconds,
+            startedAt: session.startedAt,
+            completedAt,
+            answers: {
+              create: answeredQuestions.map((answer) => ({
+                questionId: answer.questionId,
+                selectedAnswer: answer.selectedAnswer,
+                correctAnswer: correctAnswerByQuestionId.get(answer.questionId) ?? answer.selectedAnswer,
+                isCorrect: answer.isCorrect,
+                answeredAt: answer.answeredAt,
+              })),
+            },
           },
-        },
-        include: attemptInclude,
-      }),
-      prisma.quizSession.update({
-        where: { id: session.id },
-        data: { status: "COMPLETED", completedAt },
-      }),
-    ]);
+          include: attemptInclude,
+        }),
+        prisma.quizSession.update({
+          where: { id: session.id },
+          data: { status: "COMPLETED", completedAt },
+        }),
+      ],
+      { maxWait: 20_000, timeout: 30_000 },
+    );
+
+  try {
+    let attempt;
+    try {
+      [attempt] = await runFinalize();
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2028") {
+        [attempt] = await runFinalize();
+      } else {
+        throw error;
+      }
+    }
     return attempt;
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
