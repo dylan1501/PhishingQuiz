@@ -291,6 +291,7 @@ export function QuizPage() {
   const scenarioHtmlRef = useRef<HTMLDivElement | null>(null);
   const feedbackRef = useRef<HTMLDivElement | null>(null);
   const scenarioStageRef = useRef<HTMLDivElement | null>(null);
+  const inlineNoteRef = useRef<HTMLDivElement | null>(null);
   const correctAudioRef = useRef<HTMLAudioElement | null>(null);
   const wrongAudioRef = useRef<HTMLAudioElement | null>(null);
   const backgroundAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -647,6 +648,42 @@ export function QuizPage() {
     });
   }, [currentExplanationStep, explanationViewed, scenarioHtmlWithSpotOrder]);
 
+  // Mỗi lần bấm Next sang bước giải thích kế tiếp, tự cuộn tới đúng vị trí đang được tô sáng
+  // để người làm bài không phải tự tìm. Chạy sau khi vẽ xong để bong bóng đã có kích thước thật.
+  useEffect(() => {
+    if (!explanationViewed || typeof window === "undefined") {
+      return;
+    }
+
+    const target =
+      currentExplanationStep?.hotspotIndex === undefined
+        ? inlineNoteRef.current
+        : scenarioHtmlRef.current?.querySelector<HTMLElement>(
+            `[data-spot-order="${currentExplanationStep.hotspotIndex}"]`,
+          ) ?? null;
+
+    if (!target) {
+      return;
+    }
+
+    // Thanh đồng hồ dính ở trên cùng sẽ che mất nếu cuộn điểm lên quá cao.
+    const stickyBar = document.querySelector<HTMLElement>(".quiz-sticky-bar");
+    const safeTop = (stickyBar?.getBoundingClientRect().height ?? 0) + 24;
+    // Đặt điểm ở khoảng 1/3 màn hình: vừa không bị thanh dính che, vừa còn chỗ cho
+    // bong bóng giải thích nằm ngay bên dưới.
+    const desiredTop = Math.max(safeTop, window.innerHeight * 0.3);
+    const delta = target.getBoundingClientRect().top - desiredTop;
+
+    if (Math.abs(delta) < 8) {
+      return;
+    }
+
+    window.scrollBy({
+      top: delta,
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+    });
+  }, [currentExplanationStep, explanationViewed]);
+
   if (!sessionId) {
     return <Navigate to="/quiz/start" replace />;
   }
@@ -757,7 +794,7 @@ export function QuizPage() {
                   <span className="legend-chip legend-safe">Dấu hiệu hợp lệ</span>
                 </div>
                 {!currentExplanationStep?.spot && currentExplanationStep && (
-                  <div className="inline-explanation-note">
+                  <div className="inline-explanation-note" ref={inlineNoteRef}>
                     <strong>{currentExplanationStep.title}</strong>
                     <p>{currentExplanationStep.body}</p>
                     <button
