@@ -352,8 +352,6 @@ export function QuizPage() {
   // Đồng hồ chỉ chạy khi đang cân nhắc đáp án: dừng ngay khi chọn xong hoặc hết giờ,
   // nên thời gian xem giải thích không bị tính.
   const countdownRunning = Boolean(question) && !selectedAnswer && !timedOut && !loadingSession;
-  const timerTotal = question?.timeLimitSeconds ?? 30;
-  const timerFraction = timedOut ? 0 : Math.max(0, Math.min(1, secondsLeft / Math.max(timerTotal, 1)));
   useEffect(() => {
     if (!countdownRunning) {
       return;
@@ -730,23 +728,12 @@ export function QuizPage() {
         </div>
         <div className="quiz-timer-block">
           <div className="quiz-timer-dial">
-            <svg viewBox="0 0 100 100" aria-hidden="true">
-              <circle className="quiz-timer-track" cx="50" cy="50" r="44" />
-              <circle
-                className="quiz-timer-progress"
-                cx="50"
-                cy="50"
-                r="44"
-                strokeDasharray={2 * Math.PI * 44}
-                strokeDashoffset={2 * Math.PI * 44 * (1 - timerFraction)}
-              />
-            </svg>
             <span
               className={`quiz-timer ${timedOut ? "quiz-timer-out" : secondsLeft <= 10 ? "quiz-timer-warning" : ""}`}
               role="timer"
             >
               {timedOut
-                ? "HẾT"
+                ? "HẾT GIỜ"
                 : `${String(Math.floor(secondsLeft / 60)).padStart(2, "0")}:${String(secondsLeft % 60).padStart(2, "0")}`}
             </span>
           </div>

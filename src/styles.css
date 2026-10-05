@@ -5564,75 +5564,81 @@ textarea {
   justify-content: center;
 }
 
+/* Đồng hồ dạng số trần, không vòng tròn bao quanh, cỡ lớn để nhìn thấy từ xa. */
 .quiz-timer-dial {
-  position: relative;
-  width: 58px;
-  height: 58px;
   display: grid;
   place-items: center;
   flex: 0 0 auto;
-}
-
-.quiz-timer-dial svg {
-  position: absolute;
-  inset: 0;
-  transform: rotate(-90deg);
-}
-
-.quiz-timer-track {
-  fill: none;
-  stroke: var(--border);
-  stroke-width: 8;
-}
-
-.quiz-timer-progress {
-  fill: none;
-  stroke: #2c69b0;
-  stroke-width: 8;
-  stroke-linecap: round;
-  transition: stroke-dashoffset 900ms linear, stroke 300ms ease;
-}
-
-:root[data-theme="dark"] .quiz-timer-progress {
-  stroke: #67a9ff;
 }
 
 .quiz-timer {
   position: relative;
   z-index: 1;
   font-family: var(--font-mono);
-  font-size: 1.02rem;
-  font-weight: 700;
+  font-size: 2.6rem;
+  font-weight: 800;
   font-variant-numeric: tabular-nums;
+  line-height: 1.05;
   color: var(--ink);
-  letter-spacing: -0.02em;
+  letter-spacing: -0.03em;
+  transition: color 300ms ease;
 }
 
+/* 10 giây cuối: số to thêm, chuyển đỏ và đập theo từng giây. */
 .quiz-timer-warning {
   color: #b42a3d;
+  font-size: 3.1rem;
+  animation: timerCountdownBeat 1s ease-in-out infinite;
 }
 
 :root[data-theme="dark"] .quiz-timer-warning {
   color: #ff8d9a;
 }
 
-.quiz-sticky-bar.is-warning .quiz-timer-progress {
-  stroke: #e04f5f;
+@keyframes timerCountdownBeat {
+  0%,
+  100% {
+    transform: scale(1);
+    text-shadow: 0 0 0 rgba(224, 79, 95, 0);
+  }
+  18% {
+    transform: scale(1.14);
+    text-shadow: 0 0 18px rgba(224, 79, 95, 0.55);
+  }
+  45% {
+    transform: scale(1);
+    text-shadow: 0 0 6px rgba(224, 79, 95, 0.22);
+  }
 }
 
 .quiz-sticky-bar.is-warning {
   border-color: rgba(224, 79, 95, 0.45);
+  background: rgba(224, 79, 95, 0.07);
   animation: timerPulse 1s ease-in-out infinite;
 }
 
+/* Hết giờ: huy hiệu đặc thay cho chữ trần, giữ đúng chiều cao của dãy số để thanh không nhảy. */
 .quiz-timer-out {
-  font-size: 0.82rem;
-  letter-spacing: 0.04em;
-  color: #b42a3d;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.7rem;
+  padding: 0 1.3rem;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #e04f5f, #b42a3d);
+  color: #ffffff;
+  font-family: var(--font-display, inherit);
+  font-size: 1.4rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  line-height: 1;
+  white-space: nowrap;
+  box-shadow: 0 8px 20px rgba(180, 42, 61, 0.34);
 }
 
 :root[data-theme="dark"] .quiz-timer-out {
-  color: #ff8d9a;
+  color: #ffffff;
+  box-shadow: 0 8px 22px rgba(224, 79, 95, 0.45);
 }
 
 .quiz-sticky-bar.is-out {
@@ -5646,9 +5652,66 @@ textarea {
   }
 }
 
+/* Tắt hiệu ứng động: 10 giây cuối vẫn nhận ra nhờ màu đỏ và cỡ chữ lớn hơn. */
 @media (prefers-reduced-motion: reduce) {
-  .quiz-timer-warning {
+  .quiz-timer-warning,
+  .quiz-sticky-bar.is-warning {
     animation: none;
+  }
+}
+
+/* Chip trong thanh dính dùng cỡ gọn hơn chip thường: thanh này phải thấp vì luôn chiếm
+   chỗ trên đầu màn hình, và hai chip phải nằm vừa một dòng. */
+.quiz-sticky-bar .question-count-pill,
+.quiz-sticky-bar .question-category-pill {
+  padding: 0.22rem 0.62rem;
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+
+/* Dưới 1024px cột hai bên không còn đủ rộng cho hai chip: xếp thành 2 hàng căn giữa. */
+@media (max-width: 1024px) {
+  .quiz-sticky-bar {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    gap: 0.35rem;
+    padding: 0.5rem 0.7rem;
+  }
+
+  /* Chiếm trọn chiều ngang, nếu không justify-items:center sẽ co lại và ép chip xuống dòng. */
+  .quiz-sticky-bar .quiz-meta {
+    width: 100%;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+
+  .quiz-sticky-bar::after {
+    display: none;
+  }
+}
+
+/* Màn hình hẹp: thu cỡ đồng hồ cho vừa thanh dính nhưng vẫn nổi hơn chữ xung quanh. */
+@media (max-width: 640px) {
+  .quiz-timer {
+    font-size: 2rem;
+  }
+
+  .quiz-timer-warning {
+    font-size: 2.3rem;
+  }
+
+  .quiz-timer-out {
+    min-height: 2.1rem;
+    padding: 0 0.9rem;
+    font-size: 1.05rem;
+    letter-spacing: 0.06em;
+  }
+
+  .quiz-sticky-bar .question-count-pill,
+  .quiz-sticky-bar .question-category-pill {
+    padding: 0.18rem 0.55rem;
+    font-size: 0.72rem;
   }
 }
 
