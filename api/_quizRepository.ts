@@ -68,6 +68,11 @@ function fromDbAnswer(answer: string): ClientAnswerOption {
   return answer === DbAnswerOption.PHISHING ? "phishing" : "legitimate";
 }
 
+// Lượt mới tránh câu của 2 lượt gần nhất => 3 lượt liên tiếp bất kỳ đều không trùng câu.
+const RECENT_SESSION_WINDOW = 2;
+// Chỉ quét số bản ghi gần đây vừa đủ để biết câu nào lâu chưa ra, tránh đọc cả bảng.
+const QUESTION_USAGE_SCAN_LIMIT = 2000;
+
 function shuffle<T>(items: T[]) {
   const next = [...items];
   for (let index = next.length - 1; index > 0; index -= 1) {
@@ -507,6 +512,34 @@ export async function startQuizSession(participantId: string): Promise<QuizSessi
     }),
   ]);
   await assertCanStartQuiz(participantId, quiz.id);
+
+  // Ba lượt chơi liên tiếp không được trùng câu: lượt mới chỉ cần tránh toàn bộ câu của
+  // 2 lượt gần nhất là mọi cửa sổ 3 lượt đều không lặp.
+  const [recentSessions, questionUsage] = await Promise.all([
+    prisma.quizSession.findMany({
+      where: { quizId: quiz.id },
+      orderBy: { startedAt: "desc" },
+      take: RECENT_SESSION_WINDOW,
+      select: { questions: { select: { questionId: true } } },
+    }),
+    // Lần dùng gần nhất của từng câu, để khi ngân hàng không đủ thì ưu tiên câu lâu chưa ra.
+    prisma.quizSessionQuestion.findMany({
+      where: { session: { quizId: quiz.id } },
+      orderBy: { session: { startedAt: "desc" } },
+      take: QUESTION_USAGE_SCAN_LIMIT,
+      select: { questionId: true, session: { select: { startedAt: true } } },
+    }),
+  ]);
+  const recentQuestionIds = new Set(
+    recentSessions.flatMap((entry) => entry.questions.map((question) => question.questionId)),
+  );
+  const lastUsedAt = new Map<string, number>();
+  for (const row of questionUsage) {
+    if (!lastUsedAt.has(row.questionId)) {
+      lastUsedAt.set(row.questionId, row.session.startedAt.getTime());
+    }
+  }
+
   const questionLimit = clampQuestionCount(setting?.questionCount ?? 10, activeQuestions.length);
   const requiredQuestions = activeQuestions
     .filter((question) => question.alwaysIncluded)
@@ -524,15 +557,31 @@ export async function startQuizSession(participantId: string): Promise<QuizSessi
   const neededLegitimate = Math.max(0, questionLimit - targetPhishing - requiredLegitimateCount);
 
   const optionalQuestions = activeQuestions.filter((question) => !question.alwaysIncluded);
-  const phishingPool = shuffle(optionalQuestions.filter(isPhishing));
-  const legitimatePool = shuffle(optionalQuestions.filter((question) => !isPhishing(question)));
+  // Hạng 0: chưa ra bao giờ | hạng 1: đã ra nhưng không nằm trong 2 lượt gần nhất | hạng 2: vừa ra.
+  // Trộn trước rồi sort (sort của JS ổn định) nên trong cùng một hạng vẫn ngẫu nhiên.
+  const freshnessRank = (question: { id: string }) => {
+    if (recentQuestionIds.has(question.id)) {
+      return 2;
+    }
+    return lastUsedAt.has(question.id) ? 1 : 0;
+  };
+  const orderByFreshness = <T extends { id: string }>(items: T[]) =>
+    shuffle(items).sort((left, right) => {
+      const byRank = freshnessRank(left) - freshnessRank(right);
+      if (byRank !== 0) {
+        return byRank;
+      }
+      return (lastUsedAt.get(left.id) ?? 0) - (lastUsedAt.get(right.id) ?? 0);
+    });
+  const phishingPool = orderByFreshness(optionalQuestions.filter(isPhishing));
+  const legitimatePool = orderByFreshness(optionalQuestions.filter((question) => !isPhishing(question)));
   const picked = [
     ...requiredQuestions,
     ...phishingPool.slice(0, neededPhishing),
     ...legitimatePool.slice(0, neededLegitimate),
   ];
   if (picked.length < questionLimit) {
-    const leftovers = shuffle([
+    const leftovers = orderByFreshness([
       ...phishingPool.slice(neededPhishing),
       ...legitimatePool.slice(neededLegitimate),
     ]);

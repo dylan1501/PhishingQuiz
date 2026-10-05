@@ -50,6 +50,8 @@ type DevState = {
   sessions: QuizSession[];
   attempts: LeaderboardEntry[];
   quizConfig: QuizConfig;
+  // Lịch sử đề của các lượt đã phát, mới nhất đứng đầu. Giữ riêng vì session bị xoá khi chốt bài.
+  recentQuestionSets: string[][];
   admin: DevAdmin | null;
 };
 
@@ -76,6 +78,7 @@ function getState() {
       participants: [],
       sessions: [],
       attempts: [],
+      recentQuestionSets: [],
       quizConfig: {
         questionCount: 10,
         passScore: 4,
@@ -88,6 +91,11 @@ function getState() {
   }
   return globalForDevStore.phishingQuizDevStore;
 }
+
+// Lượt mới tránh câu của 2 lượt gần nhất => 3 lượt liên tiếp bất kỳ đều không trùng câu.
+const devRecentSessionWindow = 2;
+// Giữ lịch sử vừa đủ để biết câu nào lâu chưa ra, không để phình bộ nhớ.
+const devQuestionHistoryLimit = 200;
 
 function shuffle<T>(items: T[]) {
   const next = [...items];
@@ -415,18 +423,51 @@ export async function devStartQuizSession(participantId: string): Promise<QuizSe
     questionLimit - targetPhishing - (requiredQuestions.length - requiredPhishingCount),
   );
   const optional = activeQuestions.filter((question) => !question.alwaysIncluded);
-  const phishingPool = shuffle(optional.filter((question) => question.correctAnswer === "phishing"));
-  const legitimatePool = shuffle(optional.filter((question) => question.correctAnswer !== "phishing"));
+
+  // Ba lượt liên tiếp không trùng câu: tránh toàn bộ câu của 2 lượt gần nhất.
+  // Thiếu câu thì ưu tiên câu lâu chưa ra (vị trí càng xa đầu lịch sử càng cũ).
+  const history = state.recentQuestionSets;
+  const recentIds = new Set(history.slice(0, devRecentSessionWindow).flat());
+  const lastUsedOrder = new Map<string, number>();
+  history.forEach((questionIds, position) => {
+    questionIds.forEach((questionId) => {
+      if (!lastUsedOrder.has(questionId)) {
+        lastUsedOrder.set(questionId, history.length - position);
+      }
+    });
+  });
+  const freshnessRank = (question: QuizQuestion) => {
+    if (recentIds.has(question.id)) {
+      return 2;
+    }
+    return lastUsedOrder.has(question.id) ? 1 : 0;
+  };
+  const orderByFreshness = (items: QuizQuestion[]) =>
+    shuffle(items).sort((left, right) => {
+      const byRank = freshnessRank(left) - freshnessRank(right);
+      if (byRank !== 0) {
+        return byRank;
+      }
+      return (lastUsedOrder.get(left.id) ?? 0) - (lastUsedOrder.get(right.id) ?? 0);
+    });
+
+  const phishingPool = orderByFreshness(optional.filter((question) => question.correctAnswer === "phishing"));
+  const legitimatePool = orderByFreshness(optional.filter((question) => question.correctAnswer !== "phishing"));
   const picked = [
     ...requiredQuestions,
     ...phishingPool.slice(0, neededPhishing),
     ...legitimatePool.slice(0, neededLegitimate),
   ];
   if (picked.length < questionLimit) {
-    const leftovers = shuffle([...phishingPool.slice(neededPhishing), ...legitimatePool.slice(neededLegitimate)]);
+    const leftovers = orderByFreshness([
+      ...phishingPool.slice(neededPhishing),
+      ...legitimatePool.slice(neededLegitimate),
+    ]);
     picked.push(...leftovers.slice(0, questionLimit - picked.length));
   }
   const questionIds = shuffle(picked).slice(0, questionLimit).map((question) => question.id);
+  state.recentQuestionSets.unshift(questionIds);
+  state.recentQuestionSets = state.recentQuestionSets.slice(0, devQuestionHistoryLimit);
   const session: QuizSession = {
     id: crypto.randomUUID(),
     remote: true,
