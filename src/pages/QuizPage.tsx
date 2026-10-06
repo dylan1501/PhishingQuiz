@@ -337,12 +337,16 @@ export function QuizPage() {
     };
   }, [sessionId]);
 
-  // Khi chuyển sang câu hỏi mới, luôn cuộn lên đầu trang để người chơi thấy đề từ đầu.
+  // Khi chuyển sang câu hỏi mới (cả lần đầu và khi nhấn Next), luôn cuộn lên đầu trang.
+  // requestAnimationFrame đảm bảo scroll chạy sau khi DOM đã update xong.
   useEffect(() => {
     if (!question) {
       return;
     }
-    window.scrollTo({ top: 0, behavior: "auto" });
+    const frame = window.requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, behavior: "auto" });
+    });
+    return () => window.cancelAnimationFrame(frame);
   }, [question?.id]);
 
   // Trả lời xong (hoặc hết giờ) thì đưa luôn khối phản hồi + nút "Xem giải thích" vào tầm mắt,
