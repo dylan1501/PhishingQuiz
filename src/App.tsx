@@ -135,9 +135,13 @@ function AdminRoute({ children }: { children: React.ReactElement }) {
     return <Navigate to="/admin/login" replace />;
   }
   return (
-    <div className="stack admin-stack">
-      <AdminNav />
-      {children}
+    <div className="admin-layout">
+      <div className="admin-nav-layer">
+        <AdminNav />
+      </div>
+      <div className="admin-content">
+        {children}
+      </div>
     </div>
   );
 }

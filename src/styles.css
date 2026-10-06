@@ -488,15 +488,32 @@ textarea {
   color: #fff;
 }
 
+/* Layout riêng cho admin pages: site-header → admin-links → content */
+.admin-layout {
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-nav-layer {
+  position: sticky;
+  top: 60px;
+  z-index: 50;
+  padding: 0.75rem 1rem;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.admin-content {
+  display: grid;
+  gap: 0.75rem;
+}
+
 /* Thanh admin-links dùng chung cho mọi tab quản trị. */
 .admin-stack {
   gap: 0.75rem;
 }
 
-.admin-stack > .admin-links {
-  position: sticky;
-  top: 60px;
-  z-index: 50;
+.admin-nav-layer .admin-links {
   padding: 0.58rem;
 }
 
