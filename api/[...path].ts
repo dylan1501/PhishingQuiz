@@ -722,8 +722,10 @@ export default async function handler(request: VercelRequest, response: VercelRe
         passScore?: number;
         phishingCount?: number;
         singleAttemptPerEmail?: boolean;
+        requireParticipantInfo?: boolean;
       }>(request);
       const singleAttemptPerEmail = Boolean(body.singleAttemptPerEmail);
+      const requireParticipantInfo = Boolean(body.requireParticipantInfo);
       sendOk(
         response,
         await withDevFallback(
@@ -733,6 +735,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
               Number(body.passScore),
               Number(body.phishingCount),
               singleAttemptPerEmail,
+              requireParticipantInfo,
             ),
           () =>
             devSaveQuizConfig(
@@ -740,6 +743,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
               Number(body.passScore),
               Number(body.phishingCount),
               singleAttemptPerEmail,
+              requireParticipantInfo,
             ),
         ),
       );
