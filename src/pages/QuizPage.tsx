@@ -337,6 +337,14 @@ export function QuizPage() {
     };
   }, [sessionId]);
 
+  // Khi chuyển sang câu hỏi mới, luôn cuộn lên đầu trang để người chơi thấy đề từ đầu.
+  useEffect(() => {
+    if (!question) {
+      return;
+    }
+    window.scrollTo({ top: 0, behavior: "auto" });
+  }, [question?.id]);
+
   // Trả lời xong (hoặc hết giờ) thì đưa luôn khối phản hồi + nút "Xem giải thích" vào tầm mắt,
   // người chơi không phải tự cuộn tìm.
   useEffect(() => {
