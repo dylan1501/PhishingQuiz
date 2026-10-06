@@ -346,20 +346,20 @@ export function AdminQuestionsPage() {
 
   return (
     <section className="stack">
-      <div className="content-card questions-card">
-        <div className="admin-page-heading">
-          <div>
-            <h2>Ngân hàng câu hỏi</h2>
-            <p className="questions-summary">
-              {questions.length} câu · {activeCount} đang bật · {alwaysIncludedCount} luôn có
-              {hasActiveFilters ? ` · đang hiện ${visibleQuestions.length}` : ""}
-            </p>
-          </div>
-          <button type="button" className="button button-primary button-small add-question-button" onClick={startNewQuestion}>
-            <PlusIcon />
-            Thêm câu hỏi
-          </button>
+      <div className="admin-page-heading admin-page-heading-sticky">
+        <div>
+          <h2>Ngân hàng câu hỏi</h2>
+          <p className="questions-summary">
+            {questions.length} câu · {activeCount} đang bật · {alwaysIncludedCount} luôn có
+            {hasActiveFilters ? ` · đang hiện ${visibleQuestions.length}` : ""}
+          </p>
         </div>
+        <button type="button" className="button button-primary button-small add-question-button" onClick={startNewQuestion}>
+          <PlusIcon />
+          Thêm câu hỏi
+        </button>
+      </div>
+      <div className="content-card questions-card">
         {loadError && <div className="notice notice-error">{loadError}</div>}
         <div className="table-toolbar">
           <label className="search-field">

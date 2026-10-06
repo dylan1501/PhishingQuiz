@@ -189,8 +189,8 @@ export function AdminParticipantsPage() {
 
   return (
     <section className="content-card">
-      <p className="eyebrow">Người Tham Gia</p>
-      <div className="admin-page-heading">
+      <div className="admin-page-heading admin-page-heading-sticky">
+        <p className="eyebrow">Người Tham Gia</p>
         <h2>Danh sách người làm quiz</h2>
         <div className="admin-page-actions">
           {editMode ? (

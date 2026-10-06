@@ -182,6 +182,12 @@ export function AdminDashboardPage() {
 
   return (
     <section className="stack admin-dashboard-stack">
+      <div className="admin-page-heading-sticky">
+        <div>
+          <p className="eyebrow">Bảng Điều Khiển</p>
+          <h2>Toàn cảnh hoạt động của Phishing Quiz</h2>
+        </div>
+      </div>
       <div className="content-card admin-hero-card">
         <div className="fish-school" aria-hidden="true">
           <span className="fish fish-one" />
@@ -189,10 +195,6 @@ export function AdminDashboardPage() {
           <span className="fish fish-three" />
           <span className="fish fish-four" />
           <span className="fish fish-five" />
-        </div>
-        <div>
-          <p className="eyebrow">Bảng Điều Khiển</p>
-          <h2>Toàn cảnh hoạt động của Phishing Quiz</h2>
         </div>
         <img
           src="/assets/illustrations/shield-scan.svg"

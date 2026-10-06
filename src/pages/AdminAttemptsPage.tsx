@@ -176,8 +176,8 @@ export function AdminAttemptsPage() {
 
   return (
     <section className="content-card">
-      <p className="eyebrow">Lịch Sử Làm Bài</p>
-      <div className="admin-page-heading">
+      <div className="admin-page-heading admin-page-heading-sticky">
+        <p className="eyebrow">Lịch Sử Làm Bài</p>
         <div>
           {filterParticipantId && (
             <button
