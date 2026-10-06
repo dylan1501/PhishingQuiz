@@ -61,12 +61,14 @@ export function AdminDashboardPage() {
     passScore: 4,
     phishingCount: 5,
     singleAttemptPerEmail: false,
+    requireParticipantInfo: false,
     updatedAt: new Date(0).toISOString(),
   });
   const [questionCountInput, setQuestionCountInput] = useState(String(quizConfig.questionCount));
   const [passScoreInput, setPassScoreInput] = useState(String(quizConfig.passScore));
   const [phishingCountInput, setPhishingCountInput] = useState(String(quizConfig.phishingCount));
   const [singleAttemptInput, setSingleAttemptInput] = useState(quizConfig.singleAttemptPerEmail);
+  const [requireParticipantInfoInput, setRequireParticipantInfoInput] = useState(quizConfig.requireParticipantInfo);
   const [answerBreakdown, setAnswerBreakdown] = useState<AnswerBreakdown | null>(null);
   const [configMessage, setConfigMessage] = useState("");
   const [loadError, setLoadError] = useState("");
@@ -131,6 +133,7 @@ export function AdminDashboardPage() {
           setPassScoreInput(String(remoteQuizConfig.passScore));
           setPhishingCountInput(String(remoteQuizConfig.phishingCount));
           setSingleAttemptInput(remoteQuizConfig.singleAttemptPerEmail);
+          setRequireParticipantInfoInput(remoteQuizConfig.requireParticipantInfo);
           setAnswerBreakdown(remoteQuizConfig.answerBreakdown ?? null);
         }
       })
@@ -161,14 +164,16 @@ export function AdminDashboardPage() {
         parsedPassScore,
         parsedPhishingCount,
         singleAttemptInput,
+        requireParticipantInfoInput,
       );
       setQuizConfig(nextConfig);
       setQuestionCountInput(String(nextConfig.questionCount));
       setPassScoreInput(String(nextConfig.passScore));
       setPhishingCountInput(String(nextConfig.phishingCount));
       setSingleAttemptInput(nextConfig.singleAttemptPerEmail);
+      setRequireParticipantInfoInput(nextConfig.requireParticipantInfo);
       setConfigMessage(
-        `Đã lưu: ${nextConfig.questionCount} câu mỗi lượt (${nextConfig.phishingCount} Phishing / ${nextConfig.questionCount - nextConfig.phishingCount} An toàn), cần đúng ít nhất ${nextConfig.passScore} câu. Mỗi email 1 lần: ${nextConfig.singleAttemptPerEmail ? "bật" : "tắt"}.`,
+        `Đã lưu: ${nextConfig.questionCount} câu mỗi lượt (${nextConfig.phishingCount} Phishing / ${nextConfig.questionCount - nextConfig.phishingCount} An toàn), cần đúng ít nhất ${nextConfig.passScore} câu. Mỗi email 1 lần: ${nextConfig.singleAttemptPerEmail ? "bật" : "tắt"}. Yêu cầu thông tin người tham gia: ${nextConfig.requireParticipantInfo ? "bật" : "tắt"}.`,
       );
     } catch (error) {
       setConfigMessage(error instanceof Error ? error.message : "Không lưu được cấu hình bài thi.");
@@ -251,6 +256,17 @@ export function AdminDashboardPage() {
               }}
             />
             <span>Mỗi email chỉ được làm bài 1 lần</span>
+          </label>
+          <label className="admin-check-row config-toggle">
+            <input
+              type="checkbox"
+              checked={requireParticipantInfoInput}
+              onChange={(event) => {
+                setRequireParticipantInfoInput(event.target.checked);
+                setConfigMessage("");
+              }}
+            />
+            <span>Yêu cầu người chơi điền email & thông tin cá nhân</span>
           </label>
           <button type="submit" className="button button-primary">
             Lưu cấu hình

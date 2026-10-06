@@ -27,6 +27,10 @@ export function AdminNav() {
         <img src="/assets/icons/questions.svg" alt="" className="admin-tab-icon" />
         Câu hỏi
       </NavLink>
+      <NavLink to="/leaderboard">
+        <img src="/assets/icons/leaderboard.svg" alt="" className="admin-tab-icon" />
+        Bảng xếp hạng
+      </NavLink>
       <button type="button" className="button button-small admin-signout-button" onClick={signOut}>
         <img src="/assets/icons/signout.svg" alt="" className="admin-tab-icon" />
         Đăng xuất

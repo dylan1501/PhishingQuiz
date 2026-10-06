@@ -239,11 +239,15 @@ function readQuestionBody(request: VercelRequest) {
     indicators?: unknown;
     alwaysIncluded?: boolean;
     timeLimitSeconds?: number;
+    difficulty?: string;
   }>(request);
 
   if (!body.title?.trim() || !body.category?.trim() || !isAnswerOption(body.correctAnswer)) {
     throw new Error("Dữ liệu câu hỏi không hợp lệ.");
   }
+
+  const validDifficulties: string[] = ["none", "low", "medium", "high", "very_high"];
+  const difficulty = (validDifficulties.includes(body.difficulty) ? body.difficulty : "none") as any;
 
   return {
     title: body.title.trim(),
@@ -258,6 +262,7 @@ function readQuestionBody(request: VercelRequest) {
       : [],
     alwaysIncluded: Boolean(body.alwaysIncluded),
     timeLimitSeconds: Number(body.timeLimitSeconds ?? 30),
+    difficulty,
   };
 }
 

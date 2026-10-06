@@ -5,6 +5,7 @@ import type {
   AnswerOption,
   Attempt,
   AttemptAnswer,
+  DifficultyLevel,
   Participant,
   QuizConfig,
   QuizQuestion,
@@ -35,6 +36,7 @@ type QuestionInput = {
   indicators: string[];
   alwaysIncluded: boolean;
   timeLimitSeconds: number;
+  difficulty: DifficultyLevel;
 };
 
 type DevAdmin = {
@@ -84,6 +86,7 @@ function getState() {
         passScore: 4,
         phishingCount: 5,
         singleAttemptPerEmail: false,
+        requireParticipantInfo: false,
         updatedAt: new Date(0).toISOString(),
       },
       admin: null,
@@ -304,6 +307,7 @@ export async function devSaveQuizConfig(
   passScore: number,
   phishingCount: number,
   singleAttemptPerEmail: boolean,
+  requireParticipantInfo: boolean = false,
 ) {
   const state = getState();
   const activeQuestionCount = Math.max(state.questions.filter((question) => question.active).length, 1);
@@ -317,6 +321,7 @@ export async function devSaveQuizConfig(
       ? Math.min(Math.max(Math.round(phishingCount), 0), nextQuestionCount)
       : Math.min(Math.round(nextQuestionCount / 2), nextQuestionCount),
     singleAttemptPerEmail,
+    requireParticipantInfo,
     updatedAt: new Date().toISOString(),
   };
   return state.quizConfig;

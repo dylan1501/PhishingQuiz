@@ -110,6 +110,7 @@ function serializeQuizConfig(setting: {
   passScore: number;
   phishingCount: number;
   singleAttemptPerEmail: boolean;
+  requireParticipantInfo: boolean;
   updatedAt: Date;
 }): QuizConfig {
   return {
@@ -117,6 +118,7 @@ function serializeQuizConfig(setting: {
     passScore: clampPassScore(setting.passScore, setting.questionCount),
     phishingCount: clampPhishingCount(setting.phishingCount, setting.questionCount),
     singleAttemptPerEmail: setting.singleAttemptPerEmail,
+    requireParticipantInfo: setting.requireParticipantInfo,
     updatedAt: setting.updatedAt.toISOString(),
   };
 }
@@ -139,6 +141,7 @@ function serializeQuestion(question: QuestionWithIndicators): QuizQuestion {
     alwaysIncluded: question.alwaysIncluded,
     orderIndex: question.orderIndex,
     timeLimitSeconds: question.timeLimitSeconds,
+    difficulty: (question.difficulty as any) || "none",
     createdAt: question.createdAt.toISOString(),
     updatedAt: question.updatedAt.toISOString(),
   };
@@ -395,6 +398,7 @@ export async function saveQuizConfig(
   passScore: number,
   phishingCount: number,
   singleAttemptPerEmail: boolean,
+  requireParticipantInfo: boolean = false,
 ): Promise<QuizConfig> {
   const prisma = getPrisma();
   const quiz = await ensureDefaultQuiz();
@@ -411,6 +415,7 @@ export async function saveQuizConfig(
       passScore: nextPassScore,
       phishingCount: nextPhishingCount,
       singleAttemptPerEmail,
+      requireParticipantInfo,
     },
     create: {
       quizId: quiz.id,
@@ -418,6 +423,7 @@ export async function saveQuizConfig(
       passScore: nextPassScore,
       phishingCount: nextPhishingCount,
       singleAttemptPerEmail,
+      requireParticipantInfo,
       randomizeQuestions: true,
       requireExplanation: true,
     },

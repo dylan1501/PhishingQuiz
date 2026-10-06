@@ -124,10 +124,10 @@ export function startRemoteSession(participantId: string) {
 export const TEAM_OPTIONS = Array.from({ length: 9 }, (_, index) => `TEAM ${index + 1}`);
 
 // Người chơi chọn đội; server tự tạo "Người chơi N" và mở phiên trong một request.
-export function startRemoteQuizForTeam(team: string) {
+export function startRemoteQuizForTeam(team: string, fullName?: string, email?: string) {
   return requestApi<QuizSessionPayload>("quiz-sessions", {
     method: "POST",
-    body: JSON.stringify({ team }),
+    body: JSON.stringify({ team, fullName, email }),
   });
 }
 
@@ -190,10 +190,11 @@ export function saveRemoteQuizConfig(
   passScore: number,
   phishingCount: number,
   singleAttemptPerEmail: boolean,
+  requireParticipantInfo: boolean = false,
 ) {
   return requestApi<QuizConfig>("quiz-config", {
     method: "PUT",
-    body: JSON.stringify({ questionCount, passScore, phishingCount, singleAttemptPerEmail }),
+    body: JSON.stringify({ questionCount, passScore, phishingCount, singleAttemptPerEmail, requireParticipantInfo }),
   });
 }
 

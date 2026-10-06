@@ -28,6 +28,7 @@ const baseSeedQuestions: Array<Omit<QuizQuestion, "timeLimitSeconds">> = [
     active: true,
     alwaysIncluded: false,
     orderIndex: 1,
+    difficulty: "none",
   },
   {
     id: "q2",
@@ -52,6 +53,7 @@ const baseSeedQuestions: Array<Omit<QuizQuestion, "timeLimitSeconds">> = [
     active: false,
     alwaysIncluded: false,
     orderIndex: 2,
+    difficulty: "none",
   },
   {
     id: "q3",
@@ -76,6 +78,7 @@ const baseSeedQuestions: Array<Omit<QuizQuestion, "timeLimitSeconds">> = [
     active: false,
     alwaysIncluded: false,
     orderIndex: 3,
+    difficulty: "none",
   },
   {
     id: "q4",
@@ -118,6 +121,7 @@ const baseSeedQuestions: Array<Omit<QuizQuestion, "timeLimitSeconds">> = [
     active: false,
     alwaysIncluded: false,
     orderIndex: 4,
+    difficulty: "none",
   },
   {
     id: "q5",
@@ -146,6 +150,7 @@ const baseSeedQuestions: Array<Omit<QuizQuestion, "timeLimitSeconds">> = [
     active: false,
     alwaysIncluded: false,
     orderIndex: 5,
+    difficulty: "none",
   },
   {
     id: "q6",
@@ -188,6 +193,7 @@ const baseSeedQuestions: Array<Omit<QuizQuestion, "timeLimitSeconds">> = [
     active: false,
     alwaysIncluded: false,
     orderIndex: 6,
+    difficulty: "none",
   },
   {
     id: "q7",
@@ -212,6 +218,7 @@ const baseSeedQuestions: Array<Omit<QuizQuestion, "timeLimitSeconds">> = [
     active: false,
     alwaysIncluded: false,
     orderIndex: 7,
+    difficulty: "none",
   },
   {
     id: "q8",
@@ -238,6 +245,7 @@ const baseSeedQuestions: Array<Omit<QuizQuestion, "timeLimitSeconds">> = [
     active: false,
     alwaysIncluded: false,
     orderIndex: 8,
+    difficulty: "none",
   },
   {
     id: "q9",
@@ -262,6 +270,7 @@ const baseSeedQuestions: Array<Omit<QuizQuestion, "timeLimitSeconds">> = [
     active: false,
     alwaysIncluded: false,
     orderIndex: 9,
+    difficulty: "none",
   },
   {
     id: "q10",
@@ -287,6 +296,7 @@ const baseSeedQuestions: Array<Omit<QuizQuestion, "timeLimitSeconds">> = [
     active: true,
     alwaysIncluded: false,
     orderIndex: 10,
+    difficulty: "none",
   },
   {
     id: "q11",
@@ -314,6 +324,7 @@ const baseSeedQuestions: Array<Omit<QuizQuestion, "timeLimitSeconds">> = [
     active: true,
     alwaysIncluded: false,
     orderIndex: 11,
+    difficulty: "none",
   },
   {
     id: "q12",
@@ -338,6 +349,7 @@ const baseSeedQuestions: Array<Omit<QuizQuestion, "timeLimitSeconds">> = [
     active: true,
     alwaysIncluded: false,
     orderIndex: 12,
+    difficulty: "none",
   },
   {
     id: "q13",
@@ -361,6 +373,7 @@ const baseSeedQuestions: Array<Omit<QuizQuestion, "timeLimitSeconds">> = [
     active: true,
     alwaysIncluded: false,
     orderIndex: 13,
+    difficulty: "none",
   },
   {
     id: "q14",
@@ -387,6 +400,7 @@ const baseSeedQuestions: Array<Omit<QuizQuestion, "timeLimitSeconds">> = [
     active: true,
     alwaysIncluded: false,
     orderIndex: 14,
+    difficulty: "none",
   },
   {
     id: "q15",
@@ -412,6 +426,7 @@ const baseSeedQuestions: Array<Omit<QuizQuestion, "timeLimitSeconds">> = [
     active: true,
     alwaysIncluded: false,
     orderIndex: 15,
+    difficulty: "none",
   },
   {
     id: "q16",
@@ -436,6 +451,7 @@ const baseSeedQuestions: Array<Omit<QuizQuestion, "timeLimitSeconds">> = [
     active: true,
     alwaysIncluded: false,
     orderIndex: 16,
+    difficulty: "none",
   },
   {
     id: "q17",
@@ -461,6 +477,7 @@ const baseSeedQuestions: Array<Omit<QuizQuestion, "timeLimitSeconds">> = [
     active: true,
     alwaysIncluded: false,
     orderIndex: 17,
+    difficulty: "none",
   },
   {
     id: "q18",
@@ -486,6 +503,7 @@ const baseSeedQuestions: Array<Omit<QuizQuestion, "timeLimitSeconds">> = [
     active: true,
     alwaysIncluded: false,
     orderIndex: 18,
+    difficulty: "none",
   },
   {
     id: "q19",
@@ -511,6 +529,7 @@ const baseSeedQuestions: Array<Omit<QuizQuestion, "timeLimitSeconds">> = [
     active: true,
     alwaysIncluded: false,
     orderIndex: 19,
+    difficulty: "none",
   },
   {
     id: "q20",
@@ -536,6 +555,7 @@ const baseSeedQuestions: Array<Omit<QuizQuestion, "timeLimitSeconds">> = [
     active: true,
     alwaysIncluded: false,
     orderIndex: 20,
+    difficulty: "none",
   },
   {
     id: "q21",
@@ -563,6 +583,7 @@ const baseSeedQuestions: Array<Omit<QuizQuestion, "timeLimitSeconds">> = [
     active: true,
     alwaysIncluded: false,
     orderIndex: 21,
+    difficulty: "none",
   },
   {
     id: "q22",
@@ -588,6 +609,7 @@ const baseSeedQuestions: Array<Omit<QuizQuestion, "timeLimitSeconds">> = [
     active: true,
     alwaysIncluded: false,
     orderIndex: 22,
+    difficulty: "none",
   },
   {
     id: "q23",
@@ -613,6 +635,7 @@ const baseSeedQuestions: Array<Omit<QuizQuestion, "timeLimitSeconds">> = [
     active: true,
     alwaysIncluded: false,
     orderIndex: 23,
+    difficulty: "none",
   },
   {
     id: "q24",
@@ -637,6 +660,7 @@ const baseSeedQuestions: Array<Omit<QuizQuestion, "timeLimitSeconds">> = [
     active: true,
     alwaysIncluded: false,
     orderIndex: 24,
+    difficulty: "none",
   },
   {
     id: "q25",
@@ -664,6 +688,7 @@ const baseSeedQuestions: Array<Omit<QuizQuestion, "timeLimitSeconds">> = [
     active: true,
     alwaysIncluded: false,
     orderIndex: 25,
+    difficulty: "none",
   },
   {
     id: "q26",
@@ -691,6 +716,7 @@ const baseSeedQuestions: Array<Omit<QuizQuestion, "timeLimitSeconds">> = [
     active: true,
     alwaysIncluded: false,
     orderIndex: 26,
+    difficulty: "none",
   },
   {
     id: "q27",
@@ -716,6 +742,7 @@ const baseSeedQuestions: Array<Omit<QuizQuestion, "timeLimitSeconds">> = [
     active: false,
     alwaysIncluded: true,
     orderIndex: 27,
+    difficulty: "none",
   },
   {
     id: "q28",
@@ -749,6 +776,7 @@ const baseSeedQuestions: Array<Omit<QuizQuestion, "timeLimitSeconds">> = [
     active: true,
     alwaysIncluded: true,
     orderIndex: 28,
+    difficulty: "none",
   },
   {
     id: "q29",
@@ -784,6 +812,7 @@ const baseSeedQuestions: Array<Omit<QuizQuestion, "timeLimitSeconds">> = [
     active: true,
     alwaysIncluded: false,
     orderIndex: 29,
+    difficulty: "none",
   },
   {
     id: "q30",
@@ -818,6 +847,7 @@ const baseSeedQuestions: Array<Omit<QuizQuestion, "timeLimitSeconds">> = [
     active: true,
     alwaysIncluded: false,
     orderIndex: 30,
+    difficulty: "none",
   },
   {
     id: "q31",
@@ -858,6 +888,7 @@ const baseSeedQuestions: Array<Omit<QuizQuestion, "timeLimitSeconds">> = [
     active: true,
     alwaysIncluded: false,
     orderIndex: 31,
+    difficulty: "none",
   },
   {
     id: "q32",
@@ -895,6 +926,7 @@ const baseSeedQuestions: Array<Omit<QuizQuestion, "timeLimitSeconds">> = [
     active: true,
     alwaysIncluded: true,
     orderIndex: 32,
+    difficulty: "none",
   },
   {
     id: "q33",
@@ -935,6 +967,7 @@ const baseSeedQuestions: Array<Omit<QuizQuestion, "timeLimitSeconds">> = [
     active: true,
     alwaysIncluded: false,
     orderIndex: 33,
+    difficulty: "none",
   },
   {
     id: "q34",
@@ -976,6 +1009,7 @@ const baseSeedQuestions: Array<Omit<QuizQuestion, "timeLimitSeconds">> = [
     active: true,
     alwaysIncluded: false,
     orderIndex: 34,
+    difficulty: "none",
   },
   {
     id: "q35",
@@ -1066,6 +1100,7 @@ const baseSeedQuestions: Array<Omit<QuizQuestion, "timeLimitSeconds">> = [
     active: true,
     alwaysIncluded: true,
     orderIndex: 35,
+    difficulty: "none",
   },
   {
     id: "q36",
@@ -1099,6 +1134,7 @@ const baseSeedQuestions: Array<Omit<QuizQuestion, "timeLimitSeconds">> = [
     active: true,
     alwaysIncluded: false,
     orderIndex: 36,
+    difficulty: "none",
   },
   {
     id: "q37",
@@ -1134,6 +1170,7 @@ const baseSeedQuestions: Array<Omit<QuizQuestion, "timeLimitSeconds">> = [
     active: true,
     alwaysIncluded: false,
     orderIndex: 37,
+    difficulty: "none",
   },
   {
     id: "q38",
@@ -1169,6 +1206,7 @@ const baseSeedQuestions: Array<Omit<QuizQuestion, "timeLimitSeconds">> = [
     active: false,
     alwaysIncluded: true,
     orderIndex: 38,
+    difficulty: "none",
   },
   {
     id: "q39",
@@ -1198,6 +1236,7 @@ const baseSeedQuestions: Array<Omit<QuizQuestion, "timeLimitSeconds">> = [
     active: true,
     alwaysIncluded: false,
     orderIndex: 39,
+    difficulty: "none",
   },
   {
     id: "q40",
@@ -1227,6 +1266,7 @@ const baseSeedQuestions: Array<Omit<QuizQuestion, "timeLimitSeconds">> = [
     active: true,
     alwaysIncluded: false,
     orderIndex: 40,
+    difficulty: "none",
   },
   {
     id: "q41",
@@ -1254,6 +1294,7 @@ const baseSeedQuestions: Array<Omit<QuizQuestion, "timeLimitSeconds">> = [
     active: true,
     alwaysIncluded: false,
     orderIndex: 41,
+    difficulty: "none",
   },
   {
     id: "q42",
@@ -1283,6 +1324,7 @@ const baseSeedQuestions: Array<Omit<QuizQuestion, "timeLimitSeconds">> = [
     active: true,
     alwaysIncluded: false,
     orderIndex: 42,
+    difficulty: "none",
   },
   {
     id: "q43",
@@ -1307,6 +1349,7 @@ const baseSeedQuestions: Array<Omit<QuizQuestion, "timeLimitSeconds">> = [
     active: false,
     alwaysIncluded: true,
     orderIndex: 43,
+    difficulty: "none",
   },
   {
     id: "q44",
@@ -1333,6 +1376,7 @@ const baseSeedQuestions: Array<Omit<QuizQuestion, "timeLimitSeconds">> = [
     active: true,
     alwaysIncluded: false,
     orderIndex: 44,
+    difficulty: "none",
   },
   {
     id: "q45",
@@ -1362,6 +1406,7 @@ const baseSeedQuestions: Array<Omit<QuizQuestion, "timeLimitSeconds">> = [
     active: true,
     alwaysIncluded: false,
     orderIndex: 45,
+    difficulty: "none",
   },
   {
     id: "q46",
@@ -1388,6 +1433,7 @@ const baseSeedQuestions: Array<Omit<QuizQuestion, "timeLimitSeconds">> = [
     active: true,
     alwaysIncluded: false,
     orderIndex: 46,
+    difficulty: "none",
   },
   {
     id: "q47",
@@ -1413,6 +1459,7 @@ const baseSeedQuestions: Array<Omit<QuizQuestion, "timeLimitSeconds">> = [
     active: true,
     alwaysIncluded: false,
     orderIndex: 47,
+    difficulty: "none",
   },
   {
     id: "q48",
@@ -1448,6 +1495,7 @@ const baseSeedQuestions: Array<Omit<QuizQuestion, "timeLimitSeconds">> = [
     active: false,
     alwaysIncluded: false,
     orderIndex: 48,
+    difficulty: "none",
   },
   {
     id: "q49",
@@ -1477,6 +1525,7 @@ const baseSeedQuestions: Array<Omit<QuizQuestion, "timeLimitSeconds">> = [
     active: false,
     alwaysIncluded: false,
     orderIndex: 49,
+    difficulty: "none",
   },
   {
     id: "4bfa1358-cedf-4a98-95fb-fe5f9e32db5e",
@@ -1867,6 +1916,7 @@ const baseSeedQuestions: Array<Omit<QuizQuestion, "timeLimitSeconds">> = [
     active: true,
     alwaysIncluded: true,
     orderIndex: 50,
+    difficulty: "none",
   },
   {
     id: "ec4cbde6-3e74-4255-ae71-a7cc8921dfe0",
@@ -2442,6 +2492,7 @@ const baseSeedQuestions: Array<Omit<QuizQuestion, "timeLimitSeconds">> = [
     active: true,
     alwaysIncluded: true,
     orderIndex: 51,
+    difficulty: "none",
   },
   {
     id: "qr-safe-canteen-menu",
@@ -2468,6 +2519,7 @@ const baseSeedQuestions: Array<Omit<QuizQuestion, "timeLimitSeconds">> = [
     active: true,
     alwaysIncluded: false,
     orderIndex: 52,
+    difficulty: "none",
   },
   {
     id: "qr-safe-guest-wifi",
@@ -2494,6 +2546,7 @@ const baseSeedQuestions: Array<Omit<QuizQuestion, "timeLimitSeconds">> = [
     active: true,
     alwaysIncluded: false,
     orderIndex: 53,
+    difficulty: "none",
   },
   {
     id: "qr-safe-event-checkin",
@@ -2520,6 +2573,7 @@ const baseSeedQuestions: Array<Omit<QuizQuestion, "timeLimitSeconds">> = [
     active: true,
     alwaysIncluded: false,
     orderIndex: 54,
+    difficulty: "none",
   },
   {
     id: "qr-safe-training-survey",
@@ -2546,6 +2600,7 @@ const baseSeedQuestions: Array<Omit<QuizQuestion, "timeLimitSeconds">> = [
     active: true,
     alwaysIncluded: false,
     orderIndex: 55,
+    difficulty: "none",
   },
   {
     id: "qr-safe-shuttle-schedule",
@@ -2572,6 +2627,7 @@ const baseSeedQuestions: Array<Omit<QuizQuestion, "timeLimitSeconds">> = [
     active: true,
     alwaysIncluded: false,
     orderIndex: 56,
+    difficulty: "none",
   },
   {
     id: "qr-safe-parking-register",
@@ -2598,6 +2654,7 @@ const baseSeedQuestions: Array<Omit<QuizQuestion, "timeLimitSeconds">> = [
     active: true,
     alwaysIncluded: false,
     orderIndex: 57,
+    difficulty: "none",
   },
   {
     id: "qr-safe-printer-guide",
@@ -2624,6 +2681,7 @@ const baseSeedQuestions: Array<Omit<QuizQuestion, "timeLimitSeconds">> = [
     active: true,
     alwaysIncluded: false,
     orderIndex: 58,
+    difficulty: "none",
   },
   {
     id: "qr-safe-meeting-docs",
@@ -2650,6 +2708,7 @@ const baseSeedQuestions: Array<Omit<QuizQuestion, "timeLimitSeconds">> = [
     active: true,
     alwaysIncluded: false,
     orderIndex: 59,
+    difficulty: "none",
   },
   {
     id: "qr-safe-library-book",
@@ -2676,6 +2735,7 @@ const baseSeedQuestions: Array<Omit<QuizQuestion, "timeLimitSeconds">> = [
     active: true,
     alwaysIncluded: false,
     orderIndex: 60,
+    difficulty: "none",
   },
   {
     id: "qr-safe-blood-donation",
@@ -2702,6 +2762,7 @@ const baseSeedQuestions: Array<Omit<QuizQuestion, "timeLimitSeconds">> = [
     active: true,
     alwaysIncluded: false,
     orderIndex: 61,
+    difficulty: "none",
   },
   {
     id: "qr-safe-canteen-feedback",
@@ -2728,6 +2789,7 @@ const baseSeedQuestions: Array<Omit<QuizQuestion, "timeLimitSeconds">> = [
     active: true,
     alwaysIncluded: false,
     orderIndex: 62,
+    difficulty: "none",
   },
   {
     id: "qr-safe-device-warranty",
@@ -2754,6 +2816,7 @@ const baseSeedQuestions: Array<Omit<QuizQuestion, "timeLimitSeconds">> = [
     active: true,
     alwaysIncluded: false,
     orderIndex: 63,
+    difficulty: "none",
   },
   {
     id: "qr-safe-office-map",
@@ -2780,6 +2843,7 @@ const baseSeedQuestions: Array<Omit<QuizQuestion, "timeLimitSeconds">> = [
     active: true,
     alwaysIncluded: false,
     orderIndex: 64,
+    difficulty: "none",
   },
   {
     id: "qr-safe-visitor-register",
@@ -2806,6 +2870,7 @@ const baseSeedQuestions: Array<Omit<QuizQuestion, "timeLimitSeconds">> = [
     active: true,
     alwaysIncluded: false,
     orderIndex: 65,
+    difficulty: "none",
   },
   {
     id: "qr-safe-health-check",
@@ -2832,6 +2897,7 @@ const baseSeedQuestions: Array<Omit<QuizQuestion, "timeLimitSeconds">> = [
     active: true,
     alwaysIncluded: false,
     orderIndex: 66,
+    difficulty: "none",
   },
   {
     id: "safe-email-hrm-profile",
@@ -2858,6 +2924,7 @@ const baseSeedQuestions: Array<Omit<QuizQuestion, "timeLimitSeconds">> = [
     active: true,
     alwaysIncluded: false,
     orderIndex: 67,
+    difficulty: "none",
   },
   {
     id: "safe-email-jira-assign",
@@ -2883,6 +2950,7 @@ const baseSeedQuestions: Array<Omit<QuizQuestion, "timeLimitSeconds">> = [
     active: true,
     alwaysIncluded: false,
     orderIndex: 68,
+    difficulty: "none",
   },
   {
     id: "safe-email-confluence-doc",
@@ -2908,6 +2976,7 @@ const baseSeedQuestions: Array<Omit<QuizQuestion, "timeLimitSeconds">> = [
     active: true,
     alwaysIncluded: false,
     orderIndex: 69,
+    difficulty: "none",
   },
   {
     id: "safe-email-esm-ticket",
@@ -2934,6 +3003,7 @@ const baseSeedQuestions: Array<Omit<QuizQuestion, "timeLimitSeconds">> = [
     active: true,
     alwaysIncluded: false,
     orderIndex: 70,
+    difficulty: "none",
   },
   {
     id: "safe-email-vpslearn-course",
@@ -2959,6 +3029,7 @@ const baseSeedQuestions: Array<Omit<QuizQuestion, "timeLimitSeconds">> = [
     active: true,
     alwaysIncluded: false,
     orderIndex: 71,
+    difficulty: "none",
   },
   {
     id: "safe-sms-esm-ticket",
@@ -2993,6 +3064,7 @@ const baseSeedQuestions: Array<Omit<QuizQuestion, "timeLimitSeconds">> = [
     active: true,
     alwaysIncluded: false,
     orderIndex: 72,
+    difficulty: "none",
   },
   {
     id: "safe-sms-vpslearn-remind",
@@ -3027,6 +3099,7 @@ const baseSeedQuestions: Array<Omit<QuizQuestion, "timeLimitSeconds">> = [
     active: true,
     alwaysIncluded: false,
     orderIndex: 73,
+    difficulty: "none",
   },
   {
     id: "safe-sms-hrm-payslip",
@@ -3061,6 +3134,7 @@ const baseSeedQuestions: Array<Omit<QuizQuestion, "timeLimitSeconds">> = [
     active: true,
     alwaysIncluded: false,
     orderIndex: 74,
+    difficulty: "none",
   },
   {
     id: "safe-sms-shuttle-change",
@@ -3095,6 +3169,7 @@ const baseSeedQuestions: Array<Omit<QuizQuestion, "timeLimitSeconds">> = [
     active: true,
     alwaysIncluded: false,
     orderIndex: 75,
+    difficulty: "none",
   },
   {
     id: "safe-web-hrm-login",
@@ -3127,6 +3202,7 @@ const baseSeedQuestions: Array<Omit<QuizQuestion, "timeLimitSeconds">> = [
     active: true,
     alwaysIncluded: false,
     orderIndex: 76,
+    difficulty: "none",
   },
   {
     id: "safe-web-confluence-doc",
@@ -3159,6 +3235,7 @@ const baseSeedQuestions: Array<Omit<QuizQuestion, "timeLimitSeconds">> = [
     active: true,
     alwaysIncluded: false,
     orderIndex: 77,
+    difficulty: "none",
   },
   {
     id: "safe-web-esm-portal",
@@ -3192,6 +3269,7 @@ const baseSeedQuestions: Array<Omit<QuizQuestion, "timeLimitSeconds">> = [
     active: true,
     alwaysIncluded: false,
     orderIndex: 78,
+    difficulty: "none",
   },
   {
     id: "safe-invoice-internal",
@@ -3218,6 +3296,7 @@ const baseSeedQuestions: Array<Omit<QuizQuestion, "timeLimitSeconds">> = [
     active: true,
     alwaysIncluded: false,
     orderIndex: 79,
+    difficulty: "none",
   },
   {
     id: "safe-alert-new-login",
@@ -3244,6 +3323,7 @@ const baseSeedQuestions: Array<Omit<QuizQuestion, "timeLimitSeconds">> = [
     active: true,
     alwaysIncluded: false,
     orderIndex: 80,
+    difficulty: "none",
   },
   {
     id: "safe-alert-password-expiry",
@@ -3270,6 +3350,7 @@ const baseSeedQuestions: Array<Omit<QuizQuestion, "timeLimitSeconds">> = [
     active: true,
     alwaysIncluded: false,
     orderIndex: 81,
+    difficulty: "none",
   },
 ];
 

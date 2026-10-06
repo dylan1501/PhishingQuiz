@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { deleteAllAdminAttempts, getRemoteAttempts, getRemoteParticipants } from "../apiClient";
 import { exportTableToExcel } from "../excelExport";
 import { PAGE_SIZE_OPTIONS, TablePagination } from "../components/TablePagination";
-import { TrashIcon } from "../components/icons";
+import { TrashIcon, ArrowLeftIcon } from "../components/icons";
 
 // "ranking" là thứ tự mặc định: điểm cao hơn → thời gian ít hơn → hoàn thành sớm hơn.
 type AttemptSortKey = "ranking" | "participantName" | "team" | "score" | "durationSeconds" | "completedAt";
@@ -20,6 +21,10 @@ interface AttemptRow {
 }
 
 export function AdminAttemptsPage() {
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const filterParticipantId = searchParams.get("participantId");
+
   const [attempts, setAttempts] = useState<Awaited<ReturnType<typeof getRemoteAttempts>>>([]);
   const [participants, setParticipants] = useState<Awaited<ReturnType<typeof getRemoteParticipants>>>([]);
   const [loadError, setLoadError] = useState("");
@@ -48,7 +53,11 @@ export function AdminAttemptsPage() {
     };
   }, []);
 
-  const attemptRows: AttemptRow[] = attempts.map((attempt) => {
+  const filteredAttempts = filterParticipantId
+    ? attempts.filter((attempt) => attempt.participantId === filterParticipantId)
+    : attempts;
+
+  const attemptRows: AttemptRow[] = filteredAttempts.map((attempt) => {
     const participant = participants.find((entry) => entry.id === attempt.participantId);
     return {
       id: attempt.id,
@@ -61,6 +70,10 @@ export function AdminAttemptsPage() {
       completedAt: attempt.completedAt,
     };
   });
+
+  const filterParticipantName = filterParticipantId
+    ? participants.find((p) => p.id === filterParticipantId)?.fullName
+    : null;
 
   const sortedRows = useMemo(() => {
     const direction = sortDirection === "asc" ? 1 : -1;
@@ -149,8 +162,9 @@ export function AdminAttemptsPage() {
       new Date(attempt.startedAt).toLocaleString("vi-VN"),
       new Date(attempt.completedAt).toLocaleString("vi-VN"),
     ]);
+    const title = filterParticipantName ? `Lịch sử làm bài - ${filterParticipantName}` : "Lịch sử làm bài";
     exportTableToExcel(
-      "Lịch sử làm bài",
+      title,
       ["STT", "Người chơi", "Đội", "Điểm", "Thời gian", "Bắt đầu lúc", "Hoàn thành lúc"],
       rows,
     );
@@ -160,7 +174,20 @@ export function AdminAttemptsPage() {
     <section className="content-card">
       <p className="eyebrow">Lịch Sử Làm Bài</p>
       <div className="admin-page-heading">
-        <h2>Chi tiết các lượt thi</h2>
+        <div>
+          {filterParticipantId && (
+            <button
+              type="button"
+              className="button button-ghost button-small"
+              onClick={() => navigate("/admin/participants")}
+              style={{ marginBottom: "12px" }}
+            >
+              <ArrowLeftIcon />
+              Quay lại danh sách người tham gia
+            </button>
+          )}
+          <h2>{filterParticipantName ? `Lượt thi của ${filterParticipantName}` : "Chi tiết các lượt thi"}</h2>
+        </div>
         <div className="admin-page-actions">
           <button
             type="button"

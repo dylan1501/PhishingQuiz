@@ -1,4 +1,5 @@
 export type AnswerOption = "phishing" | "legitimate";
+export type DifficultyLevel = "none" | "low" | "medium" | "high" | "very_high";
 
 export interface Participant {
   id: string;
@@ -25,6 +26,8 @@ export interface QuizQuestion {
   orderIndex: number;
   /** Thời gian tối đa cho câu hỏi (giây), chỉ tính tới lúc chọn đáp án. */
   timeLimitSeconds: number;
+  /** Mức độ khó: none (chưa có), low, medium, high, very_high. */
+  difficulty: DifficultyLevel;
   /** ISO; không có với dữ liệu seed trong bộ nhớ dev. */
   createdAt?: string;
   updatedAt?: string;
@@ -67,6 +70,8 @@ export interface QuizConfig {
   phishingCount: number;
   /** Bật thì mỗi email chỉ được làm bài một lần. */
   singleAttemptPerEmail: boolean;
+  /** Bắt buộc người chơi điền email và thông tin cá nhân. */
+  requireParticipantInfo: boolean;
   updatedAt: string;
 }
 

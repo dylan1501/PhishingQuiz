@@ -98,3 +98,12 @@ export function TrashIcon(props: IconProps) {
     </svg>
   );
 }
+
+export function ArrowLeftIcon(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M19 12H5" />
+      <path d="M12 19l-7-7 7-7" />
+    </svg>
+  );
+}

@@ -7,7 +7,7 @@ import {
   patchAdminQuestionState,
   updateAdminQuestion,
 } from "../apiClient";
-import type { AnswerOption, QuizQuestion } from "../types";
+import type { AnswerOption, DifficultyLevel, QuizQuestion } from "../types";
 import { EyeIcon, PencilIcon, PinIcon, PinOffIcon, PlusIcon, PowerIcon, SearchIcon, TrashIcon } from "../components/icons";
 
 type QuestionSortKey = "orderIndex" | "title" | "category" | "active" | "timeLimitSeconds" | "createdAt" | "updatedAt";
@@ -39,6 +39,7 @@ interface QuestionFormState {
   indicators: string;
   alwaysIncluded: boolean;
   timeLimitSeconds: number;
+  difficulty: DifficultyLevel;
 }
 
 const emptyForm: QuestionFormState = {
@@ -52,6 +53,7 @@ const emptyForm: QuestionFormState = {
   indicators: "",
   alwaysIncluded: false,
   timeLimitSeconds: 30,
+  difficulty: "none",
 };
 
 function mapQuestionToForm(question: QuizQuestion): QuestionFormState {
@@ -66,6 +68,7 @@ function mapQuestionToForm(question: QuizQuestion): QuestionFormState {
     indicators: question.indicators.join(", "),
     alwaysIncluded: question.alwaysIncluded,
     timeLimitSeconds: question.timeLimitSeconds ?? 30,
+    difficulty: question.difficulty,
   };
 }
 
@@ -287,6 +290,7 @@ export function AdminQuestionsPage() {
         .split(",")
         .map((value) => value.trim())
         .filter(Boolean),
+      difficulty: form.difficulty,
     }),
     [form],
   );
@@ -307,6 +311,7 @@ export function AdminQuestionsPage() {
         .filter(Boolean),
       alwaysIncluded: form.alwaysIncluded,
       timeLimitSeconds: form.timeLimitSeconds,
+      difficulty: form.difficulty,
     };
 
     setSaving(true);
@@ -554,6 +559,21 @@ export function AdminQuestionsPage() {
                   onChange={(event) => setField("timeLimitSeconds", Number(event.target.value))}
                 />
               </label>
+              <label>
+                Mức độ khó
+                <select
+                  value={form.difficulty}
+                  onChange={(event) => setField("difficulty", event.target.value as DifficultyLevel)}
+                >
+                  <option value="none">Chưa có</option>
+                  <option value="low">Thấp</option>
+                  <option value="medium">Trung bình</option>
+                  <option value="high">Cao</option>
+                  <option value="very_high">Rất cao</option>
+                </select>
+              </label>
+            </div>
+            <div className="field-row">
               <label className="admin-check-row">
                 <input
                   type="checkbox"

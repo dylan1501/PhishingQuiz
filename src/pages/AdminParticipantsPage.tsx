@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { deleteAdminParticipants, getRemoteAttempts, getRemoteParticipants } from "../apiClient";
 import { exportTableToExcel } from "../excelExport";
 import { PAGE_SIZE_OPTIONS, TablePagination } from "../components/TablePagination";
-import { PencilIcon, TrashIcon } from "../components/icons";
+import { PencilIcon, TrashIcon, EyeIcon } from "../components/icons";
 
 type ParticipantSortKey = "fullName" | "team" | "totalAttempts" | "createdAt";
 type SortDirection = "asc" | "desc";
@@ -25,6 +26,7 @@ function getPlayerIndex(fullName: string) {
 }
 
 export function AdminParticipantsPage() {
+  const navigate = useNavigate();
   const [participants, setParticipants] = useState<Awaited<ReturnType<typeof getRemoteParticipants>>>([]);
   const [attempts, setAttempts] = useState<Awaited<ReturnType<typeof getRemoteAttempts>>>([]);
   const [loadError, setLoadError] = useState("");
@@ -237,6 +239,7 @@ export function AdminParticipantsPage() {
             <th>{renderSortHeader("Đội", "team")}</th>
             <th>{renderSortHeader("Số lần thi", "totalAttempts")}</th>
             <th>{renderSortHeader("Ngày tham gia", "createdAt")}</th>
+            <th>Thao tác</th>
           </tr>
         </thead>
         <tbody>
@@ -259,11 +262,36 @@ export function AdminParticipantsPage() {
               </td>
               <td>{participant.totalAttempts}</td>
               <td>{new Date(participant.createdAt).toLocaleString()}</td>
+              <td className="table-actions">
+                <button
+                  type="button"
+                  className="icon-button icon-button-preview"
+                  title="Xem lượt thi"
+                  aria-label={`Xem lượt thi của ${participant.fullName}`}
+                  onClick={() => navigate(`/admin/attempts?participantId=${participant.id}`)}
+                >
+                  <EyeIcon />
+                </button>
+                {!editMode && (
+                  <button
+                    type="button"
+                    className="icon-button icon-button-delete"
+                    title="Xóa người tham gia"
+                    aria-label={`Xóa ${participant.fullName}`}
+                    onClick={() => {
+                      setSelectedIds(new Set([participant.id]));
+                      setConfirmDelete(true);
+                    }}
+                  >
+                    <TrashIcon />
+                  </button>
+                )}
+              </td>
             </tr>
           ))}
           {pageRows.length === 0 && (
             <tr>
-              <td colSpan={editMode ? 6 : 5} className="table-empty">
+              <td colSpan={editMode ? 7 : 6} className="table-empty">
                 Chưa có người tham gia nào.
               </td>
             </tr>
