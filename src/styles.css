@@ -494,6 +494,9 @@ textarea {
 }
 
 .admin-stack > .admin-links {
+  position: sticky;
+  top: 60px;
+  z-index: 50;
   padding: 0.58rem;
 }
 
