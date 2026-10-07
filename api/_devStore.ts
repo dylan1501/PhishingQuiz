@@ -5,13 +5,25 @@ import type {
   AnswerOption,
   Attempt,
   AttemptAnswer,
+  DifficultyLevel,
   Participant,
   QuizConfig,
   QuizQuestion,
   QuizSession,
+  QuizSessionPayload,
 } from "../src/types.js";
 
 type LeaderboardEntry = Attempt & { participant: Participant };
+
+const teamPlayerEmailPattern = /^nguoi-choi-(\d+)@/;
+
+function clampTimeLimit(value: unknown) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    return 30;
+  }
+  return Math.min(Math.max(Math.round(parsed), 5), 600);
+}
 
 type QuestionInput = {
   title: string;
@@ -23,6 +35,8 @@ type QuestionInput = {
   explanation: string;
   indicators: string[];
   alwaysIncluded: boolean;
+  timeLimitSeconds: number;
+  difficulty: DifficultyLevel;
 };
 
 type DevAdmin = {
@@ -38,6 +52,8 @@ type DevState = {
   sessions: QuizSession[];
   attempts: LeaderboardEntry[];
   quizConfig: QuizConfig;
+  // Lịch sử đề của các lượt đã phát, mới nhất đứng đầu. Giữ riêng vì session bị xoá khi chốt bài.
+  recentQuestionSets: string[][];
   admin: DevAdmin | null;
 };
 
@@ -64,8 +80,13 @@ function getState() {
       participants: [],
       sessions: [],
       attempts: [],
+      recentQuestionSets: [],
       quizConfig: {
         questionCount: 10,
+        passScore: 4,
+        phishingCount: 5,
+        singleAttemptPerEmail: false,
+        requireParticipantInfo: false,
         updatedAt: new Date(0).toISOString(),
       },
       admin: null,
@@ -73,6 +94,11 @@ function getState() {
   }
   return globalForDevStore.phishingQuizDevStore;
 }
+
+// Lượt mới tránh câu của 2 lượt gần nhất => 3 lượt liên tiếp bất kỳ đều không trùng câu.
+const devRecentSessionWindow = 2;
+// Giữ lịch sử vừa đủ để biết câu nào lâu chưa ra, không để phình bộ nhớ.
+const devQuestionHistoryLimit = 200;
 
 function shuffle<T>(items: T[]) {
   const next = [...items];
@@ -193,11 +219,15 @@ export async function devListQuestions(includeInactive = false) {
 
 export async function devCreateQuestion(input: QuestionInput) {
   const state = getState();
+  const now = new Date().toISOString();
   const question: QuizQuestion = {
     id: crypto.randomUUID(),
     ...input,
+    timeLimitSeconds: clampTimeLimit(input.timeLimitSeconds),
     active: true,
     orderIndex: state.questions.length + 1,
+    createdAt: now,
+    updatedAt: now,
   };
   state.questions.push(question);
   return question;
@@ -212,8 +242,20 @@ export async function devUpdateQuestion(questionId: string, input: QuestionInput
   state.questions[index] = {
     ...state.questions[index],
     ...input,
+    timeLimitSeconds: clampTimeLimit(input.timeLimitSeconds),
+    updatedAt: new Date().toISOString(),
   };
   return state.questions[index];
+}
+
+export async function devUpdateQuestionTimeLimit(questionId: string, timeLimitSeconds: number) {
+  const question = getState().questions.find((entry) => entry.id === questionId);
+  if (!question) {
+    throw new Error("Không tìm thấy câu hỏi.");
+  }
+  question.timeLimitSeconds = clampTimeLimit(timeLimitSeconds);
+  question.updatedAt = new Date().toISOString();
+  return question;
 }
 
 export async function devUpdateQuestionState(
@@ -234,21 +276,63 @@ export async function devUpdateQuestionState(
       question.active = true;
     }
   }
+  question.updatedAt = new Date().toISOString();
   return question;
+}
+
+export async function devDeleteQuestion(questionId: string) {
+  const state = getState();
+  const index = state.questions.findIndex((question) => question.id === questionId);
+  if (index < 0) {
+    throw new Error("Không tìm thấy câu hỏi.");
+  }
+  const answered =
+    state.attempts.some((attempt) => attempt.answers.some((answer) => answer.questionId === questionId)) ||
+    state.sessions.some((session) => session.answers.some((answer) => answer.questionId === questionId));
+  if (answered) {
+    throw new Error(
+      "Câu hỏi đã xuất hiện trong lịch sử làm bài nên không thể xóa (sẽ làm sai kết quả cũ). Hãy tắt câu hỏi thay vì xóa.",
+    );
+  }
+  state.questions.splice(index, 1);
+  return { id: questionId, deleted: true };
 }
 
 export async function devGetQuizConfig() {
   return getState().quizConfig;
 }
 
-export async function devSaveQuizConfig(questionCount: number) {
+export async function devSaveQuizConfig(
+  questionCount: number,
+  passScore: number,
+  phishingCount: number,
+  singleAttemptPerEmail: boolean,
+  requireParticipantInfo: boolean = false,
+) {
   const state = getState();
   const activeQuestionCount = Math.max(state.questions.filter((question) => question.active).length, 1);
+  const nextQuestionCount = clampQuestionCount(questionCount, activeQuestionCount);
   state.quizConfig = {
-    questionCount: clampQuestionCount(questionCount, activeQuestionCount),
+    questionCount: nextQuestionCount,
+    passScore: Number.isFinite(passScore)
+      ? Math.min(Math.max(Math.round(passScore), 1), nextQuestionCount)
+      : Math.min(4, nextQuestionCount),
+    phishingCount: Number.isFinite(phishingCount)
+      ? Math.min(Math.max(Math.round(phishingCount), 0), nextQuestionCount)
+      : Math.min(Math.round(nextQuestionCount / 2), nextQuestionCount),
+    singleAttemptPerEmail,
+    requireParticipantInfo,
     updatedAt: new Date().toISOString(),
   };
   return state.quizConfig;
+}
+
+export async function devGetActiveAnswerBreakdown() {
+  const active = getState().questions.filter((question) => question.active);
+  return {
+    phishing: active.filter((question) => question.correctAnswer === "phishing").length,
+    legitimate: active.filter((question) => question.correctAnswer === "legitimate").length,
+  };
 }
 
 export async function devUpsertParticipant(input: {
@@ -276,24 +360,119 @@ export async function devUpsertParticipant(input: {
   return participant;
 }
 
+export async function devCreateTeamParticipant(team: string) {
+  const state = getState();
+  const nextIndex =
+    state.participants.reduce((max, participant) => {
+      const matched = teamPlayerEmailPattern.exec(participant.email);
+      return matched ? Math.max(max, Number(matched[1])) : max;
+    }, 0) + 1;
+  const participant: Participant = {
+    id: crypto.randomUUID(),
+    fullName: `Người chơi ${nextIndex}`,
+    team,
+    email: `nguoi-choi-${nextIndex}@phishingquiz.local`,
+    consent: true,
+    createdAt: new Date().toISOString(),
+  };
+  state.participants.push(participant);
+  return participant;
+}
+
+export async function devStartQuizForTeam(team: string) {
+  const participant = await devCreateTeamParticipant(team);
+  return devStartQuizSession(participant.id);
+}
+
+export async function devDeleteParticipants(participantIds: string[]) {
+  const state = getState();
+  const idSet = new Set(participantIds);
+  const before = state.participants.length;
+  state.participants = state.participants.filter((participant) => !idSet.has(participant.id));
+  state.attempts = state.attempts.filter((attempt) => !idSet.has(attempt.participantId));
+  state.sessions = state.sessions.filter((session) => !idSet.has(session.participantId));
+  return { deleted: before - state.participants.length };
+}
+
+export async function devDeleteAllAttempts() {
+  const state = getState();
+  const deleted = state.attempts.length;
+  state.attempts = [];
+  return { deleted };
+}
+
 export async function devListParticipants() {
   return [...getState().participants].sort(
     (first, second) => new Date(second.createdAt).getTime() - new Date(first.createdAt).getTime(),
   );
 }
 
-export async function devStartQuizSession(participantId: string): Promise<QuizSession> {
+export async function devStartQuizSession(participantId: string): Promise<QuizSessionPayload> {
   const state = getState();
+  if (
+    state.quizConfig.singleAttemptPerEmail &&
+    state.attempts.some((attempt) => attempt.participantId === participantId)
+  ) {
+    throw new Error("Email này đã tham gia bài đánh giá. Mỗi email chỉ được làm bài một lần.");
+  }
   const activeQuestions = state.questions.filter((question) => question.active);
   const questionLimit = clampQuestionCount(state.quizConfig.questionCount, activeQuestions.length);
   const requiredQuestions = activeQuestions
     .filter((question) => question.alwaysIncluded)
     .slice(0, questionLimit);
-  const randomQuestions = shuffle(activeQuestions.filter((question) => !question.alwaysIncluded)).slice(
+  const targetPhishing = Math.min(Math.max(state.quizConfig.phishingCount, 0), questionLimit);
+  const requiredPhishingCount = requiredQuestions.filter((question) => question.correctAnswer === "phishing").length;
+  const neededPhishing = Math.max(0, targetPhishing - requiredPhishingCount);
+  const neededLegitimate = Math.max(
     0,
-    Math.max(0, questionLimit - requiredQuestions.length),
+    questionLimit - targetPhishing - (requiredQuestions.length - requiredPhishingCount),
   );
-  const questionIds = shuffle([...requiredQuestions, ...randomQuestions]).map((question) => question.id);
+  const optional = activeQuestions.filter((question) => !question.alwaysIncluded);
+
+  // Ba lượt liên tiếp không trùng câu: tránh toàn bộ câu của 2 lượt gần nhất.
+  // Thiếu câu thì ưu tiên câu lâu chưa ra (vị trí càng xa đầu lịch sử càng cũ).
+  const history = state.recentQuestionSets;
+  const recentIds = new Set(history.slice(0, devRecentSessionWindow).flat());
+  const lastUsedOrder = new Map<string, number>();
+  history.forEach((questionIds, position) => {
+    questionIds.forEach((questionId) => {
+      if (!lastUsedOrder.has(questionId)) {
+        lastUsedOrder.set(questionId, history.length - position);
+      }
+    });
+  });
+  const freshnessRank = (question: QuizQuestion) => {
+    if (recentIds.has(question.id)) {
+      return 2;
+    }
+    return lastUsedOrder.has(question.id) ? 1 : 0;
+  };
+  const orderByFreshness = (items: QuizQuestion[]) =>
+    shuffle(items).sort((left, right) => {
+      const byRank = freshnessRank(left) - freshnessRank(right);
+      if (byRank !== 0) {
+        return byRank;
+      }
+      return (lastUsedOrder.get(left.id) ?? 0) - (lastUsedOrder.get(right.id) ?? 0);
+    });
+
+  const phishingPool = orderByFreshness(optional.filter((question) => question.correctAnswer === "phishing"));
+  const legitimatePool = orderByFreshness(optional.filter((question) => question.correctAnswer !== "phishing"));
+  const picked = [
+    ...requiredQuestions,
+    ...phishingPool.slice(0, neededPhishing),
+    ...legitimatePool.slice(0, neededLegitimate),
+  ];
+  if (picked.length < questionLimit) {
+    const leftovers = orderByFreshness([
+      ...phishingPool.slice(neededPhishing),
+      ...legitimatePool.slice(neededLegitimate),
+    ]);
+    picked.push(...leftovers.slice(0, questionLimit - picked.length));
+  }
+  const questionIds = shuffle(picked).slice(0, questionLimit).map((question) => question.id);
+  state.recentQuestionSets.unshift(questionIds);
+  state.recentQuestionSets = state.recentQuestionSets.slice(0, devQuestionHistoryLimit);
   const session: QuizSession = {
     id: crypto.randomUUID(),
     remote: true,
@@ -304,10 +483,21 @@ export async function devStartQuizSession(participantId: string): Promise<QuizSe
     answers: [],
   };
   state.sessions.push(session);
-  return session;
+  return {
+    session,
+    questions: questionIds
+      .map((questionId) => state.questions.find((question) => question.id === questionId))
+      .filter((question): question is QuizQuestion => Boolean(question)),
+    passScore: Math.min(state.quizConfig.passScore, questionIds.length),
+  };
 }
 
-export async function devGetQuizSession(sessionId: string) {
+export async function devStartQuizForParticipant(input: { fullName: string; email: string; consent: boolean }) {
+  const participant = await devUpsertParticipant(input);
+  return devStartQuizSession(participant.id);
+}
+
+export async function devGetQuizSession(sessionId: string): Promise<QuizSessionPayload | null> {
   const state = getState();
   const session = state.sessions.find((entry) => entry.id === sessionId);
   if (!session) {
@@ -318,6 +508,7 @@ export async function devGetQuizSession(sessionId: string) {
     questions: session.questionIds
       .map((questionId) => state.questions.find((question) => question.id === questionId))
       .filter((question): question is QuizQuestion => Boolean(question)),
+    passScore: Math.min(state.quizConfig.passScore, session.questionIds.length),
   };
 }
 

@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { getRemoteAdminStatus, loginRemoteAdmin, setupRemoteAdmin } from "../apiClient";
+import { LoadingScreen } from "../components/LoadingScreen";
 
 export function AdminLoginPage() {
   const navigate = useNavigate();
@@ -42,12 +43,7 @@ export function AdminLoginPage() {
   }
 
   if (loadingStatus) {
-    return (
-      <section className="content-card form-card">
-        <p className="eyebrow">Quản Trị</p>
-        <h2>Đang kiểm tra trạng thái quản trị</h2>
-      </section>
-    );
+    return <LoadingScreen label="Đang kiểm tra trạng thái quản trị" />;
   }
 
   async function onSubmit(event: FormEvent) {
@@ -86,15 +82,14 @@ export function AdminLoginPage() {
   }
 
   return (
-    <section className="content-card form-card">
-      <p className="eyebrow">Quản Trị</p>
+    <section className="content-card form-card auth-card">
       <h2>{needsSetup ? "Thiết lập tài khoản quản trị" : "Đăng nhập quản trị"}</h2>
-      <p className="section-text">
-        {needsSetup
-          ? "Tạo tài khoản quản trị đầu tiên trong cơ sở dữ liệu. Thông tin đăng nhập không được lưu ở trình duyệt."
-          : "Nhập thông tin quản trị để truy cập dashboard và dữ liệu quiz."}
-      </p>
-      <form className="stack" onSubmit={onSubmit}>
+      {needsSetup && (
+        <p className="section-text">
+          Tạo tài khoản quản trị đầu tiên trong cơ sở dữ liệu. Thông tin đăng nhập không được lưu ở trình duyệt.
+        </p>
+      )}
+      <form className="stack auth-form" onSubmit={onSubmit}>
         <label>
           Email
           <input

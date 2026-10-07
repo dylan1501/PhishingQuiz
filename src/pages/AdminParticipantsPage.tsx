@@ -1,24 +1,44 @@
-import { useEffect, useState } from "react";
-import { getRemoteAttempts, getRemoteParticipants } from "../apiClient";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { deleteAdminParticipants, getRemoteAttempts, getRemoteParticipants } from "../apiClient";
 import { exportTableToExcel } from "../excelExport";
+import { PAGE_SIZE_OPTIONS, TablePagination } from "../components/TablePagination";
+import { PencilIcon, TrashIcon, EyeIcon } from "../components/icons";
 
-type ParticipantSortKey = "fullName" | "email" | "totalAttempts" | "createdAt";
+type ParticipantSortKey = "fullName" | "team" | "totalAttempts" | "createdAt";
 type SortDirection = "asc" | "desc";
 
 interface ParticipantRow {
   id: string;
   fullName: string;
-  email: string;
+  team: string;
   totalAttempts: number;
   createdAt: string;
+  /** Tóm tắt từng lượt thi để xuất Excel đầy đủ. */
+  attemptSummary: string;
+  playerIndex: number;
+}
+
+// "Người chơi 12" → 12, để sắp xếp theo số thứ tự tăng dần thay vì theo chuỗi.
+function getPlayerIndex(fullName: string) {
+  const matched = /^Người chơi (\d+)$/.exec(fullName.trim());
+  return matched ? Number(matched[1]) : Number.MAX_SAFE_INTEGER;
 }
 
 export function AdminParticipantsPage() {
+  const navigate = useNavigate();
   const [participants, setParticipants] = useState<Awaited<ReturnType<typeof getRemoteParticipants>>>([]);
   const [attempts, setAttempts] = useState<Awaited<ReturnType<typeof getRemoteAttempts>>>([]);
   const [loadError, setLoadError] = useState("");
   const [sortKey, setSortKey] = useState<ParticipantSortKey>("createdAt");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<number>(PAGE_SIZE_OPTIONS[0]);
+  const [editMode, setEditMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [notice, setNotice] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -37,29 +57,96 @@ export function AdminParticipantsPage() {
     };
   }, []);
 
-  const participantRows: ParticipantRow[] = participants.map((participant) => ({
-    id: participant.id,
-    fullName: participant.fullName,
-    email: participant.email,
-    totalAttempts: attempts.filter((attempt) => attempt.participantId === participant.id).length,
-    createdAt: participant.createdAt,
-  }));
-
-  const sortedRows = [...participantRows].sort((firstRow, secondRow) => {
-    const direction = sortDirection === "asc" ? 1 : -1;
-
-    if (sortKey === "totalAttempts") {
-      return (firstRow.totalAttempts - secondRow.totalAttempts) * direction;
-    }
-
-    if (sortKey === "createdAt") {
-      return (new Date(firstRow.createdAt).getTime() - new Date(secondRow.createdAt).getTime()) * direction;
-    }
-
-    return firstRow[sortKey].localeCompare(secondRow[sortKey], "vi", { sensitivity: "base" }) * direction;
+  const participantRows: ParticipantRow[] = participants.map((participant) => {
+    const ownAttempts = attempts
+      .filter((attempt) => attempt.participantId === participant.id)
+      .sort((first, second) => new Date(first.completedAt).getTime() - new Date(second.completedAt).getTime());
+    return {
+      id: participant.id,
+      fullName: participant.fullName,
+      team: participant.team ?? "—",
+      totalAttempts: ownAttempts.length,
+      createdAt: participant.createdAt,
+      attemptSummary: ownAttempts
+        .map(
+          (attempt, index) =>
+            `Lần ${index + 1}: ${attempt.score}/${attempt.totalQuestions} - ${attempt.durationSeconds}s - ${new Date(
+              attempt.completedAt,
+            ).toLocaleString("vi-VN")}`,
+        )
+        .join(" | "),
+      playerIndex: getPlayerIndex(participant.fullName),
+    };
   });
 
+  const sortedRows = useMemo(() => {
+    const direction = sortDirection === "asc" ? 1 : -1;
+    return [...participantRows].sort((firstRow, secondRow) => {
+      if (sortKey === "totalAttempts") {
+        return (firstRow.totalAttempts - secondRow.totalAttempts) * direction;
+      }
+
+      if (sortKey === "createdAt") {
+        return (new Date(firstRow.createdAt).getTime() - new Date(secondRow.createdAt).getTime()) * direction;
+      }
+
+      if (sortKey === "fullName") {
+        // Sắp theo số thứ tự người chơi (Người chơi 2 đứng trước Người chơi 10).
+        return (firstRow.playerIndex - secondRow.playerIndex) * direction;
+      }
+
+      return firstRow[sortKey].localeCompare(secondRow[sortKey], "vi", { sensitivity: "base" }) * direction;
+    });
+  }, [participantRows, sortKey, sortDirection]);
+
+  const totalPages = Math.max(1, Math.ceil(sortedRows.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const pageRows = sortedRows.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+  function toggleSelected(participantId: string) {
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      if (next.has(participantId)) {
+        next.delete(participantId);
+      } else {
+        next.add(participantId);
+      }
+      return next;
+    });
+  }
+
+  // Checkbox ở tiêu đề chọn/bỏ chọn toàn bộ danh sách sau khi lọc & sắp xếp (không chỉ trang hiện tại).
+  const allSelected = sortedRows.length > 0 && sortedRows.every((row) => selectedIds.has(row.id));
+  function toggleSelectAll() {
+    setSelectedIds(allSelected ? new Set() : new Set(sortedRows.map((row) => row.id)));
+  }
+
+  function exitEditMode() {
+    setEditMode(false);
+    setSelectedIds(new Set());
+  }
+
+  async function deleteSelected() {
+    setDeleting(true);
+    setLoadError("");
+    try {
+      const ids = [...selectedIds];
+      const result = await deleteAdminParticipants(ids);
+      setParticipants((current) => current.filter((participant) => !selectedIds.has(participant.id)));
+      setAttempts((current) => current.filter((attempt) => !selectedIds.has(attempt.participantId)));
+      setNotice(`Đã xóa ${result.deleted} người tham gia cùng lịch sử làm bài của họ.`);
+      setConfirmDelete(false);
+      exitEditMode();
+    } catch (error) {
+      setLoadError(error instanceof Error ? error.message : "Không xóa được người tham gia.");
+      setConfirmDelete(false);
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   function changeSort(nextSortKey: ParticipantSortKey) {
+    setPage(1);
     if (nextSortKey === sortKey) {
       setSortDirection((currentDirection) => (currentDirection === "asc" ? "desc" : "asc"));
       return;
@@ -82,51 +169,178 @@ export function AdminParticipantsPage() {
   }
 
   function exportExcel() {
-    const rows = sortedRows.map((participant, index) => [
-      index + 1,
-      participant.fullName,
-      participant.email,
-      participant.totalAttempts,
-      new Date(participant.createdAt).toLocaleString("vi-VN"),
-    ]);
-    exportTableToExcel("Danh sách tham dự", ["STT", "Họ tên", "Email", "Số lần thi", "Ngày tham gia"], rows);
+    // Xuất theo số thứ tự người chơi tăng dần, kèm chi tiết từng lượt thi.
+    const rows = [...sortedRows]
+      .sort((first, second) => first.playerIndex - second.playerIndex)
+      .map((participant, index) => [
+        index + 1,
+        participant.fullName,
+        participant.team,
+        participant.totalAttempts,
+        participant.attemptSummary || "Chưa làm bài",
+        new Date(participant.createdAt).toLocaleString("vi-VN"),
+      ]);
+    exportTableToExcel(
+      "Danh sách tham dự",
+      ["STT", "Người chơi", "Đội", "Số lần thi", "Chi tiết các lượt thi", "Ngày tham gia"],
+      rows,
+    );
   }
 
   return (
     <section className="content-card">
-      <p className="eyebrow">Người Tham Gia</p>
-      <div className="admin-page-heading">
-        <div>
-          <h2>Danh sách người làm quiz</h2>
-          <p className="section-text">Theo dõi thông tin người tham gia và số lần làm bài.</p>
+      <div className="admin-page-heading admin-page-heading-sticky">
+        <p className="eyebrow">Người Tham Gia</p>
+        <h2>Danh sách người làm quiz</h2>
+        <div className="admin-page-actions">
+          {editMode ? (
+            <>
+              <button
+                type="button"
+                className="button button-small button-danger"
+                disabled={selectedIds.size === 0}
+                onClick={() => setConfirmDelete(true)}
+              >
+                <TrashIcon />
+                Xóa {selectedIds.size > 0 ? `(${selectedIds.size})` : ""}
+              </button>
+              <button type="button" className="button button-small" onClick={exitEditMode}>
+                Xong
+              </button>
+            </>
+          ) : (
+            <button type="button" className="button button-small" onClick={() => setEditMode(true)}>
+              <PencilIcon />
+              Chỉnh sửa
+            </button>
+          )}
+          <button type="button" className="button button-small export-button" onClick={exportExcel}>
+            Xuất Excel
+          </button>
         </div>
-        <button type="button" className="button button-small export-button" onClick={exportExcel}>
-          Xuất Excel
-        </button>
       </div>
       {loadError && <div className="notice notice-error">{loadError}</div>}
+      {notice && <div className="notice notice-success">{notice}</div>}
+      <div className="table-scroll">
       <table className="table">
         <thead>
           <tr>
+            {editMode && (
+              <th className="select-col">
+                <input
+                  type="checkbox"
+                  checked={allSelected}
+                  onChange={toggleSelectAll}
+                  aria-label="Chọn tất cả người tham gia"
+                />
+              </th>
+            )}
             <th className="stt-col">STT</th>
-            <th>{renderSortHeader("Họ tên", "fullName")}</th>
-            <th>{renderSortHeader("Email", "email")}</th>
+            <th>{renderSortHeader("Người chơi", "fullName")}</th>
+            <th>{renderSortHeader("Đội", "team")}</th>
             <th>{renderSortHeader("Số lần thi", "totalAttempts")}</th>
             <th>{renderSortHeader("Ngày tham gia", "createdAt")}</th>
+            <th>Thao tác</th>
           </tr>
         </thead>
         <tbody>
-          {sortedRows.map((participant, index) => (
-            <tr key={participant.id}>
-              <td className="stt-col">{index + 1}</td>
+          {pageRows.map((participant, index) => (
+            <tr key={participant.id} className={editMode && selectedIds.has(participant.id) ? "row-selected" : ""}>
+              {editMode && (
+                <td className="select-col">
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.has(participant.id)}
+                    onChange={() => toggleSelected(participant.id)}
+                    aria-label={`Chọn ${participant.fullName}`}
+                  />
+                </td>
+              )}
+              <td className="stt-col">{(currentPage - 1) * pageSize + index + 1}</td>
               <td>{participant.fullName}</td>
-              <td>{participant.email}</td>
+              <td>
+                <span className="team-chip">{participant.team}</span>
+              </td>
               <td>{participant.totalAttempts}</td>
               <td>{new Date(participant.createdAt).toLocaleString()}</td>
+              <td className="table-actions">
+                <button
+                  type="button"
+                  className="icon-button icon-button-preview"
+                  title="Xem lượt thi"
+                  aria-label={`Xem lượt thi của ${participant.fullName}`}
+                  onClick={() => navigate(`/admin/attempts?participantId=${participant.id}`)}
+                >
+                  <EyeIcon />
+                </button>
+                {!editMode && (
+                  <button
+                    type="button"
+                    className="icon-button icon-button-delete"
+                    title="Xóa người tham gia"
+                    aria-label={`Xóa ${participant.fullName}`}
+                    onClick={() => {
+                      setSelectedIds(new Set([participant.id]));
+                      setConfirmDelete(true);
+                    }}
+                  >
+                    <TrashIcon />
+                  </button>
+                )}
+              </td>
             </tr>
           ))}
+          {pageRows.length === 0 && (
+            <tr>
+              <td colSpan={editMode ? 7 : 6} className="table-empty">
+                Chưa có người tham gia nào.
+              </td>
+            </tr>
+          )}
         </tbody>
       </table>
+      </div>
+      <TablePagination
+        totalItems={sortedRows.length}
+        page={currentPage}
+        pageSize={pageSize}
+        onPageChange={setPage}
+        onPageSizeChange={(nextPageSize) => {
+          setPageSize(nextPageSize);
+          setPage(1);
+        }}
+        itemLabel="người tham gia"
+      />
+      {confirmDelete && (
+        <div className="modal-backdrop preview-modal-backdrop" onClick={() => !deleting && setConfirmDelete(false)}>
+          <div
+            className="modal-card confirm-modal-card"
+            role="alertdialog"
+            aria-modal="true"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <p className="eyebrow">Xóa Người Tham Gia</p>
+            <h3>Xóa {selectedIds.size} người đã chọn?</h3>
+            <p className="section-text">
+              Toàn bộ lượt thi và câu trả lời của những người này cũng bị xóa khỏi bảng xếp hạng và báo cáo.
+              Thao tác không thể hoàn tác.
+            </p>
+            <div className="hero-actions confirm-modal-actions">
+              <button
+                type="button"
+                className="button button-ghost"
+                onClick={() => setConfirmDelete(false)}
+                disabled={deleting}
+              >
+                Hủy
+              </button>
+              <button type="button" className="button button-danger" onClick={deleteSelected} disabled={deleting}>
+                {deleting ? "Đang xóa..." : "Xóa"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

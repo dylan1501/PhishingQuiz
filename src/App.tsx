@@ -12,6 +12,7 @@ import { QuizPage } from "./pages/QuizPage";
 import { ResultPage } from "./pages/ResultPage";
 import { getRemoteAdminStatus } from "./apiClient";
 import { AdminNav } from "./components/AdminNav";
+import { LoadingScreen } from "./components/LoadingScreen";
 
 type ThemeMode = "dark" | "light";
 
@@ -40,56 +41,70 @@ function useAdminAuthenticated() {
 }
 
 function AdminAuthPending() {
-  return (
-    <section className="content-card form-card">
-      <p className="eyebrow">Quản Trị</p>
-      <h2>Đang kiểm tra phiên đăng nhập</h2>
-    </section>
-  );
+  return <LoadingScreen label="Đang kiểm tra phiên đăng nhập" />;
 }
 
 function Layout() {
   const location = useLocation();
   const adminView = location.pathname.startsWith("/admin");
-  const homeView = location.pathname === "/";
+  // Trang chủ, màn nhập thông tin và bảng xếp hạng không hiện site-nav.
+  const hideSiteNav = ["/", "/quiz/start", "/leaderboard"].includes(location.pathname);
   const quizTakingView = location.pathname.startsWith("/quiz/questions");
+  // Trang ngân hàng câu hỏi có bảng rộng → dùng toàn bộ chiều rộng màn hình.
+  const wideView = location.pathname.startsWith("/admin/questions");
   const [themeMode, setThemeMode] = useState<ThemeMode>("light");
 
   useEffect(() => {
     document.documentElement.dataset.theme = themeMode;
   }, [themeMode]);
 
+  // Thanh admin đi kèm header trong cùng một khối sticky nên không cần bù chiều cao header.
+  const showAdminNav = adminView && !["/admin", "/admin/login"].includes(location.pathname);
+
   return (
-    <div className={`app-shell ${quizTakingView ? "quiz-taking-shell" : ""}`}>
+    <div className={`app-shell ${quizTakingView ? "quiz-taking-shell" : ""} ${wideView ? "app-shell-wide" : ""}`}>
       {!quizTakingView && (
-        <header className="site-header">
-          <NavLink to="/" className="brand">
-            Phishing Quiz
-          </NavLink>
-          <div className="header-actions">
-            {!adminView && !homeView && (
-              <nav className="site-nav">
-                <NavLink to="/leaderboard">Bảng xếp hạng</NavLink>
-                <NavLink to="/quiz/start">Làm bài quiz</NavLink>
-              </nav>
-            )}
-            <button
-              type="button"
-              className={`theme-toggle theme-toggle-${themeMode}`}
-              onClick={() => setThemeMode((currentMode) => (currentMode === "dark" ? "light" : "dark"))}
-              aria-label={`Đổi sang giao diện ${themeMode === "dark" ? "Light" : "Dark"}`}
-              aria-pressed={themeMode === "light"}
-            >
-              <span className="theme-toggle-track" aria-hidden="true">
-                <span className="theme-toggle-thumb">
-                  {themeMode === "dark" ? "☾" : "☀"}
+        <div className="top-sticky">
+          <header className="site-header">
+            <NavLink to="/" className="brand">
+              Phishing Quiz
+            </NavLink>
+            <div className="header-actions">
+              {!adminView && !hideSiteNav && (
+                <nav className="site-nav">
+                  <NavLink to="/leaderboard">Bảng xếp hạng</NavLink>
+                  <NavLink to="/quiz/start">Làm bài quiz</NavLink>
+                </nav>
+              )}
+              <button
+                type="button"
+                className={`theme-toggle theme-toggle-${themeMode}`}
+                onClick={() => setThemeMode((currentMode) => (currentMode === "dark" ? "light" : "dark"))}
+                aria-label={`Đổi sang giao diện ${themeMode === "dark" ? "Light" : "Dark"}`}
+                aria-pressed={themeMode === "light"}
+              >
+                <span className="theme-toggle-track" aria-hidden="true">
+                  <span className="theme-toggle-thumb">
+                    {themeMode === "dark" ? "☾" : "☀"}
+                  </span>
                 </span>
-              </span>
-            </button>
-          </div>
-        </header>
+              </button>
+            </div>
+          </header>
+          {showAdminNav && (
+            <div className="admin-nav-layer">
+              <AdminNav />
+            </div>
+          )}
+        </div>
       )}
-      <main className={`page-shell ${quizTakingView ? "quiz-taking-page" : ""}`}>
+      <main
+        className={`page-shell ${quizTakingView ? "quiz-taking-page" : ""} ${
+          ["/quiz/start", "/admin/login", "/quiz/result"].includes(location.pathname)
+            ? "page-shell-centered"
+            : ""
+        }`}
+      >
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/quiz/start" element={<ParticipantPage />} />
@@ -129,12 +144,7 @@ function AdminRoute({ children }: { children: React.ReactElement }) {
   if (!authenticated) {
     return <Navigate to="/admin/login" replace />;
   }
-  return (
-    <div className="stack admin-stack">
-      <AdminNav />
-      {children}
-    </div>
-  );
+  return <div className="admin-content">{children}</div>;
 }
 
 export default function App() {

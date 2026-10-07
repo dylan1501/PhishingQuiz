@@ -1,5 +1,6 @@
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["relationJoins"]
 }
 
 datasource db {
@@ -40,6 +41,7 @@ enum QuizSessionStatus {
 model Participant {
   id        String   @id @default(uuid()) @db.Uuid
   fullName  String   @map("full_name") @db.VarChar(160)
+  team      String?  @db.VarChar(80)
   email     String   @unique @db.VarChar(254)
   consent   Boolean  @default(false)
   createdAt DateTime @default(now()) @map("created_at")
@@ -87,14 +89,18 @@ model Quiz {
 }
 
 model QuizSetting {
-  id                 String   @id @default(uuid()) @db.Uuid
-  quizId             String   @unique @map("quiz_id") @db.Uuid
-  questionCount      Int      @default(10) @map("question_count")
-  randomizeQuestions Boolean  @default(true) @map("randomize_questions")
-  randomizeAnswers   Boolean  @default(false) @map("randomize_answers")
-  requireExplanation Boolean  @default(true) @map("require_explanation")
-  createdAt          DateTime @default(now()) @map("created_at")
-  updatedAt          DateTime @updatedAt @map("updated_at")
+  id                    String   @id @default(uuid()) @db.Uuid
+  quizId                String   @unique @map("quiz_id") @db.Uuid
+  questionCount         Int      @default(10) @map("question_count")
+  passScore             Int      @default(4) @map("pass_score")
+  phishingCount         Int      @default(5) @map("phishing_count")
+  singleAttemptPerEmail Boolean  @default(false) @map("single_attempt_per_email")
+  requireParticipantInfo Boolean @default(false) @map("require_participant_info")
+  randomizeQuestions    Boolean  @default(true) @map("randomize_questions")
+  randomizeAnswers      Boolean  @default(false) @map("randomize_answers")
+  requireExplanation    Boolean  @default(true) @map("require_explanation")
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
 
   quiz Quiz @relation(fields: [quizId], references: [id], onDelete: Cascade)
 
@@ -102,20 +108,22 @@ model QuizSetting {
 }
 
 model Question {
-  id              String       @id @db.VarChar(80)
-  quizId          String       @map("quiz_id") @db.Uuid
-  title           String       @db.VarChar(220)
-  category        String       @db.VarChar(80)
-  scenarioIntro   String       @map("scenario_intro") @db.Text
-  scenarioContent String       @map("scenario_content") @db.Text
-  scenarioHtml    String       @map("scenario_html") @db.Text
-  correctAnswer   AnswerOption @map("correct_answer")
-  explanation     String       @db.Text
-  active          Boolean      @default(true)
-  alwaysIncluded  Boolean      @default(false) @map("always_included")
-  orderIndex      Int          @map("order_index")
-  createdAt       DateTime     @default(now()) @map("created_at")
-  updatedAt       DateTime     @updatedAt @map("updated_at")
+  id               String       @id @db.VarChar(80)
+  quizId           String       @map("quiz_id") @db.Uuid
+  title            String       @db.VarChar(220)
+  category         String       @db.VarChar(80)
+  scenarioIntro    String       @map("scenario_intro") @db.Text
+  scenarioContent  String       @map("scenario_content") @db.Text
+  scenarioHtml     String       @map("scenario_html") @db.Text
+  correctAnswer    AnswerOption @map("correct_answer")
+  explanation      String       @db.Text
+  active           Boolean      @default(true)
+  alwaysIncluded   Boolean      @default(false) @map("always_included")
+  timeLimitSeconds Int          @default(30) @map("time_limit_seconds")
+  difficulty       String       @default("none")
+  orderIndex       Int          @map("order_index")
+  createdAt        DateTime     @default(now()) @map("created_at")
+  updatedAt        DateTime     @updatedAt @map("updated_at")
 
   answers        AttemptAnswer[]
   hotspots       QuestionHotspot[]

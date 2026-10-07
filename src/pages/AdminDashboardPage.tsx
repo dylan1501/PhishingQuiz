@@ -7,6 +7,7 @@ import {
   getRemoteQuizConfig,
   getRemoteQuestions,
   saveRemoteQuizConfig,
+  type AnswerBreakdown,
   type LeaderboardEntry,
 } from "../apiClient";
 import type { Attempt, Participant, QuizConfig, QuizQuestion } from "../types";
@@ -55,8 +56,20 @@ export function AdminDashboardPage() {
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [activeQuestions, setActiveQuestions] = useState<QuizQuestion[]>([]);
-  const [quizConfig, setQuizConfig] = useState<QuizConfig>({ questionCount: 10, updatedAt: new Date(0).toISOString() });
+  const [quizConfig, setQuizConfig] = useState<QuizConfig>({
+    questionCount: 10,
+    passScore: 4,
+    phishingCount: 5,
+    singleAttemptPerEmail: false,
+    requireParticipantInfo: false,
+    updatedAt: new Date(0).toISOString(),
+  });
   const [questionCountInput, setQuestionCountInput] = useState(String(quizConfig.questionCount));
+  const [passScoreInput, setPassScoreInput] = useState(String(quizConfig.passScore));
+  const [phishingCountInput, setPhishingCountInput] = useState(String(quizConfig.phishingCount));
+  const [singleAttemptInput, setSingleAttemptInput] = useState(quizConfig.singleAttemptPerEmail);
+  const [requireParticipantInfoInput, setRequireParticipantInfoInput] = useState(quizConfig.requireParticipantInfo);
+  const [answerBreakdown, setAnswerBreakdown] = useState<AnswerBreakdown | null>(null);
   const [configMessage, setConfigMessage] = useState("");
   const [loadError, setLoadError] = useState("");
   const [timeGrouping, setTimeGrouping] = useState<TimeGrouping>("hour");
@@ -117,6 +130,11 @@ export function AdminDashboardPage() {
           setActiveQuestions(remoteQuestions);
           setQuizConfig(remoteQuizConfig);
           setQuestionCountInput(String(remoteQuizConfig.questionCount));
+          setPassScoreInput(String(remoteQuizConfig.passScore));
+          setPhishingCountInput(String(remoteQuizConfig.phishingCount));
+          setSingleAttemptInput(remoteQuizConfig.singleAttemptPerEmail);
+          setRequireParticipantInfoInput(remoteQuizConfig.requireParticipantInfo);
+          setAnswerBreakdown(remoteQuizConfig.answerBreakdown ?? null);
         }
       })
       .catch((error) => {
@@ -130,11 +148,33 @@ export function AdminDashboardPage() {
   async function saveQuestionCount(event: FormEvent) {
     event.preventDefault();
     const parsedQuestionCount = Number(questionCountInput);
+    const parsedPassScore = Number(passScoreInput);
+    const parsedPhishingCount = Number(phishingCountInput);
+    if (parsedPassScore > parsedQuestionCount) {
+      setConfigMessage("Số câu cần đúng không được lớn hơn số câu mỗi lượt thi.");
+      return;
+    }
+    if (parsedPhishingCount > parsedQuestionCount) {
+      setConfigMessage("Số câu Phishing không được lớn hơn số câu mỗi lượt thi.");
+      return;
+    }
     try {
-      const nextConfig = await saveRemoteQuizConfig(parsedQuestionCount);
+      const nextConfig = await saveRemoteQuizConfig(
+        parsedQuestionCount,
+        parsedPassScore,
+        parsedPhishingCount,
+        singleAttemptInput,
+        requireParticipantInfoInput,
+      );
       setQuizConfig(nextConfig);
       setQuestionCountInput(String(nextConfig.questionCount));
-      setConfigMessage(`Đã lưu cấu hình ${nextConfig.questionCount} câu hỏi cho mỗi lượt thi.`);
+      setPassScoreInput(String(nextConfig.passScore));
+      setPhishingCountInput(String(nextConfig.phishingCount));
+      setSingleAttemptInput(nextConfig.singleAttemptPerEmail);
+      setRequireParticipantInfoInput(nextConfig.requireParticipantInfo);
+      setConfigMessage(
+        `Đã lưu: ${nextConfig.questionCount} câu mỗi lượt (${nextConfig.phishingCount} Phishing / ${nextConfig.questionCount - nextConfig.phishingCount} An toàn), cần đúng ít nhất ${nextConfig.passScore} câu. Mỗi email 1 lần: ${nextConfig.singleAttemptPerEmail ? "bật" : "tắt"}. Yêu cầu thông tin người tham gia: ${nextConfig.requireParticipantInfo ? "bật" : "tắt"}.`,
+      );
     } catch (error) {
       setConfigMessage(error instanceof Error ? error.message : "Không lưu được cấu hình bài thi.");
     }
@@ -142,6 +182,12 @@ export function AdminDashboardPage() {
 
   return (
     <section className="stack admin-dashboard-stack">
+      <div className="admin-page-heading-sticky">
+        <div>
+          <p className="eyebrow">Bảng Điều Khiển</p>
+          <h2>Toàn cảnh hoạt động của Phishing Quiz</h2>
+        </div>
+      </div>
       <div className="content-card admin-hero-card">
         <div className="fish-school" aria-hidden="true">
           <span className="fish fish-one" />
@@ -149,14 +195,6 @@ export function AdminDashboardPage() {
           <span className="fish fish-three" />
           <span className="fish fish-four" />
           <span className="fish fish-five" />
-        </div>
-        <div>
-          <p className="eyebrow">Bảng Điều Khiển</p>
-          <h2>Toàn cảnh hoạt động của Phishing Quiz</h2>
-          <p className="section-text">
-            Theo dõi nhanh số lượt thi, mức độ nhận diện phishing và hiệu suất của người tham gia
-            trong cùng một màn hình.
-          </p>
         </div>
         <img
           src="/assets/illustrations/shield-scan.svg"
@@ -168,15 +206,11 @@ export function AdminDashboardPage() {
       <div className="content-card quiz-config-card">
         <div>
           <p className="eyebrow">Cấu Hình Bài Thi</p>
-          <h3>Số câu hỏi mỗi lượt thi</h3>
-          <p className="section-text">
-            Mặc định là 10 câu. Các câu được đánh dấu “Luôn có” vẫn được ưu tiên đưa vào đề,
-            phần còn lại được random từ ngân hàng câu hỏi đang bật.
-          </p>
+          <h3>Số câu hỏi và ngưỡng hoàn thành</h3>
         </div>
         <form className="quiz-config-form" onSubmit={saveQuestionCount}>
           <label>
-            Số câu
+            Số câu mỗi lượt
             <input
               type="number"
               min={1}
@@ -188,12 +222,74 @@ export function AdminDashboardPage() {
               }}
             />
           </label>
+          <label>
+            Số câu cần đúng
+            <input
+              type="number"
+              min={1}
+              max={Math.max(Number(questionCountInput) || 1, 1)}
+              value={passScoreInput}
+              onChange={(event) => {
+                setPassScoreInput(event.target.value);
+                setConfigMessage("");
+              }}
+            />
+          </label>
+          <label>
+            Số câu Phishing
+            <input
+              type="number"
+              min={0}
+              max={Math.max(Number(questionCountInput) || 1, 1)}
+              value={phishingCountInput}
+              onChange={(event) => {
+                setPhishingCountInput(event.target.value);
+                setConfigMessage("");
+              }}
+            />
+          </label>
+          <label className="admin-check-row config-toggle">
+            <input
+              type="checkbox"
+              checked={singleAttemptInput}
+              onChange={(event) => {
+                setSingleAttemptInput(event.target.checked);
+                setConfigMessage("");
+              }}
+            />
+            <span>Mỗi email chỉ được làm bài 1 lần</span>
+          </label>
+          <label className="admin-check-row config-toggle">
+            <input
+              type="checkbox"
+              checked={requireParticipantInfoInput}
+              onChange={(event) => {
+                setRequireParticipantInfoInput(event.target.checked);
+                setConfigMessage("");
+              }}
+            />
+            <span>Yêu cầu người chơi điền email & thông tin cá nhân</span>
+          </label>
           <button type="submit" className="button button-primary">
             Lưu cấu hình
           </button>
           <span className="quiz-config-hint">
-            Đang bật {activeQuestions.length} câu. Hiện cấu hình: {quizConfig.questionCount} câu/lượt.
+            Mỗi đề: {quizConfig.phishingCount} câu Phishing / {quizConfig.questionCount - quizConfig.phishingCount} câu
+            An toàn, cần đúng {quizConfig.passScore}/{quizConfig.questionCount}.
+            {answerBreakdown && (
+              <>
+                {" "}
+                Ngân hàng đang bật: {answerBreakdown.phishing} Phishing, {answerBreakdown.legitimate} An toàn.
+              </>
+            )}
           </span>
+          {answerBreakdown &&
+            (answerBreakdown.phishing < quizConfig.phishingCount ||
+              answerBreakdown.legitimate < quizConfig.questionCount - quizConfig.phishingCount) && (
+              <span className="quiz-config-message quiz-config-warning">
+                Ngân hàng không đủ câu cho tỉ lệ này — phần thiếu sẽ được bù bằng loại câu còn lại.
+              </span>
+            )}
           {configMessage && <span className="quiz-config-message">{configMessage}</span>}
         </form>
       </div>
@@ -201,22 +297,18 @@ export function AdminDashboardPage() {
         <article className="content-card dashboard-metric-card">
           <span>Tổng lượt thi</span>
           <strong>{attempts.length}</strong>
-          <p>Toàn bộ số lần hoàn thành quiz đã được ghi nhận.</p>
         </article>
         <article className="content-card dashboard-metric-card">
           <span>Số người tham gia</span>
           <strong>{participants.length}</strong>
-          <p>Số lượng người dùng đã để lại thông tin và tham dự bài đánh giá.</p>
         </article>
         <article className="content-card dashboard-metric-card">
           <span>Điểm trung bình</span>
           <strong>{averageScore}</strong>
-          <p>Mức điểm trung bình trên mỗi lượt thi từ toàn bộ dữ liệu hiện có.</p>
         </article>
         <article className="content-card dashboard-metric-card">
           <span>Người dẫn đầu</span>
           <strong>{leaderboard[0]?.participant?.fullName ?? "Chưa có dữ liệu"}</strong>
-          <p>Người có thứ hạng cao nhất theo score, thời gian và thời điểm hoàn thành.</p>
         </article>
       </div>
       <div className="dashboard-charts-grid">
@@ -225,9 +317,6 @@ export function AdminDashboardPage() {
             <div>
               <p className="eyebrow">Người Tham Gia</p>
               <h3>Số người tham gia theo thời gian</h3>
-              <p className="section-text">
-                Đếm theo thời điểm đăng ký tham gia lần đầu, tính theo múi giờ của trình duyệt.
-              </p>
             </div>
             <div className="segmented-control" role="group" aria-label="Nhóm theo">
               <button
@@ -258,7 +347,6 @@ export function AdminDashboardPage() {
             <div>
               <p className="eyebrow">Kết Quả</p>
               <h3>Phân bố kết quả theo điểm</h3>
-              <p className="section-text">Số lượt thi đạt từng mức điểm trên tổng số câu của lượt đó.</p>
             </div>
           </div>
           <BarChart
@@ -274,9 +362,6 @@ export function AdminDashboardPage() {
           <p className="eyebrow">Insight Nhanh</p>
           <h3>Tỷ lệ nhận diện trung bình</h3>
           <strong className="admin-highlight">{averageAccuracy}%</strong>
-          <p className="section-text">
-            Đây là tỷ lệ đúng trung bình của tất cả lượt thi đã hoàn thành.
-          </p>
         </article>
         <article className="content-card admin-insight-card">
           <p className="eyebrow">Tốc Độ Tốt Nhất</p>
@@ -284,9 +369,6 @@ export function AdminDashboardPage() {
           <strong className="admin-highlight">
             {fastestAttempt ? `${fastestAttempt}s` : "Chưa có dữ liệu"}
           </strong>
-          <p className="section-text">
-            Mốc thời gian hoàn thành nhanh nhất hiện có trong hệ thống.
-          </p>
         </article>
         <article className="content-card admin-insight-card">
           <p className="eyebrow">Mức Điểm Cao Nhất</p>
@@ -294,9 +376,6 @@ export function AdminDashboardPage() {
           <strong className="admin-highlight">
             {bestAttempt ? `${bestAttempt.score}/${bestAttempt.totalQuestions}` : "Chưa có dữ liệu"}
           </strong>
-          <p className="section-text">
-            Điểm số cao nhất đã đạt được trong các lượt thi hiện có.
-          </p>
         </article>
       </div>
     </section>

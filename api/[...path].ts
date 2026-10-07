@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import type { AnswerOption, QuizQuestion, QuizSession } from "../src/types.js";
+import type { AnswerOption, QuizSessionPayload } from "../src/types.js";
 import {
   clearAdminCookie,
   getAdminStatus,
@@ -10,9 +10,13 @@ import {
 import {
   devClearAdminCookie,
   devCreateQuestion,
+  devDeleteAllAttempts,
+  devDeleteParticipants,
+  devDeleteQuestion,
   devEnsureDefaultQuiz,
   devExpireStaleSessions,
   devFinishQuizSession,
+  devGetActiveAnswerBreakdown,
   devGetAdminStatus,
   devGetAttemptById,
   devGetLeaderboard,
@@ -26,17 +30,24 @@ import {
   devSaveQuizConfig,
   devSaveSessionAnswer,
   devSetupAdmin,
+  devStartQuizForParticipant,
+  devStartQuizForTeam,
   devStartQuizSession,
   devTouchQuizSession,
   devUpdateQuestion,
   devUpdateQuestionState,
+  devUpdateQuestionTimeLimit,
   devUpsertParticipant,
 } from "./_devStore.js";
 import {
   createQuestion,
+  deleteAllAttempts,
+  deleteParticipants,
+  deleteQuestion,
   ensureDefaultQuiz,
   expireStaleSessions,
   finishQuizSession,
+  getActiveAnswerBreakdown,
   getAttemptById,
   getLeaderboard,
   getQuizConfig,
@@ -46,10 +57,14 @@ import {
   listQuestions,
   saveSessionAnswer,
   saveQuizConfig,
+  startQuizForParticipant,
+  startQuizForTeam,
+  TEAM_OPTIONS,
   startQuizSession,
   touchQuizSession,
   updateQuestion,
   updateQuestionState,
+  updateQuestionTimeLimit,
   upsertParticipant,
 } from "./_quizRepository.js";
 
@@ -120,6 +135,11 @@ function canUseDevFallback(error: unknown) {
     "ENOTFOUND",
     "getaddrinfo",
     "connect ECONNREFUSED",
+    // pg pool báo hết giờ kết nối bằng thông điệp riêng, vẫn là 'không với tới được DB'
+    "timeout exceeded when trying to connect",
+    "Connection terminated due to connection timeout",
+    "Connection terminated unexpectedly",
+    "ETIMEDOUT",
   ].some((pattern) => message.includes(pattern));
 }
 
@@ -218,11 +238,16 @@ function readQuestionBody(request: VercelRequest) {
     explanation?: string;
     indicators?: unknown;
     alwaysIncluded?: boolean;
+    timeLimitSeconds?: number;
+    difficulty?: string;
   }>(request);
 
   if (!body.title?.trim() || !body.category?.trim() || !isAnswerOption(body.correctAnswer)) {
     throw new Error("Dữ liệu câu hỏi không hợp lệ.");
   }
+
+  const validDifficulties: string[] = ["none", "low", "medium", "high", "very_high"];
+  const difficulty = (validDifficulties.includes(body.difficulty) ? body.difficulty : "none") as any;
 
   return {
     title: body.title.trim(),
@@ -236,6 +261,8 @@ function readQuestionBody(request: VercelRequest) {
       ? body.indicators.map(String).map((value) => value.trim()).filter(Boolean)
       : [],
     alwaysIncluded: Boolean(body.alwaysIncluded),
+    timeLimitSeconds: Number(body.timeLimitSeconds ?? 30),
+    difficulty,
   };
 }
 
@@ -353,7 +380,18 @@ export default async function handler(request: VercelRequest, response: VercelRe
           return;
         }
         if (request.method === "PATCH") {
-          const body = readBody<{ active?: boolean; alwaysIncluded?: boolean }>(request);
+          const body = readBody<{ active?: boolean; alwaysIncluded?: boolean; timeLimitSeconds?: number }>(request);
+          if (typeof body.timeLimitSeconds === "number") {
+            const timeLimitSeconds = body.timeLimitSeconds;
+            sendOk(
+              response,
+              await withDevFallback(
+                () => updateQuestionTimeLimit(action, timeLimitSeconds),
+                () => devUpdateQuestionTimeLimit(action, timeLimitSeconds),
+              ),
+            );
+            return;
+          }
           sendOk(
             response,
             await withDevFallback(
@@ -363,13 +401,57 @@ export default async function handler(request: VercelRequest, response: VercelRe
           );
           return;
         }
+        if (request.method === "DELETE") {
+          sendOk(
+            response,
+            await withDevFallback(
+              () => deleteQuestion(action),
+              () => devDeleteQuestion(action),
+            ),
+          );
+          return;
+        }
+      }
+
+      if (resourceId === "participants" && request.method === "DELETE") {
+        const body = readBody<{ ids?: unknown }>(request);
+        const ids = Array.isArray(body.ids) ? body.ids.map(String).filter(Boolean) : [];
+        if (ids.length === 0) {
+          sendError(response, 400, "Chưa chọn người tham gia nào để xóa.");
+          return;
+        }
+        sendOk(
+          response,
+          await withDevFallback(
+            () => deleteParticipants(ids),
+            () => devDeleteParticipants(ids),
+          ),
+        );
+        return;
+      }
+
+      if (resourceId === "attempts" && request.method === "DELETE") {
+        sendOk(
+          response,
+          await withDevFallback(
+            () => deleteAllAttempts(),
+            () => devDeleteAllAttempts(),
+          ),
+        );
+        return;
       }
 
       sendError(response, 404, "Không tìm thấy API quản trị.");
       return;
     }
 
-    await sweepStaleSessions();
+    // Chỉ quét phiên quá hạn ở các route đọc danh sách / mở phiên mới — không chèn thêm độ trễ
+    // vào đường nóng làm bài (trả lời, hoàn thành, tải phiên).
+    const isListRoute =
+      request.method === "GET" && (resource === "attempts" || resource === "leaderboard" || resource === "participants");
+    if (isListRoute) {
+      await sweepStaleSessions();
+    }
 
     if (resource === "health") {
       await withDevFallback(
@@ -441,16 +523,62 @@ export default async function handler(request: VercelRequest, response: VercelRe
       if (!requireMethod(request, response, "POST")) {
         return;
       }
-      const body = readBody<{ participantId?: string }>(request);
-      if (!body.participantId) {
-        sendError(response, 400, "Thiếu participantId.");
+      const body = readBody<{
+        participantId?: string;
+        team?: string;
+        fullName?: string;
+        email?: string;
+        consent?: boolean;
+      }>(request);
+
+      // Luồng mới: người chơi chỉ chọn đội, hệ thống tự tạo "Người chơi N".
+      if (typeof body.team === "string" && body.team.trim()) {
+        const team = body.team.trim();
+        if (!TEAM_OPTIONS.includes(team)) {
+          sendError(response, 400, "Đội liên minh không hợp lệ.");
+          return;
+        }
+        sendCreated(
+          response,
+          await withDevFallback(
+            () => startQuizForTeam(team),
+            () => devStartQuizForTeam(team),
+          ),
+        );
         return;
       }
+
+      // Đường nhanh: gửi thẳng thông tin người tham gia → 1 request tạo participant + mở phiên.
+      if (!body.participantId) {
+        if (!body.fullName || body.fullName.trim().length < 2) {
+          sendError(response, 400, "Họ tên phải có ít nhất 2 ký tự.");
+          return;
+        }
+        if (!body.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email)) {
+          sendError(response, 400, "Email không hợp lệ.");
+          return;
+        }
+        const participantInput = {
+          fullName: body.fullName.trim(),
+          email: body.email.trim(),
+          consent: body.consent ?? true,
+        };
+        sendCreated(
+          response,
+          await withDevFallback(
+            () => startQuizForParticipant(participantInput),
+            () => devStartQuizForParticipant(participantInput),
+          ),
+        );
+        return;
+      }
+
+      const participantId = body.participantId;
       sendCreated(
         response,
         await withDevFallback(
-          () => startQuizSession(body.participantId),
-          () => devStartQuizSession(body.participantId),
+          () => startQuizSession(participantId),
+          () => devStartQuizSession(participantId),
         ),
       );
       return;
@@ -460,7 +588,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
       if (!requireMethod(request, response, "GET")) {
         return;
       }
-      const session = await withDevFallback<{ session: QuizSession; questions: QuizQuestion[] } | null>(
+      const session = await withDevFallback<QuizSessionPayload | null>(
         () => getQuizSession(resourceId),
         () => devGetQuizSession(resourceId),
       );
@@ -573,24 +701,50 @@ export default async function handler(request: VercelRequest, response: VercelRe
 
     if (resource === "quiz-config") {
       if (request.method === "GET") {
-        sendOk(
-          response,
-          await withDevFallback(
+        const [config, answerBreakdown] = await Promise.all([
+          withDevFallback(
             () => getQuizConfig(),
             () => devGetQuizConfig(),
           ),
-        );
+          withDevFallback(
+            () => getActiveAnswerBreakdown(),
+            () => devGetActiveAnswerBreakdown(),
+          ),
+        ]);
+        sendOk(response, { ...config, answerBreakdown });
         return;
       }
       if (!requireMethod(request, response, "PUT")) {
         return;
       }
-      const body = readBody<{ questionCount?: number }>(request);
+      const body = readBody<{
+        questionCount?: number;
+        passScore?: number;
+        phishingCount?: number;
+        singleAttemptPerEmail?: boolean;
+        requireParticipantInfo?: boolean;
+      }>(request);
+      const singleAttemptPerEmail = Boolean(body.singleAttemptPerEmail);
+      const requireParticipantInfo = Boolean(body.requireParticipantInfo);
       sendOk(
         response,
         await withDevFallback(
-          () => saveQuizConfig(Number(body.questionCount)),
-          () => devSaveQuizConfig(Number(body.questionCount)),
+          () =>
+            saveQuizConfig(
+              Number(body.questionCount),
+              Number(body.passScore),
+              Number(body.phishingCount),
+              singleAttemptPerEmail,
+              requireParticipantInfo,
+            ),
+          () =>
+            devSaveQuizConfig(
+              Number(body.questionCount),
+              Number(body.passScore),
+              Number(body.phishingCount),
+              singleAttemptPerEmail,
+              requireParticipantInfo,
+            ),
         ),
       );
       return;

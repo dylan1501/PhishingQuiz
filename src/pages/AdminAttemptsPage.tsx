@@ -1,14 +1,19 @@
-import { useEffect, useState } from "react";
-import { getRemoteAttempts, getRemoteParticipants } from "../apiClient";
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams, useNavigate } from "react-router-dom";
+import { deleteAllAdminAttempts, getRemoteAttempts, getRemoteParticipants, getRemoteQuestions } from "../apiClient";
 import { exportTableToExcel } from "../excelExport";
+import { PAGE_SIZE_OPTIONS, TablePagination } from "../components/TablePagination";
+import { TrashIcon, ArrowLeftIcon, EyeIcon } from "../components/icons";
+import type { Attempt, QuizQuestion } from "../types";
 
-type AttemptSortKey = "participantName" | "email" | "score" | "durationSeconds" | "completedAt";
+// "ranking" là thứ tự mặc định: điểm cao hơn → thời gian ít hơn → hoàn thành sớm hơn.
+type AttemptSortKey = "ranking" | "participantName" | "team" | "score" | "durationSeconds" | "completedAt";
 type SortDirection = "asc" | "desc";
 
 interface AttemptRow {
   id: string;
   participantName: string;
-  email: string;
+  team: string;
   score: number;
   totalQuestions: number;
   durationSeconds: number;
@@ -17,19 +22,31 @@ interface AttemptRow {
 }
 
 export function AdminAttemptsPage() {
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const filterParticipantId = searchParams.get("participantId");
+
   const [attempts, setAttempts] = useState<Awaited<ReturnType<typeof getRemoteAttempts>>>([]);
   const [participants, setParticipants] = useState<Awaited<ReturnType<typeof getRemoteParticipants>>>([]);
+  const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [loadError, setLoadError] = useState("");
-  const [sortKey, setSortKey] = useState<AttemptSortKey>("completedAt");
+  const [sortKey, setSortKey] = useState<AttemptSortKey>("ranking");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<number>(PAGE_SIZE_OPTIONS[0]);
+  const [confirmClear, setConfirmClear] = useState(false);
+  const [clearing, setClearing] = useState(false);
+  const [notice, setNotice] = useState("");
+  const [detailAttempt, setDetailAttempt] = useState<Attempt | null>(null);
 
   useEffect(() => {
     let active = true;
-    Promise.all([getRemoteAttempts(), getRemoteParticipants()])
-      .then(([remoteAttempts, remoteParticipants]) => {
+    Promise.all([getRemoteAttempts(), getRemoteParticipants(), getRemoteQuestions()])
+      .then(([remoteAttempts, remoteParticipants, remoteQuestions]) => {
         if (active) {
           setAttempts(remoteAttempts);
           setParticipants(remoteParticipants);
+          setQuestions(remoteQuestions);
         }
       })
       .catch((error) => {
@@ -40,12 +57,16 @@ export function AdminAttemptsPage() {
     };
   }, []);
 
-  const attemptRows: AttemptRow[] = attempts.map((attempt) => {
+  const filteredAttempts = filterParticipantId
+    ? attempts.filter((attempt) => attempt.participantId === filterParticipantId)
+    : attempts;
+
+  const attemptRows: AttemptRow[] = filteredAttempts.map((attempt) => {
     const participant = participants.find((entry) => entry.id === attempt.participantId);
     return {
       id: attempt.id,
       participantName: participant?.fullName ?? "Không xác định",
-      email: participant?.email ?? "",
+      team: participant?.team ?? "—",
       score: attempt.score,
       totalQuestions: attempt.totalQuestions,
       durationSeconds: attempt.durationSeconds,
@@ -54,21 +75,62 @@ export function AdminAttemptsPage() {
     };
   });
 
-  const sortedRows = [...attemptRows].sort((firstRow, secondRow) => {
+  const filterParticipantName = filterParticipantId
+    ? participants.find((p) => p.id === filterParticipantId)?.fullName
+    : null;
+
+  const sortedRows = useMemo(() => {
     const direction = sortDirection === "asc" ? 1 : -1;
+    return [...attemptRows].sort((firstRow, secondRow) => {
+      if (sortKey === "ranking") {
+        // Thứ tự xếp hạng: điểm cao hơn, thời gian ít hơn, rồi hoàn thành sớm hơn.
+        // "desc" = hạng tốt nhất lên đầu, nên chiều thuận ở đây ngược với các cột thường.
+        const rankDirection = sortDirection === "desc" ? 1 : -1;
+        if (firstRow.score !== secondRow.score) {
+          return (secondRow.score - firstRow.score) * rankDirection;
+        }
+        if (firstRow.durationSeconds !== secondRow.durationSeconds) {
+          return (firstRow.durationSeconds - secondRow.durationSeconds) * rankDirection;
+        }
+        return (
+          (new Date(firstRow.completedAt).getTime() - new Date(secondRow.completedAt).getTime()) * rankDirection
+        );
+      }
 
-    if (sortKey === "score" || sortKey === "durationSeconds") {
-      return (firstRow[sortKey] - secondRow[sortKey]) * direction;
+      if (sortKey === "score" || sortKey === "durationSeconds") {
+        return (firstRow[sortKey] - secondRow[sortKey]) * direction;
+      }
+
+      if (sortKey === "completedAt") {
+        return (new Date(firstRow.completedAt).getTime() - new Date(secondRow.completedAt).getTime()) * direction;
+      }
+
+      return firstRow[sortKey].localeCompare(secondRow[sortKey], "vi", { sensitivity: "base" }) * direction;
+    });
+  }, [attemptRows, sortKey, sortDirection]);
+
+  const totalPages = Math.max(1, Math.ceil(sortedRows.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const pageRows = sortedRows.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+  async function clearHistory() {
+    setClearing(true);
+    setLoadError("");
+    try {
+      const result = await deleteAllAdminAttempts();
+      setAttempts([]);
+      setNotice(`Đã xóa ${result.deleted} lượt thi khỏi lịch sử.`);
+      setConfirmClear(false);
+    } catch (error) {
+      setLoadError(error instanceof Error ? error.message : "Không xóa được lịch sử làm bài.");
+      setConfirmClear(false);
+    } finally {
+      setClearing(false);
     }
-
-    if (sortKey === "completedAt") {
-      return (new Date(firstRow.completedAt).getTime() - new Date(secondRow.completedAt).getTime()) * direction;
-    }
-
-    return firstRow[sortKey].localeCompare(secondRow[sortKey], "vi", { sensitivity: "base" }) * direction;
-  });
+  }
 
   function changeSort(nextSortKey: AttemptSortKey) {
+    setPage(1);
     if (nextSortKey === sortKey) {
       setSortDirection((currentDirection) => (currentDirection === "asc" ? "desc" : "asc"));
       return;
@@ -76,7 +138,9 @@ export function AdminAttemptsPage() {
 
     setSortKey(nextSortKey);
     setSortDirection(
-      nextSortKey === "score" || nextSortKey === "completedAt" || nextSortKey === "durationSeconds" ? "desc" : "asc",
+      nextSortKey === "score" || nextSortKey === "completedAt" || nextSortKey === "durationSeconds" || nextSortKey === "ranking"
+        ? "desc"
+        : "asc",
     );
   }
 
@@ -96,58 +160,257 @@ export function AdminAttemptsPage() {
     const rows = sortedRows.map((attempt, index) => [
       index + 1,
       attempt.participantName,
-      attempt.email,
+      attempt.team,
       `${attempt.score}/${attempt.totalQuestions}`,
       `${attempt.durationSeconds}s`,
       new Date(attempt.startedAt).toLocaleString("vi-VN"),
       new Date(attempt.completedAt).toLocaleString("vi-VN"),
     ]);
+    const title = filterParticipantName ? `Lịch sử làm bài - ${filterParticipantName}` : "Lịch sử làm bài";
     exportTableToExcel(
-      "Lịch sử làm bài",
-      ["STT", "Người tham gia", "Email", "Điểm", "Thời gian", "Bắt đầu lúc", "Hoàn thành lúc"],
+      title,
+      ["STT", "Người chơi", "Đội", "Điểm", "Thời gian", "Bắt đầu lúc", "Hoàn thành lúc"],
       rows,
     );
   }
 
   return (
     <section className="content-card">
-      <p className="eyebrow">Lịch Sử Làm Bài</p>
-      <div className="admin-page-heading">
+      <div className="admin-page-heading admin-page-heading-sticky">
+        <p className="eyebrow">Lịch Sử Làm Bài</p>
         <div>
-          <h2>Chi tiết các lượt thi</h2>
-          <p className="section-text">Xuất dữ liệu phục vụ báo cáo đào tạo nhận thức an toàn thông tin.</p>
+          {filterParticipantId && (
+            <button
+              type="button"
+              className="button button-ghost button-small"
+              onClick={() => navigate("/admin/participants")}
+              style={{ marginBottom: "12px" }}
+            >
+              <ArrowLeftIcon />
+              Quay lại danh sách người tham gia
+            </button>
+          )}
+          <h2>{filterParticipantName ? `Lượt thi của ${filterParticipantName}` : "Chi tiết các lượt thi"}</h2>
         </div>
-        <button type="button" className="button button-small export-button" onClick={exportExcel}>
-          Xuất Excel
-        </button>
+        <div className="admin-page-actions">
+          <button
+            type="button"
+            className="button button-small button-danger"
+            disabled={attempts.length === 0}
+            onClick={() => setConfirmClear(true)}
+          >
+            <TrashIcon />
+            Xóa toàn bộ lịch sử
+          </button>
+          <button type="button" className="button button-small export-button" onClick={exportExcel}>
+            Xuất Excel
+          </button>
+        </div>
       </div>
       {loadError && <div className="notice notice-error">{loadError}</div>}
+      {notice && <div className="notice notice-success">{notice}</div>}
+      <div className="sort-hint">
+        <button
+          type="button"
+          className={`button button-small ${sortKey === "ranking" ? "sort-hint-active" : ""}`}
+          onClick={() => changeSort("ranking")}
+        >
+          Xếp theo thành tích
+        </button>
+        <span>Điểm cao hơn → thời gian ít hơn → hoàn thành sớm hơn</span>
+      </div>
+      <div className="table-scroll">
       <table className="table">
         <thead>
           <tr>
-            <th className="stt-col">STT</th>
-            <th>{renderSortHeader("Người tham gia", "participantName")}</th>
-            <th>{renderSortHeader("Email", "email")}</th>
+            <th className="stt-col">{renderSortHeader("#", "ranking")}</th>
+            <th>{renderSortHeader("Người chơi", "participantName")}</th>
+            <th>{renderSortHeader("Đội", "team")}</th>
             <th>{renderSortHeader("Điểm", "score")}</th>
             <th>{renderSortHeader("Thời gian", "durationSeconds")}</th>
             <th>{renderSortHeader("Hoàn thành lúc", "completedAt")}</th>
+            <th>Thao tác</th>
           </tr>
         </thead>
         <tbody>
-          {sortedRows.map((attempt, index) => (
-            <tr key={attempt.id}>
-              <td className="stt-col">{index + 1}</td>
-              <td>{attempt.participantName}</td>
-              <td>{attempt.email}</td>
-              <td>
-                {attempt.score}/{attempt.totalQuestions}
+          {pageRows.map((attempt, index) => {
+            const fullAttempt = attempts.find((a) => a.id === attempt.id);
+            return (
+              <tr key={attempt.id}>
+                <td className="stt-col">{(currentPage - 1) * pageSize + index + 1}</td>
+                <td>{attempt.participantName}</td>
+                <td>
+                  <span className="team-chip">{attempt.team}</span>
+                </td>
+                <td>
+                  {attempt.score}/{attempt.totalQuestions}
+                </td>
+                <td>{attempt.durationSeconds}s</td>
+                <td>{new Date(attempt.completedAt).toLocaleString()}</td>
+                <td className="table-actions">
+                  <button
+                    type="button"
+                    className="icon-button icon-button-preview"
+                    title="Xem chi tiết lượt thi"
+                    aria-label={`Xem chi tiết lượt thi của ${attempt.participantName}`}
+                    onClick={() => fullAttempt && setDetailAttempt(fullAttempt)}
+                  >
+                    <EyeIcon />
+                  </button>
+                </td>
+              </tr>
+            );
+          })}
+          {pageRows.length === 0 && (
+            <tr>
+              <td colSpan={7} className="table-empty">
+                Chưa có lượt thi nào.
               </td>
-              <td>{attempt.durationSeconds}s</td>
-              <td>{new Date(attempt.completedAt).toLocaleString()}</td>
             </tr>
-          ))}
+          )}
         </tbody>
       </table>
+      </div>
+      <TablePagination
+        totalItems={sortedRows.length}
+        page={currentPage}
+        pageSize={pageSize}
+        onPageChange={setPage}
+        onPageSizeChange={(nextPageSize) => {
+          setPageSize(nextPageSize);
+          setPage(1);
+        }}
+        itemLabel="lượt thi"
+      />
+      {confirmClear && (
+        <div className="modal-backdrop preview-modal-backdrop" onClick={() => !clearing && setConfirmClear(false)}>
+          <div
+            className="modal-card confirm-modal-card"
+            role="alertdialog"
+            aria-modal="true"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <p className="eyebrow">Xóa Lịch Sử</p>
+            <h3>Xóa toàn bộ {attempts.length} lượt thi?</h3>
+            <p className="section-text">
+              Bảng xếp hạng và thống kê trên dashboard sẽ trống. Người tham gia và ngân hàng câu hỏi được giữ nguyên.
+              Thao tác không thể hoàn tác.
+            </p>
+            <div className="hero-actions confirm-modal-actions">
+              <button
+                type="button"
+                className="button button-ghost"
+                onClick={() => setConfirmClear(false)}
+                disabled={clearing}
+              >
+                Hủy
+              </button>
+              <button type="button" className="button button-danger" onClick={clearHistory} disabled={clearing}>
+                {clearing ? "Đang xóa..." : "Xóa toàn bộ"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {detailAttempt && (
+        <div className="modal-backdrop preview-modal-backdrop" onClick={() => setDetailAttempt(null)}>
+          <div
+            className="modal-card preview-modal-card"
+            role="dialog"
+            aria-modal="true"
+            onClick={(event) => event.stopPropagation()}
+            style={{ maxWidth: "900px", maxHeight: "90vh", overflow: "auto" }}
+          >
+            <div className="preview-modal-head">
+              <div>
+                <p className="eyebrow">Chi tiết lượt thi</p>
+                <h3>
+                  {participants.find((p) => p.id === detailAttempt.participantId)?.fullName || "Người chơi"} -{" "}
+                  {detailAttempt.score}/{detailAttempt.totalQuestions}
+                </h3>
+              </div>
+              <button
+                type="button"
+                className="button button-small"
+                onClick={() => setDetailAttempt(null)}
+                aria-label="Đóng"
+              >
+                Đóng ✕
+              </button>
+            </div>
+            <div style={{ padding: "20px" }}>
+              <div style={{ marginBottom: "20px", padding: "16px", background: "#f5f5f5", borderRadius: "8px" }}>
+                <p>
+                  <strong>Thời gian:</strong> {detailAttempt.durationSeconds}s |{" "}
+                  <strong>Hoàn thành lúc:</strong> {new Date(detailAttempt.completedAt).toLocaleString("vi-VN")}
+                </p>
+              </div>
+              <div>
+                <h4 style={{ marginBottom: "16px" }}>Các câu hỏi:</h4>
+                {detailAttempt.answers.map((answer, index) => {
+                  const question = questions.find((q) => q.id === answer.questionId);
+                  return (
+                    <div
+                      key={answer.questionId}
+                      style={{
+                        marginBottom: "24px",
+                        padding: "16px",
+                        border: "1px solid #ddd",
+                        borderRadius: "8px",
+                        borderLeft: `4px solid ${answer.isCorrect ? "#22c55e" : "#ef4444"}`,
+                      }}
+                    >
+                      <div style={{ marginBottom: "12px" }}>
+                        <strong style={{ fontSize: "16px" }}>
+                          {index + 1}. {question?.title || "Câu hỏi không xác định"}
+                        </strong>
+                        <span
+                          style={{
+                            marginLeft: "12px",
+                            padding: "4px 8px",
+                            borderRadius: "4px",
+                            fontSize: "12px",
+                            fontWeight: "600",
+                            background: answer.isCorrect ? "#dcfce7" : "#fee2e2",
+                            color: answer.isCorrect ? "#166534" : "#991b1b",
+                          }}
+                        >
+                          {answer.isCorrect ? "✓ Đúng" : "✗ Sai"}
+                        </span>
+                      </div>
+                      {question && (
+                        <>
+                          <p style={{ marginBottom: "12px", color: "#666" }}>
+                            <strong>Loại:</strong> {question.category} | <strong>Đáp án đúng:</strong>{" "}
+                            {question.correctAnswer === "phishing" ? "Phishing" : "An toàn"} |{" "}
+                            <strong>Câu trả lời:</strong>{" "}
+                            {answer.selectedAnswer === "phishing" ? "Phishing" : "An toàn"}
+                          </p>
+                          <p style={{ marginBottom: "12px", fontStyle: "italic", color: "#555" }}>
+                            <strong>Giải thích:</strong> {question.explanation}
+                          </p>
+                          {question.indicators.length > 0 && (
+                            <div>
+                              <strong style={{ display: "block", marginBottom: "8px" }}>Dấu hiệu nhận biết:</strong>
+                              <ul style={{ marginLeft: "20px", marginTop: "8px" }}>
+                                {question.indicators.map((indicator, idx) => (
+                                  <li key={idx} style={{ marginBottom: "4px" }}>
+                                    {indicator}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

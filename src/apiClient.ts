@@ -1,4 +1,12 @@
-import type { AnswerOption, Attempt, AttemptAnswer, Participant, QuizConfig, QuizQuestion, QuizSession } from "./types";
+import type {
+  AnswerOption,
+  Attempt,
+  AttemptAnswer,
+  Participant,
+  QuizConfig,
+  QuizQuestion,
+  QuizSessionPayload,
+} from "./types";
 
 type ApiEnvelope<T> = {
   data: T;
@@ -83,6 +91,13 @@ export function updateAdminQuestion(
   });
 }
 
+export function patchAdminQuestionTimeLimit(questionId: string, timeLimitSeconds: number) {
+  return requestApi<QuizQuestion>(`admin/questions/${questionId}`, {
+    method: "PATCH",
+    body: JSON.stringify({ timeLimitSeconds }),
+  });
+}
+
 export function patchAdminQuestionState(
   questionId: string,
   state: Partial<Pick<QuizQuestion, "active" | "alwaysIncluded">>,
@@ -93,17 +108,39 @@ export function patchAdminQuestionState(
   });
 }
 
+export function deleteAdminQuestion(questionId: string) {
+  return requestApi<{ id: string; deleted: boolean }>(`admin/questions/${questionId}`, {
+    method: "DELETE",
+  });
+}
+
 export function startRemoteSession(participantId: string) {
-  return requestApi<QuizSession>("quiz-sessions", {
+  return requestApi<QuizSessionPayload>("quiz-sessions", {
     method: "POST",
     body: JSON.stringify({ participantId }),
   });
 }
 
+export const TEAM_OPTIONS = Array.from({ length: 9 }, (_, index) => `TEAM ${index + 1}`);
+
+// Người chơi chọn đội; server tự tạo "Người chơi N" và mở phiên trong một request.
+export function startRemoteQuizForTeam(team: string, fullName?: string, email?: string) {
+  return requestApi<QuizSessionPayload>("quiz-sessions", {
+    method: "POST",
+    body: JSON.stringify({ team, fullName, email }),
+  });
+}
+
+// Tạo/cập nhật người tham gia và mở phiên trong một request; trả về luôn bộ câu hỏi.
+export function startRemoteQuiz(fullName: string, email: string, consent = true) {
+  return requestApi<QuizSessionPayload>("quiz-sessions", {
+    method: "POST",
+    body: JSON.stringify({ fullName, email, consent }),
+  });
+}
+
 export function getRemoteSession(sessionId: string) {
-  return requestApi<{ session: QuizSession; questions: QuizQuestion[] }>(
-    `quiz-sessions/${encodeURIComponent(sessionId)}`,
-  );
+  return requestApi<QuizSessionPayload>(`quiz-sessions/${encodeURIComponent(sessionId)}`);
 }
 
 export function saveRemoteAnswer(sessionId: string, questionId: string, selectedAnswer: AnswerOption) {
@@ -142,14 +179,35 @@ export function getRemoteLeaderboard() {
   return requestApi<LeaderboardEntry[]>("leaderboard");
 }
 
+export type AnswerBreakdown = { phishing: number; legitimate: number };
+
 export function getRemoteQuizConfig() {
-  return requestApi<QuizConfig>("quiz-config");
+  return requestApi<QuizConfig & { answerBreakdown?: AnswerBreakdown }>("quiz-config");
 }
 
-export function saveRemoteQuizConfig(questionCount: number) {
+export function saveRemoteQuizConfig(
+  questionCount: number,
+  passScore: number,
+  phishingCount: number,
+  singleAttemptPerEmail: boolean,
+  requireParticipantInfo: boolean = false,
+) {
   return requestApi<QuizConfig>("quiz-config", {
     method: "PUT",
-    body: JSON.stringify({ questionCount }),
+    body: JSON.stringify({ questionCount, passScore, phishingCount, singleAttemptPerEmail, requireParticipantInfo }),
+  });
+}
+
+export function deleteAdminParticipants(ids: string[]) {
+  return requestApi<{ deleted: number }>("admin/participants", {
+    method: "DELETE",
+    body: JSON.stringify({ ids }),
+  });
+}
+
+export function deleteAllAdminAttempts() {
+  return requestApi<{ deleted: number }>("admin/attempts", {
+    method: "DELETE",
   });
 }
 

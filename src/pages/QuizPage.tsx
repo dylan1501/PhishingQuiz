@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Navigate, useLocation, useNavigate, useParams } from "react-router-dom";
 import { finishRemoteSession, getRemoteSession, saveRemoteAnswer, touchRemoteSessionBeacon } from "../apiClient";
-import type { AnswerOption, QuizQuestion, QuizSession } from "../types";
+import type { AnswerOption, QuizQuestion, QuizSession, QuizSessionPayload } from "../types";
+import { LoadingScreen } from "../components/LoadingScreen";
 
 type HotspotNote = {
   id: string;
@@ -20,7 +21,7 @@ type ExplanationStep = {
 const QUIZ_SOUNDS = {
   correct: "/assets/sounds/mixkit-correct-answer-reward-952.wav",
   wrong: "/assets/sounds/mixkit-wrong-answer-fail-notification-946.wav",
-  thinking: "/assets/sounds/mixkit-retro-game-emergency-alarm-1000.wav",
+  background: "/assets/sounds/background.mp3",
 } as const;
 
 function stopAudio(audio: HTMLAudioElement | null) {
@@ -149,6 +150,12 @@ function normalizeSmsTemplate(document: Document, container: HTMLElement) {
   senderCaption.textContent = "Người gửi SMS";
   senderInfo.append(senderName, senderCaption);
   header.append(avatar, senderInfo);
+  // Dòng người gửi chỉ còn lại phần chữ, nên chuyển điểm giải thích của nó lên khối tiêu đề
+  // để bong bóng vẫn neo được đúng vị trí đầu số/tên thương hiệu.
+  if (senderNode?.getAttribute("data-spot")) {
+    header.dataset.spot = senderNode.getAttribute("data-spot") ?? "";
+    header.dataset.label = senderNode.getAttribute("data-label") ?? "";
+  }
 
   const thread = document.createElement("div");
   thread.className = "sms-thread";
@@ -256,9 +263,17 @@ export function QuizPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const sessionId = useMemo(() => new URLSearchParams(location.search).get("session") ?? "", [location.search]);
-  const [session, setSession] = useState<QuizSession | null>(null);
-  const [questions, setQuestions] = useState<QuizQuestion[]>([]);
-  const [loadingSession, setLoadingSession] = useState(true);
+  // Payload do màn nhập thông tin chuyển sang qua router state → vào bài ngay, không cần gọi API.
+  const preloaded = useMemo(() => {
+    const state = location.state as { quizStart?: QuizSessionPayload } | null;
+    return state?.quizStart && state.quizStart.session.id === sessionId ? state.quizStart : null;
+  }, [location.state, sessionId]);
+  const [session, setSession] = useState<QuizSession | null>(preloaded?.session ?? null);
+  const [questions, setQuestions] = useState<QuizQuestion[]>(preloaded?.questions ?? []);
+  const [passScore, setPassScore] = useState<number>(preloaded?.passScore ?? 0);
+  const [loadingSession, setLoadingSession] = useState(!preloaded);
+  // Phiên đã có trong state (preload hoặc đã tải) → chuyển câu không gọi lại API.
+  const loadedSessionIdRef = useRef(preloaded?.session.id ?? "");
   const [loadError, setLoadError] = useState("");
   const questionNumber = Number(index ?? 1);
   const question = questions[questionNumber - 1] ?? null;
@@ -266,21 +281,30 @@ export function QuizPage() {
   const [selectedAnswer, setSelectedAnswer] = useState<AnswerOption | null>(
     existingAnswer?.selectedAnswer ?? null,
   );
+  const [timedOut, setTimedOut] = useState(false);
+  const [secondsLeft, setSecondsLeft] = useState(0);
   const [explanationViewed, setExplanationViewed] = useState(false);
   const [explanationStepIndex, setExplanationStepIndex] = useState(0);
   const [finishError, setFinishError] = useState("");
   const [finishingResult, setFinishingResult] = useState(false);
   const finishInProgressRef = useRef(false);
   const scenarioHtmlRef = useRef<HTMLDivElement | null>(null);
+  const feedbackRef = useRef<HTMLDivElement | null>(null);
   const scenarioStageRef = useRef<HTMLDivElement | null>(null);
+  const inlineNoteRef = useRef<HTMLDivElement | null>(null);
   const correctAudioRef = useRef<HTMLAudioElement | null>(null);
   const wrongAudioRef = useRef<HTMLAudioElement | null>(null);
-  const thinkingAudioRef = useRef<HTMLAudioElement | null>(null);
+  const backgroundAudioRef = useRef<HTMLAudioElement | null>(null);
   const [bubblePosition, setBubblePosition] = useState<{ left: number; top: number } | null>(null);
   const [anchorPosition, setAnchorPosition] = useState<{ left: number; top: number } | null>(null);
 
   useEffect(() => {
     if (!sessionId) {
+      setLoadingSession(false);
+      return;
+    }
+
+    if (loadedSessionIdRef.current === sessionId) {
       setLoadingSession(false);
       return;
     }
@@ -291,8 +315,10 @@ export function QuizPage() {
     getRemoteSession(sessionId)
       .then((payload) => {
         if (active) {
+          loadedSessionIdRef.current = sessionId;
           setSession(payload.session);
           setQuestions(payload.questions);
+          setPassScore(payload.passScore);
         }
       })
       .catch((error) => {
@@ -310,6 +336,67 @@ export function QuizPage() {
       active = false;
     };
   }, [sessionId]);
+
+  // Khi chuyển sang câu hỏi mới (cả lần đầu và khi nhấn Next), luôn cuộn lên đầu trang.
+  // requestAnimationFrame đảm bảo scroll chạy sau khi DOM đã update xong.
+  useEffect(() => {
+    if (!question) {
+      return;
+    }
+    const frame = window.requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, behavior: "auto" });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [question?.id]);
+
+  // Trả lời xong (hoặc hết giờ) thì đưa luôn khối phản hồi + nút "Xem giải thích" vào tầm mắt,
+  // người chơi không phải tự cuộn tìm.
+  useEffect(() => {
+    if (!selectedAnswer && !timedOut) {
+      return;
+    }
+    const frame = window.requestAnimationFrame(() => {
+      feedbackRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [selectedAnswer, timedOut, question?.id]);
+
+  // Đồng hồ chỉ chạy khi đang cân nhắc đáp án: dừng ngay khi chọn xong hoặc hết giờ,
+  // nên thời gian xem giải thích không bị tính.
+  const countdownRunning = Boolean(question) && !selectedAnswer && !timedOut && !loadingSession;
+  useEffect(() => {
+    if (!countdownRunning) {
+      return;
+    }
+    const timer = window.setInterval(() => {
+      setSecondsLeft((current) => {
+        if (current <= 1) {
+          window.clearInterval(timer);
+          setTimedOut(true);
+          return 0;
+        }
+        return current - 1;
+      });
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [countdownRunning, question?.id]);
+
+  // Tới câu cuối: nạp sẵn video kết quả vào cache để màn kết quả hiện ngay, không phải chờ tải.
+  const onFinalQuestion = questions.length > 0 && questionNumber === questions.length;
+  useEffect(() => {
+    if (!onFinalQuestion) {
+      return;
+    }
+    const links = ["/assets/videos/result-pass.webm", "/assets/videos/result-fail.webm"].map((href) => {
+      const link = document.createElement("link");
+      link.rel = "prefetch";
+      link.as = "video";
+      link.href = href;
+      document.head.appendChild(link);
+      return link;
+    });
+    return () => links.forEach((link) => link.remove());
+  }, [onFinalQuestion]);
 
   // Rời/ẩn/đóng tab giữa chừng: báo server để phiên được giữ thêm 20 phút kể từ lúc rời đi.
   // Các câu đã trả lời đã lưu trên server; quá 20 phút server tự chốt kết quả và xóa phiên.
@@ -332,8 +419,17 @@ export function QuizPage() {
     };
   }, [sessionId, hasLoadedSession]);
 
+  // Reset trạng thái đúng một lần khi chuyển sang câu hỏi khác. Không phụ thuộc vào existingAnswer:
+  // response lưu đáp án về muộn sẽ làm effect chạy lại và đóng mất phần giải thích đang xem.
+  const initializedQuestionIdRef = useRef<string | null>(null);
   useEffect(() => {
+    if (!question || initializedQuestionIdRef.current === question.id) {
+      return;
+    }
+    initializedQuestionIdRef.current = question.id;
     setSelectedAnswer(existingAnswer?.selectedAnswer ?? null);
+    setTimedOut(false);
+    setSecondsLeft(question.timeLimitSeconds ?? 30);
     setExplanationViewed(false);
     setExplanationStepIndex(0);
     setBubblePosition(null);
@@ -341,49 +437,40 @@ export function QuizPage() {
     setFinishError("");
     setFinishingResult(false);
     finishInProgressRef.current = false;
-  }, [existingAnswer?.selectedAnswer, question?.id]);
+  }, [question, existingAnswer?.selectedAnswer]);
 
   useEffect(() => {
     correctAudioRef.current = new Audio(QUIZ_SOUNDS.correct);
     wrongAudioRef.current = new Audio(QUIZ_SOUNDS.wrong);
-    thinkingAudioRef.current = new Audio(QUIZ_SOUNDS.thinking);
-    thinkingAudioRef.current.loop = true;
-    thinkingAudioRef.current.volume = 0.18;
+    backgroundAudioRef.current = new Audio(QUIZ_SOUNDS.background);
+    backgroundAudioRef.current.loop = true;
+    backgroundAudioRef.current.volume = 0.22;
     correctAudioRef.current.volume = 0.8;
     wrongAudioRef.current.volume = 0.8;
 
     return () => {
       stopAudio(correctAudioRef.current);
       stopAudio(wrongAudioRef.current);
-      stopAudio(thinkingAudioRef.current);
+      stopAudio(backgroundAudioRef.current);
     };
   }, []);
 
+  // Nhạc nền chạy liên tục suốt lượt thi (không reset theo từng câu như trước).
   useEffect(() => {
-    const thinkingAudio = thinkingAudioRef.current;
-    if (!thinkingAudio) {
+    const backgroundAudio = backgroundAudioRef.current;
+    if (!backgroundAudio || !question) {
       return;
     }
-
-    if (selectedAnswer) {
-      stopAudio(thinkingAudio);
-      return;
-    }
-
-    thinkingAudio.currentTime = 0;
-    void thinkingAudio.play().catch(() => {
-      // Browsers may block audio until the first user interaction.
+    void backgroundAudio.play().catch(() => {
+      // Trình duyệt chặn audio cho tới khi người dùng tương tác lần đầu.
     });
-
-    return () => stopAudio(thinkingAudio);
-  }, [question?.id, selectedAnswer]);
+  }, [question?.id]);
 
   async function answerQuestion(answer: AnswerOption) {
-    if (!session || !question || selectedAnswer) {
+    if (!session || !question || selectedAnswer || timedOut) {
       return;
     }
     setSelectedAnswer(answer);
-    stopAudio(thinkingAudioRef.current);
     playAudio(answer === question.correctAnswer ? correctAudioRef.current : wrongAudioRef.current);
     try {
       const savedAnswer = await saveRemoteAnswer(sessionId, question.id, answer);
@@ -416,7 +503,11 @@ export function QuizPage() {
       setFinishError("");
       try {
         const attempt = await finishRemoteSession(sessionId);
-        navigate(`/quiz/result?attempt=${attempt.id}`, { replace: true });
+        // Mang kết quả + ngưỡng sang màn kết quả để hiển thị ngay, không cần tải lại.
+        navigate(`/quiz/result?attempt=${attempt.id}`, {
+          replace: true,
+          state: { result: { attempt, passScore } },
+        });
       } catch (error) {
         console.error("Không hoàn tất được lượt thi trên DB.", error);
         setFinishError(
@@ -432,7 +523,10 @@ export function QuizPage() {
     setExplanationViewed(false);
     setBubblePosition(null);
     setAnchorPosition(null);
-    navigate(`/quiz/questions/${questionNumber + 1}?session=${encodeURIComponent(sessionId)}`, { replace: true });
+    navigate(`/quiz/questions/${questionNumber + 1}?session=${encodeURIComponent(sessionId)}`, {
+      replace: true,
+      state: location.state,
+    });
   }
 
   function handleExplanationNext() {
@@ -526,7 +620,7 @@ export function QuizPage() {
   const hasMoreExplanationSteps = explanationStepIndex < explanationSteps.length - 1;
   const finalExplanationStep = questionNumber === questions.length && !hasMoreExplanationSteps;
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (
       !explanationViewed ||
       currentExplanationStep?.hotspotIndex === undefined ||
@@ -564,17 +658,48 @@ export function QuizPage() {
     });
   }, [currentExplanationStep, explanationViewed, scenarioHtmlWithSpotOrder]);
 
+  // Mỗi lần bấm Next sang bước giải thích kế tiếp, tự cuộn tới đúng vị trí đang được tô sáng
+  // để người làm bài không phải tự tìm. Chạy sau khi vẽ xong để bong bóng đã có kích thước thật.
+  useEffect(() => {
+    if (!explanationViewed || typeof window === "undefined") {
+      return;
+    }
+
+    const target =
+      currentExplanationStep?.hotspotIndex === undefined
+        ? inlineNoteRef.current
+        : scenarioHtmlRef.current?.querySelector<HTMLElement>(
+            `[data-spot-order="${currentExplanationStep.hotspotIndex}"]`,
+          ) ?? null;
+
+    if (!target) {
+      return;
+    }
+
+    // Thanh đồng hồ dính ở trên cùng sẽ che mất nếu cuộn điểm lên quá cao.
+    const stickyBar = document.querySelector<HTMLElement>(".quiz-sticky-bar");
+    const safeTop = (stickyBar?.getBoundingClientRect().height ?? 0) + 24;
+    // Đặt điểm ở khoảng 1/3 màn hình: vừa không bị thanh dính che, vừa còn chỗ cho
+    // bong bóng giải thích nằm ngay bên dưới.
+    const desiredTop = Math.max(safeTop, window.innerHeight * 0.3);
+    const delta = target.getBoundingClientRect().top - desiredTop;
+
+    if (Math.abs(delta) < 8) {
+      return;
+    }
+
+    window.scrollBy({
+      top: delta,
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+    });
+  }, [currentExplanationStep, explanationViewed]);
+
   if (!sessionId) {
     return <Navigate to="/quiz/start" replace />;
   }
 
   if (loadingSession) {
-    return (
-      <section className="content-card quiz-card">
-        <p className="eyebrow">Đang tải bài thi</p>
-        <h3>Hệ thống đang lấy phiên làm bài từ cơ sở dữ liệu</h3>
-      </section>
-    );
+    return <LoadingScreen label="Đang tải bài thi" />;
   }
 
   if (loadError) {
@@ -593,17 +718,40 @@ export function QuizPage() {
 
   return (
     <section className="quiz-layout">
+      {passScore > 0 && (
+        <p className="quiz-pass-requirement">
+          Kết quả đạt chính xác ít nhất <strong>{passScore}/{questions.length}</strong> câu được tính là hoàn thành
+        </p>
+      )}
       <div className="progress-bar">
         <span style={{ width: `${progress}%` }} />
       </div>
-      <div className="quiz-meta">
-        <span className="question-count-pill">
-          Câu {questionNumber}/{questions.length}
-        </span>
-        <span className="question-category-pill">Loại: {question.category}</span>
+      {/* Thanh dính ngay dưới header: người làm bài luôn thấy đồng hồ khi cuộn đọc tình huống. */}
+      <div
+        className={`quiz-sticky-bar ${timedOut ? "is-out" : ""} ${
+          !timedOut && secondsLeft <= 10 ? "is-warning" : ""
+        }`}
+      >
+        <div className="quiz-meta">
+          <span className="question-count-pill">
+            Câu {questionNumber}/{questions.length}
+          </span>
+          <span className="question-category-pill">Loại: {question.category}</span>
+        </div>
+        <div className="quiz-timer-block">
+          <div className="quiz-timer-dial">
+            <span
+              className={`quiz-timer ${timedOut ? "quiz-timer-out" : secondsLeft <= 10 ? "quiz-timer-warning" : ""}`}
+              role="timer"
+            >
+              {timedOut
+                ? "HẾT GIỜ"
+                : `${String(Math.floor(secondsLeft / 60)).padStart(2, "0")}:${String(secondsLeft % 60).padStart(2, "0")}`}
+            </span>
+          </div>
+        </div>
       </div>
       <article className="content-card quiz-card">
-        <h3>{question.title}</h3>
         <p className="section-text">{question.scenarioIntro}</p>
         <div className="scenario-box">{question.scenarioContent}</div>
         {question.scenarioHtml && (
@@ -645,7 +793,7 @@ export function QuizPage() {
                   <span className="legend-chip legend-safe">Dấu hiệu hợp lệ</span>
                 </div>
                 {!currentExplanationStep?.spot && currentExplanationStep && (
-                  <div className="inline-explanation-note">
+                  <div className="inline-explanation-note" ref={inlineNoteRef}>
                     <strong>{currentExplanationStep.title}</strong>
                     <p>{currentExplanationStep.body}</p>
                     <button
@@ -666,7 +814,7 @@ export function QuizPage() {
           <button
             type="button"
             className={`answer-button ${selectedAnswer === "phishing" ? "selected-phishing" : ""}`}
-            disabled={Boolean(selectedAnswer) || finishingResult}
+            disabled={Boolean(selectedAnswer) || timedOut || finishingResult}
             onClick={() => answerQuestion("phishing")}
           >
             Phishing
@@ -674,23 +822,28 @@ export function QuizPage() {
           <button
             type="button"
             className={`answer-button ${selectedAnswer === "legitimate" ? "selected-legitimate" : ""}`}
-            disabled={Boolean(selectedAnswer) || finishingResult}
+            disabled={Boolean(selectedAnswer) || timedOut || finishingResult}
             onClick={() => answerQuestion("legitimate")}
           >
             An toàn
           </button>
         </div>
 
-        {selectedAnswer && (
+        {(selectedAnswer || timedOut) && (
           <> 
-            <div className={`answer-feedback ${correct ? "feedback-correct" : "feedback-wrong"}`}>
+            <div
+              ref={feedbackRef}
+              className={`answer-feedback ${correct ? "feedback-correct" : "feedback-wrong"}`}
+            >
               <div className="feedback-icon">{correct ? "✓" : "!"}</div>
               <div>
-                <strong>{correct ? "Chính xác" : "Chưa chính xác"}</strong>
+                <strong>{timedOut ? "Hết giờ" : correct ? "Chính xác" : "Chưa chính xác"}</strong>
                 <p>
-                  {correct
-                    ? `Bạn đã nhận diện đúng đây là ${question.correctAnswer === "phishing" ? "phishing" : "an toàn"}.`
-                    : `Đáp án đúng là ${question.correctAnswer === "phishing" ? "phishing" : "an toàn"}.`}
+                  {timedOut
+                    ? `Câu này chưa hoàn thành nên tính là sai. Đáp án đúng là ${question.correctAnswer === "phishing" ? "phishing" : "an toàn"}. Xem giải thích để sang câu tiếp theo.`
+                    : correct
+                      ? `Bạn đã nhận diện đúng đây là ${question.correctAnswer === "phishing" ? "phishing" : "an toàn"}.`
+                      : `Đáp án đúng là ${question.correctAnswer === "phishing" ? "phishing" : "an toàn"}.`}
                 </p>
               </div>
               {!explanationViewed && (
