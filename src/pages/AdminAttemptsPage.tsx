@@ -219,6 +219,7 @@ export function AdminAttemptsPage() {
         </button>
         <span>Điểm cao hơn → thời gian ít hơn → hoàn thành sớm hơn</span>
       </div>
+      <div className="table-scroll">
       <table className="table">
         <thead>
           <tr>
@@ -269,6 +270,7 @@ export function AdminAttemptsPage() {
           )}
         </tbody>
       </table>
+      </div>
       <TablePagination
         totalItems={sortedRows.length}
         page={currentPage}

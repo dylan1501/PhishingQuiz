@@ -221,6 +221,7 @@ export function AdminParticipantsPage() {
       </div>
       {loadError && <div className="notice notice-error">{loadError}</div>}
       {notice && <div className="notice notice-success">{notice}</div>}
+      <div className="table-scroll">
       <table className="table">
         <thead>
           <tr>
@@ -298,6 +299,7 @@ export function AdminParticipantsPage() {
           )}
         </tbody>
       </table>
+      </div>
       <TablePagination
         totalItems={sortedRows.length}
         page={currentPage}

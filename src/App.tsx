@@ -58,35 +58,45 @@ function Layout() {
     document.documentElement.dataset.theme = themeMode;
   }, [themeMode]);
 
+  // Thanh admin đi kèm header trong cùng một khối sticky nên không cần bù chiều cao header.
+  const showAdminNav = adminView && !["/admin", "/admin/login"].includes(location.pathname);
+
   return (
     <div className={`app-shell ${quizTakingView ? "quiz-taking-shell" : ""} ${wideView ? "app-shell-wide" : ""}`}>
       {!quizTakingView && (
-        <header className="site-header">
-          <NavLink to="/" className="brand">
-            Phishing Quiz
-          </NavLink>
-          <div className="header-actions">
-            {!adminView && !hideSiteNav && (
-              <nav className="site-nav">
-                <NavLink to="/leaderboard">Bảng xếp hạng</NavLink>
-                <NavLink to="/quiz/start">Làm bài quiz</NavLink>
-              </nav>
-            )}
-            <button
-              type="button"
-              className={`theme-toggle theme-toggle-${themeMode}`}
-              onClick={() => setThemeMode((currentMode) => (currentMode === "dark" ? "light" : "dark"))}
-              aria-label={`Đổi sang giao diện ${themeMode === "dark" ? "Light" : "Dark"}`}
-              aria-pressed={themeMode === "light"}
-            >
-              <span className="theme-toggle-track" aria-hidden="true">
-                <span className="theme-toggle-thumb">
-                  {themeMode === "dark" ? "☾" : "☀"}
+        <div className="top-sticky">
+          <header className="site-header">
+            <NavLink to="/" className="brand">
+              Phishing Quiz
+            </NavLink>
+            <div className="header-actions">
+              {!adminView && !hideSiteNav && (
+                <nav className="site-nav">
+                  <NavLink to="/leaderboard">Bảng xếp hạng</NavLink>
+                  <NavLink to="/quiz/start">Làm bài quiz</NavLink>
+                </nav>
+              )}
+              <button
+                type="button"
+                className={`theme-toggle theme-toggle-${themeMode}`}
+                onClick={() => setThemeMode((currentMode) => (currentMode === "dark" ? "light" : "dark"))}
+                aria-label={`Đổi sang giao diện ${themeMode === "dark" ? "Light" : "Dark"}`}
+                aria-pressed={themeMode === "light"}
+              >
+                <span className="theme-toggle-track" aria-hidden="true">
+                  <span className="theme-toggle-thumb">
+                    {themeMode === "dark" ? "☾" : "☀"}
+                  </span>
                 </span>
-              </span>
-            </button>
-          </div>
-        </header>
+              </button>
+            </div>
+          </header>
+          {showAdminNav && (
+            <div className="admin-nav-layer">
+              <AdminNav />
+            </div>
+          )}
+        </div>
       )}
       <main
         className={`page-shell ${quizTakingView ? "quiz-taking-page" : ""} ${
@@ -134,16 +144,7 @@ function AdminRoute({ children }: { children: React.ReactElement }) {
   if (!authenticated) {
     return <Navigate to="/admin/login" replace />;
   }
-  return (
-    <div className="admin-layout">
-      <div className="admin-nav-layer">
-        <AdminNav />
-      </div>
-      <div className="admin-content">
-        {children}
-      </div>
-    </div>
-  );
+  return <div className="admin-content">{children}</div>;
 }
 
 export default function App() {
